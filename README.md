@@ -140,6 +140,12 @@ verfiy siganture
 
 ## Info
 
+| Wallet  | Support |
+| ----- | ------------ |
+| Hierarchical deterministic | ✔️ |
+| Threshold signature scheme | ✔️ |
+| SPV | ❌️ |
+
 | Signature  | Support |
 | ----- | ------------ |
 | ECDSA | ✔️ |
