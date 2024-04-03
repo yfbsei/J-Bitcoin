@@ -171,3 +171,4 @@ verfiy siganture
 - P2WSH
 - Transactions
 - SPV wallet
+- QR codes
