@@ -1,0 +1,45 @@
+{
+  "name": "j-bitcoin",
+  "version": "1.0.0",
+  "description": "Bitcoin Custodial & non-Custodial Wallets",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yfbsei/J-Bitcoin-wallet"
+  },
+  "type": "module",
+  "author": "yfbsei",
+  "license": "ISC",
+  "dependencies": {
+    "@noble/secp256k1": "^1.6.3",
+    "base58-js": "^1.0.4",
+    "bigint-conversion": "^2.2.2",
+    "bn.js": "^5.2.1"
+  },
+  "keywords": [
+    "Bitcoin",
+    "secp256",
+    "blockchain",
+    "elliptic",
+    "curve",
+    "Threshold signature"
+    "signature",
+    "J-BSV",
+    "BSV",
+    "BCH",
+    "BTC",
+    "Schnorr signature",
+    "bip32",
+    "bitcoin",
+    "bitcoinCash",
+    "bitcoinSV",
+    "bip",
+    "ecdsa",
+    "cryptography",
+    "security"
+  ]
+}
