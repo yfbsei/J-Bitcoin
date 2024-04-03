@@ -46,15 +46,19 @@ const wallet = Custodial_Wallet.fromMnemonic('main', mnemonic, 'password123');
 ### Derive child 
 `wallet.derive("m/0", 'pri');`
 \
+\
 Public Keys can't derive from a hardend path
 `wallet.derive("m/0'", 'pub'); // Throws Error`
 
 ### Signature - ECDSA
 `const message = "Jamallo";`
+\
 sign
+\
 `const [sig, recovery] = wallet.sign(message);`
 
-verfiy siganture
+verfiy signature
+\
 `wallet.verify(sig, message); // true`
 
 
@@ -84,11 +88,13 @@ const wallet = Non_Custodial_Wallet.fromShares("main", shares, 2);
 ### Restore private key
 `const groups_prikey = wallet._privateKey;`
 
-### Signature
+### Signature - TSS
 sign
+\
 `const { sig, serialized_sig, msgHash, recovery_id } = wallet.sign("hello world");`
 
-verfiy siganture
+verfiy signature
+\
 `wallet.verify(sig, msgHash); // true`
 
 ## Address conversion
@@ -113,17 +119,25 @@ verfiy siganture
 ```
 ## Schnorr signature
 `import { schnorr_sig } from 'j-bitcoin';`
+\
+\
 `const [private_key, message] = ["L1vHfV6GUbMJSvFaqjnButzwq5x4ThdFaotpUgsfScwMNKjdGVuS", "Jamallo"];`
-
+\
+\
 sign 
+\
 `const signature = schnorr_sig.sign(private_key, message);`
-
+\
+\
 retrieve public key
+\
 `const public_key = schnorr_sig.retrieve_public_key(private_key);`
-
+\
+\
 verfiy siganture
+\
 `schnorr_sig.verify(signature, message, public_key); // true`  
-  
+
 ## Info
 
 | Signature  | Support |
