@@ -12,8 +12,8 @@
  * @version 1.0.0
  */
 
-import { randomBytes, createHash } from 'node:crypto';
-import { secp256k1 } from '@noble/curves/secp256k1';
+import { randomBytes } from 'node:crypto';
+import { schnorr } from '@noble/curves/secp256k1';
 import { privateKey_decode } from '../utilities/decodeKeys.js';
 
 /**
@@ -83,7 +83,7 @@ const schnorr_sig = {
     sign(private_key = "L1vHfV6GUbMJSvFaqjnButzwq5x4ThdFaotpUgsfScwMNKjdGVuS", msg = "Hello world", auxRand = randomBytes(32)) {
         msg = Buffer.from(msg);
         private_key = privateKey_decode(private_key);
-        return secp256k1.schnorr.sign(msg, private_key, auxRand)
+        return schnorr.sign(msg, private_key, auxRand)
     },
 
     /**
@@ -121,7 +121,7 @@ const schnorr_sig = {
      */
     verify(sig, msg = "Hello World", public_key) {
         msg = Buffer.from(msg);
-        return secp256k1.schnorr.verify(sig, msg, public_key)
+        return schnorr.verify(sig, msg, public_key)
     },
 
     /**
@@ -157,7 +157,7 @@ const schnorr_sig = {
      */
     retrieve_public_key(private_key = "L1vHfV6GUbMJSvFaqjnButzwq5x4ThdFaotpUgsfScwMNKjdGVuS") {
         private_key = privateKey_decode(private_key);
-        return secp256k1.schnorr.getPublicKey(private_key)
+        return schnorr.getPublicKey(private_key)
     }
 }
 
