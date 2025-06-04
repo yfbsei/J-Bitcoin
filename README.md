@@ -6,7 +6,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
 [![JSDoc](https://img.shields.io/badge/JSDoc-Complete-brightgreen.svg)](https://jsdoc.app/)
 
-A comprehensive JavaScript/TypeScript cryptocurrency wallet library supporting both custodial and non-custodial wallets for Bitcoin (BTC), Bitcoin Cash (BCH), and Bitcoin SV (BSV).
+A comprehensive JavaScript/TypeScript cryptocurrency wallet library focused exclusively on Bitcoin (BTC) with both custodial and non-custodial wallet support.
 
 ## 🚀 Features
 
@@ -24,12 +24,9 @@ A comprehensive JavaScript/TypeScript cryptocurrency wallet library supporting b
 ### 🏠 Address Formats
 - **Legacy** - P2PKH addresses (1...)
 - **SegWit** - Bech32 addresses (bc1...)
-- **CashAddr** - Bitcoin Cash format
 
 ### 🌐 Network Support
 - Bitcoin (BTC) - Mainnet & Testnet
-- Bitcoin Cash (BCH) - Mainnet & Testnet  
-- Bitcoin SV (BSV) - Mainnet & Testnet
 
 ### 📝 Developer Experience
 - **Full TypeScript Support** - Complete type definitions with IntelliSense
@@ -39,7 +36,7 @@ A comprehensive JavaScript/TypeScript cryptocurrency wallet library supporting b
 
 ## 📚 Documentation
 
-[JSDoc for J-Bitcoin](https://yfbsei.github.io/J-Bitcoin/j-bitcoin/1.0.0/)
+[JSDoc for J-Bitcoin](https://yfbsei.github.io/J-Bitcoin/j-bitcoin/2.0.0/)
 
 ## 📦 Installation
 
@@ -115,7 +112,7 @@ console.log('Threshold signature:', signature.serialized_sig);
 
 **JavaScript:**
 ```javascript
-import { BECH32, CASH_ADDR } from 'j-bitcoin';
+import { BECH32 } from 'j-bitcoin';
 
 const legacyAddress = "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2";
 
@@ -123,16 +120,11 @@ const legacyAddress = "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2";
 const segwitAddr = BECH32.to_P2WPKH(legacyAddress);
 console.log('SegWit:', segwitAddr);
 // Output: bc1qhkfq3zahaqkkzx5mjnamwjsfpw3tvke7v6aaph
-
-// Convert to CashAddr
-const cashAddr = CASH_ADDR.to_cashAddr(legacyAddress, "p2pkh");
-console.log('CashAddr:', cashAddr);
-// Output: bitcoincash:qztxx64w20kmy5y9sskjwtgxp3j8dc20ksvef26ssu
 ```
 
 **TypeScript:**
 ```typescript
-import { BECH32, CASH_ADDR } from 'j-bitcoin';
+import { BECH32 } from 'j-bitcoin';
 
 const legacyAddress: string = "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2";
 
@@ -140,11 +132,6 @@ const legacyAddress: string = "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2";
 const segwitAddr: string = BECH32.to_P2WPKH(legacyAddress);
 console.log('SegWit:', segwitAddr);
 // Output: bc1qhkfq3zahaqkkzx5mjnamwjsfpw3tvke7v6aaph
-
-// Convert to CashAddr
-const cashAddr: string = CASH_ADDR.to_cashAddr(legacyAddress, "p2pkh");
-console.log('CashAddr:', cashAddr);
-// Output: bitcoincash:qztxx64w20kmy5y9sskjwtgxp3j8dc20ksvef26ssu
 ```
 
 ### Schnorr Signatures
@@ -246,16 +233,15 @@ interface ThresholdSignatureResult {
 |----------|-------------|
 | `BECH32.to_P2WPKH(address)` | Convert to SegWit |
 | `BECH32.data_to_bech32(prefix, data, encoding)` | Custom Bech32 encoding |
-| `CASH_ADDR.to_cashAddr(address, type?)` | Convert to CashAddr |
 
 ## 🔗 BIP32 Key Derivation
 
 **JavaScript:**
 ```javascript
-// Standard BIP44 paths
+// Standard BIP44 Bitcoin paths
 wallet.derive("m/44'/0'/0'/0/0");    // Bitcoin account 0, address 0
-wallet.derive("m/44'/145'/0'/0/0");  // Bitcoin Cash account 0
-wallet.derive("m/44'/236'/0'/0/0");  // Bitcoin SV account 0
+wallet.derive("m/44'/0'/0'/1/0");    // Bitcoin account 0, change address 0
+wallet.derive("m/44'/1'/0'/0/0");    // Bitcoin testnet account 0, address 0
 
 // Custom derivation
 wallet.derive("m/0'/1'/2");          // Hardened path
@@ -266,10 +252,10 @@ wallet.derive("m/0/1/2");            // Non-hardened path
 ```typescript
 import { Custodial_Wallet, KeyType } from 'j-bitcoin';
 
-// Standard BIP44 paths with type safety
-wallet.derive("m/44'/0'/0'/0/0", 'pri' as KeyType);    // Bitcoin account 0, address 0
-wallet.derive("m/44'/145'/0'/0/0", 'pri' as KeyType);  // Bitcoin Cash account 0
-wallet.derive("m/44'/236'/0'/0/0", 'pri' as KeyType);  // Bitcoin SV account 0
+// Standard BIP44 Bitcoin paths with type safety
+wallet.derive("m/44'/0'/0'/0/0", 'pri' as KeyType);    // Bitcoin mainnet receiving
+wallet.derive("m/44'/0'/0'/1/0", 'pri' as KeyType);    // Bitcoin mainnet change
+wallet.derive("m/44'/1'/0'/0/0", 'pri' as KeyType);    // Bitcoin testnet receiving
 
 // Custom derivation with type checking
 wallet.derive("m/0'/1'/2", 'pri' as KeyType);          // Hardened path
@@ -368,10 +354,10 @@ const [mnemonic, wallet] = Custodial_Wallet.fromRandom('main', 'secure-pass');
 // Reconstruct anywhere
 const restored = Custodial_Wallet.fromMnemonic('main', mnemonic, 'secure-pass');
 
-// Derive for different coins
-restored.derive("m/44'/0'/0'/0/0");   // Bitcoin
-restored.derive("m/44'/145'/0'/0/0"); // Bitcoin Cash
-restored.derive("m/44'/236'/0'/0/0"); // Bitcoin SV
+// Derive Bitcoin addresses
+restored.derive("m/44'/0'/0'/0/0");   // Bitcoin receiving
+restored.derive("m/44'/0'/0'/1/0");   // Bitcoin change
+restored.derive("m/44'/1'/0'/0/0");   // Bitcoin testnet
 ```
 
 **TypeScript:**
@@ -389,25 +375,24 @@ const [mnemonic, wallet]: [string, Custodial_Wallet] =
 const restored: Custodial_Wallet = 
   Custodial_Wallet.fromMnemonic(network, mnemonic, 'secure-pass');
 
-// Derive for different coins
-restored.derive("m/44'/0'/0'/0/0");   // Bitcoin
-restored.derive("m/44'/145'/0'/0/0"); // Bitcoin Cash
-restored.derive("m/44'/236'/0'/0/0"); // Bitcoin SV
+// Derive Bitcoin addresses
+restored.derive("m/44'/0'/0'/0/0");   // Bitcoin receiving
+restored.derive("m/44'/0'/0'/1/0");   // Bitcoin change
+restored.derive("m/44'/1'/0'/0/0");   // Bitcoin testnet
 ```
 
 ## 📊 Feature Matrix
 
 | Feature | Support | TypeScript |
 |---------|---------|-------------|
-| Hierarchical Deterministic | ✅ | ✅ Full types |
+| Bitcoin HD Wallets | ✅ | ✅ Full types |
 | Threshold Signatures | ✅ | ✅ Complete interfaces |
 | ECDSA Signatures | ✅ | ✅ Type-safe returns |
 | Schnorr Signatures | ✅ | ✅ BIP340 types |
-| P2PKH Addresses | ✅ | ✅ Network types |
-| P2WPKH (SegWit) | ✅ | ✅ Bech32 types |
-| CashAddr Format | ✅ | ✅ Format types |
+| Legacy P2PKH | ✅ | ✅ Network types |
+| SegWit P2WPKH | ✅ | ✅ Bech32 types |
 | P2SH Addresses | ❌ | 🔄 Planned |
-| P2WSH (SegWit v1) | ❌ | 🔄 Planned |
+| P2WSH SegWit | ❌ | 🔄 Planned |
 | Transaction Building | ❌ | 🔄 Planned |
 | SPV Validation | ❌ | 🔄 Planned |
 
@@ -567,7 +552,6 @@ ISC License - see [LICENSE](LICENSE) file for details.
 - **Extensible Design**: Easy to extend with new algorithms
 - **Reference Implementation**: Well-documented algorithms for study
 - **Open Source**: Transparent implementation for peer review
-
 ---
 
 **⚠️ Security Notice**: This library handles private keys and should be used with appropriate security measures. Always verify implementations in test environments before production use.

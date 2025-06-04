@@ -5,10 +5,12 @@
  * for encoding Bitcoin SegWit addresses. It supports P2WPKH (Pay to Witness PubKey Hash)
  * address generation and arbitrary data encoding with customizable prefixes.
  * 
+ * Version 2.0.0+ focuses exclusively on Bitcoin address conversion and encoding.
+ * 
  * @see {@link https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki|BIP173 - Base32 address format for native v0-16 witness outputs}
  * @see {@link https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki|BIP350 - Bech32m format for v1+ witness addresses}
  * @author yfbsei
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 import { decode_legacy_address, convertBits, checksum_5bit } from '../../utilities/addressHelpers.js';

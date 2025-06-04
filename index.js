@@ -1,12 +1,15 @@
 /**
  * @fileoverview Main entry point for J-Bitcoin cryptocurrency library
  * 
- * J-Bitcoin is a comprehensive JavaScript library for Bitcoin 
- * that provides both custodial and non-custodial wallet functionality with advanced
- * cryptographic features including threshold signatures and hierarchical deterministic keys.
+ * J-Bitcoin is a comprehensive JavaScript library for Bitcoin that provides both 
+ * custodial and non-custodial wallet functionality with advanced cryptographic 
+ * features including threshold signatures and hierarchical deterministic keys.
+ * 
+ * Version 2.0.0+ focuses exclusively on Bitcoin (BTC), providing optimal 
+ * performance and security for Bitcoin-only applications.
  * 
  * @author yfbsei
- * @version 1.0.0
+ * @version 2.0.0
  * @license ISC
  * 
  * @example
@@ -14,7 +17,7 @@
  * import { Custodial_Wallet, Non_Custodial_Wallet } from 'j-bitcoin';
  * 
  * // Import address utilities
- * import { CASH_ADDR, BECH32 } from 'j-bitcoin';
+ * import { BECH32 } from 'j-bitcoin';
  * 
  * // Import signature utilities  
  * import { schnorr_sig, ecdsa } from 'j-bitcoin';
@@ -44,15 +47,27 @@ import b58encode from './src/utilities/base58.js';
 import { hdKey, standardKey, address } from './src/utilities/encodeKeys.js';
 import rmd160 from './src/utilities/rmd160.js';
 
-// Alternative address format support
-import CASH_ADDR from './src/altAddress/BCH/cash_addr.js';
-import BECH32 from './src/altAddress/BTC/bech32.js';
+// Bitcoin address format support
+import BECH32 from './src/Address-conversion/BTC/bech32.js';
 
 // Advanced signature schemes
 import schnorr_sig from './src/Schnorr-signature/Schnorr_Signature.js';
 
 // Key decoding utilities
 import { privateKey_decode, legacyAddress_decode } from './src/utilities/decodeKeys.js';
+
+// Bitcoin-specific constants and utilities
+import {
+    BIP44_CONSTANTS,
+    DERIVATION_PATHS,
+    NETWORKS as BITCOIN_NETWORKS,
+    ADDRESS_FORMATS,
+    BIP_PURPOSES,
+    generateDerivationPath,
+    parseDerivationPath,
+    isValidBitcoinPath,
+    getNetworkByCoinType
+} from './src/utilities/constants.js';
 
 /**
  * Main wallet classes for Bitcoin cryptocurrency operations
@@ -208,7 +223,7 @@ export { address };
 export { rmd160 };
 
 /**
- * Alternative address format support
+ * Bitcoin address format support
  * @namespace AddressFormats
  */
 
@@ -245,6 +260,71 @@ export { privateKey_decode };
  * @returns {Uint8Array} Hash160 bytes
  */
 export { legacyAddress_decode };
+
+/**
+ * Bitcoin-specific constants and utilities
+ * @namespace BitcoinConstants
+ */
+
+/**
+ * BIP44 derivation path constants
+ * @memberof BitcoinConstants
+ * @see {@link BIP44_CONSTANTS}
+ */
+export { BIP44_CONSTANTS };
+
+/**
+ * Standard Bitcoin derivation paths
+ * @memberof BitcoinConstants
+ * @see {@link DERIVATION_PATHS}
+ */
+export { DERIVATION_PATHS };
+
+/**
+ * Bitcoin network configurations
+ * @memberof BitcoinConstants
+ */
+export { BITCOIN_NETWORKS };
+
+/**
+ * Address format identifiers
+ * @memberof BitcoinConstants
+ */
+export { ADDRESS_FORMATS };
+
+/**
+ * BIP purpose constants for different address types
+ * @memberof BitcoinConstants
+ */
+export { BIP_PURPOSES };
+
+/**
+ * Generate a BIP44 derivation path
+ * @memberof BitcoinConstants
+ * @function
+ */
+export { generateDerivationPath };
+
+/**
+ * Parse a derivation path into components
+ * @memberof BitcoinConstants
+ * @function
+ */
+export { parseDerivationPath };
+
+/**
+ * Validate if a path is valid for Bitcoin
+ * @memberof BitcoinConstants
+ * @function
+ */
+export { isValidBitcoinPath };
+
+/**
+ * Get network configuration by coin type
+ * @memberof BitcoinConstants
+ * @function
+ */
+export { getNetworkByCoinType };
 
 /**
  * @typedef {Object} WalletKeyPair

@@ -1,7 +1,7 @@
 {
   "name": "j-bitcoin",
-  "version": "1.0.2",
-  "description": "Comprehensive JavaScript cryptocurrency wallet library for Bitcoin (BTC) with custodial and non-custodial wallet support, threshold signatures, and multiple address formats",
+  "version": "2.0.0",
+  "description": "Comprehensive JavaScript cryptocurrency wallet library for Bitcoin (BTC) with custodial and non-custodial wallet support, hierarchical deterministic keys, and threshold signatures",
   "main": "index.js",
   "types": "index.d.ts",
   "exports": {
@@ -84,6 +84,7 @@
   },
   "keywords": [
     "bitcoin",
+    "btc",
     "cryptocurrency",
     "wallet",
     "blockchain",
@@ -101,10 +102,8 @@
     "secp256k1",
     "elliptic-curve",
     "cryptography",
-    "btc",
     "segwit",
     "bech32",
-    "cashaddr",
     "p2pkh",
     "p2wpkh",
     "base58",

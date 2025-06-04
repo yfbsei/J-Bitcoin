@@ -1,10 +1,11 @@
 /**
  * J-Bitcoin - Comprehensive TypeScript definitions
  * 
- * Complete type definitions for Bitcoin
- * cryptocurrency wallet library with custodial and non-custodial support.
+ * Complete type definitions for Bitcoin cryptocurrency wallet library 
+ * with custodial and non-custodial support. Version 2.0.0+ focuses 
+ * exclusively on Bitcoin (BTC) for optimal performance and security.
  * 
- * @version 1.0.0
+ * @version 2.0.0
  * @author yfbsei
  */
 
@@ -13,17 +14,134 @@ declare module 'j-bitcoin' {
     // CORE TYPES AND INTERFACES
     // ============================================================================
 
-    /** Network type for Bitcoin-based cryptocurrencies */
+    /** Network type for Bitcoin */
     type NetworkType = 'main' | 'test';
 
     /** Key derivation type for BIP32 hierarchical deterministic wallets */
     type KeyType = 'pri' | 'pub';
 
     /** Address type for different Bitcoin script formats */
-    type AddressType = 'p2pkh' | 'p2sh';
+    type AddressType = 'p2pkh' | 'p2sh' | 'p2wpkh';
 
     /** Bech32 encoding type for SegWit addresses */
     type Bech32Encoding = 'bech32' | 'bech32m';
+
+    /** BIP purpose numbers for different address types */
+    type BIPPurpose = 44 | 49 | 84 | 86;
+
+    // ============================================================================
+    // BITCOIN CONSTANTS
+    // ============================================================================
+
+    /** BIP44 derivation path constants */
+    export const BIP44_CONSTANTS: {
+        PURPOSE: 44;
+        COIN_TYPES: {
+            BITCOIN_MAINNET: 0;
+            BITCOIN_TESTNET: 1;
+        };
+        ACCOUNT: 0;
+        CHANGE: {
+            EXTERNAL: 0;
+            INTERNAL: 1;
+        };
+    };
+
+    /** Standard Bitcoin derivation paths */
+    export const DERIVATION_PATHS: {
+        BITCOIN_LEGACY: "m/44'/0'/0'";
+        BITCOIN_TESTNET: "m/44'/1'/0'";
+        BITCOIN_RECEIVING: "m/44'/0'/0'/0";
+        BITCOIN_CHANGE: "m/44'/0'/0'/1";
+        BITCOIN_FIRST_ADDRESS: "m/44'/0'/0'/0/0";
+        BITCOIN_FIRST_CHANGE: "m/44'/0'/0'/1/0";
+        TESTNET_RECEIVING: "m/44'/1'/0'/0";
+        TESTNET_CHANGE: "m/44'/1'/0'/1";
+    };
+
+    /** Bitcoin network configurations */
+    export const BITCOIN_NETWORKS: {
+        MAINNET: {
+            name: 'Bitcoin';
+            symbol: 'BTC';
+            coinType: 0;
+            addressPrefix: 'bc';
+            legacyPrefix: '1';
+            p2shPrefix: '3';
+            network: 'main';
+        };
+        TESTNET: {
+            name: 'Bitcoin Testnet';
+            symbol: 'BTC';
+            coinType: 1;
+            addressPrefix: 'tb';
+            legacyPrefix: 'm';
+            legacyPrefixAlt: 'n';
+            p2shPrefix: '2';
+            network: 'test';
+        };
+    };
+
+    /** Address format identifiers */
+    export const ADDRESS_FORMATS: {
+        LEGACY: 'legacy';
+        SEGWIT: 'segwit';
+        P2SH: 'p2sh';
+    };
+
+    /** BIP purposes for different address types */
+    export const BIP_PURPOSES: {
+        LEGACY: 44;
+        NESTED_SEGWIT: 49;
+        NATIVE_SEGWIT: 84;
+        TAPROOT: 86;
+    };
+
+    /** Derivation path generation options */
+    interface DerivationPathOptions {
+        purpose?: BIPPurpose;
+        coinType?: 0 | 1;
+        account?: number;
+        change?: 0 | 1;
+        addressIndex?: number;
+    }
+
+    /** Parsed derivation path components */
+    interface ParsedDerivationPath {
+        purpose: number;
+        coinType: number;
+        account: number;
+        change: number;
+        addressIndex: number;
+    }
+
+    /**
+     * Generate a BIP44 derivation path for Bitcoin
+     * @param options Path generation options
+     * @returns Complete BIP44 derivation path
+     */
+    export function generateDerivationPath(options?: DerivationPathOptions): string;
+
+    /**
+     * Parse a derivation path into its components
+     * @param path BIP44 derivation path to parse
+     * @returns Parsed path components
+     */
+    export function parseDerivationPath(path: string): ParsedDerivationPath;
+
+    /**
+     * Validate if a derivation path is valid for Bitcoin
+     * @param path Derivation path to validate
+     * @returns True if path is valid for Bitcoin
+     */
+    export function isValidBitcoinPath(path: string): boolean;
+
+    /**
+     * Get network configuration by coin type
+     * @param coinType BIP44 coin type (0 or 1)
+     * @returns Network configuration
+     */
+    export function getNetworkByCoinType(coinType: 0 | 1): typeof BITCOIN_NETWORKS.MAINNET | typeof BITCOIN_NETWORKS.TESTNET;
 
     // ============================================================================
     // WALLET INTERFACES
@@ -146,7 +264,7 @@ declare module 'j-bitcoin' {
 
         /**
          * Derives a child key from the current wallet using BIP32 derivation path
-         * @param path BIP32 derivation path (e.g., "m/0'/1/2")
+         * @param path BIP32 derivation path (e.g., "m/44'/0'/0'/0/0")
          * @param keyType Key type to derive ('pri' for private, 'pub' for public)
          * @returns Returns this wallet instance for method chaining
          * @throws Error if trying to derive hardened path from public key
