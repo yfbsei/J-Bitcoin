@@ -1,0 +1,1654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Namespace: CASH_ADDR</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Namespace: CASH_ADDR</h1>
+
+    
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>CASH_ADDR</h2>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+            <div class="description"><p>Bitcoin Cash CashAddr address format utilities</p>
+<p>Provides comprehensive support for converting legacy Bitcoin addresses
+to the CashAddr format used by Bitcoin Cash. Features include:</p>
+<ul>
+<li>Legacy address decoding and validation</li>
+<li>Network prefix determination (bitcoincash/bchtest)</li>
+<li>Polynomial checksum generation and validation</li>
+<li>Base32 encoding with custom alphabet</li>
+<li>Support for both P2PKH and P2SH address types</li>
+</ul></div>
+        
+
+        
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_altAddress_BCH_cash_addr.js.html">src/altAddress/BCH/cash_addr.js</a>, <a href="src_altAddress_BCH_cash_addr.js.html#line24">line 24</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+        
+            <h3>Example</h3>
+            
+    <pre class="prettyprint"><code>// Convert legacy address to CashAddr formatconst legacy = "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2";const cashAddr = CASH_ADDR.to_cashAddr(legacy, "p2pkh");// Returns: "bitcoincash:qztxx64w20kmy5y9sskjwtgxp3j8dc20ksvef26ssu"// Convert testnet addressconst testLegacy = "mgRpP3zP1hmxyoeYJgfbcmN3c2Qsurw48D";const testCashAddr = CASH_ADDR.to_cashAddr(testLegacy, "p2pkh");// Returns: "bchtest:qqyl7uye7t0rjq6vrtqjedcyudy8hj0rzvnwwa5c5g"</code></pre>
+
+        
+    
+    </div>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+        <h3 class="subsection-title">Methods</h3>
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id=".checksum_5bit"><span class="type-signature">(static) </span>checksum_5bit<span class="signature">(checksum<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Uint8Array}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Converts a numeric checksum to 5-bit representation for Base32 encoding</p>
+<p>Takes a 40-bit checksum value and converts it to an array of eight 5-bit values
+for inclusion in the final CashAddr string. The conversion extracts 5 bits
+at a time from least significant to most significant.</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>checksum</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    19310
+                
+                </td>
+            
+
+            <td class="description last"><p>40-bit checksum value to convert</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_altAddress_BCH_cash_addr.js.html">src/altAddress/BCH/cash_addr.js</a>, <a href="src_altAddress_BCH_cash_addr.js.html#line304">line 304</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>Array of 8 values, each containing 5 bits</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Uint8Array</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>const checksum = 0x1234567890; // Example 40-bit checksumconst fiveBitChecksum = CASH_ADDR.checksum_5bit(checksum);// Returns: [16, 18, 6, 22, 15, 4, 18, 0] (8 five-bit values)// The values can be directly used with Base32 encodingconst checksumString = base32_encode(fiveBitChecksum);</code></pre>
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id=".convertBits"><span class="type-signature">(static) </span>convertBits<span class="signature">(data, from, to)</span><span class="type-signature"> &rarr; {Uint8Array}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Converts data between different bit-width representations</p>
+<p>Performs bit-packing conversion between arbitrary bit widths, commonly
+used to convert from 8-bit bytes to 5-bit groups for Base32 encoding.
+The conversion handles padding and ensures no data loss.</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>data</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Uint8Array</span>
+|
+
+<span class="param-type">Buffer</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Input data to convert</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>from</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Source bit width (e.g., 8 for bytes)</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>to</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Target bit width (e.g., 5 for Base32)</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_altAddress_BCH_cash_addr.js.html">src/altAddress/BCH/cash_addr.js</a>, <a href="src_altAddress_BCH_cash_addr.js.html#line256">line 256</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>Converted data in target bit width</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Uint8Array</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>// Convert bytes to 5-bit groups for Base32const bytes = new Uint8Array([0xFF, 0x80, 0x00]);const fiveBit = CASH_ADDR.convertBits(bytes, 8, 5);// Returns: [31, 30, 0, 0, 0] (0xFF80 in 5-bit groups)// Convert back from 5-bit to 8-bitconst backToBytes = CASH_ADDR.convertBits(fiveBit, 5, 8);</code></pre>
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id=".decode_legacy_address"><span class="type-signature">(static) </span>decode_legacy_address<span class="signature">(legacy_addr<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {<a href="global.html#DecodedAddress">DecodedAddress</a>}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Decodes a legacy Base58Check address to extract network and hash information</p>
+<p>Validates the address format and extracts:</p>
+<ul>
+<li>Network type from version byte (0x00 = mainnet, 0x6f = testnet)</li>
+<li>Hash160 value (20 bytes) from the address payload</li>
+<li>Checksum validation through Base58Check decoding</li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>legacy_addr</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    ""
+                
+                </td>
+            
+
+            <td class="description last"><p>Legacy address to decode</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_altAddress_BCH_cash_addr.js.html">src/altAddress/BCH/cash_addr.js</a>, <a href="src_altAddress_BCH_cash_addr.js.html#line119">line 119</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Throws:</h5>
+
+        
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If address format is invalid or unsupported</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+
+    
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>Tuple of [network prefix, hex-encoded hash]</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="global.html#DecodedAddress">DecodedAddress</a></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>// Decode mainnet addressconst [prefix, hash] = CASH_ADDR.decode_legacy_address("1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2");// Returns: ["bitcoincash", "76a04053bda0a88bda5177b86a15c3b29f559873"]// Decode testnet addressconst [testPrefix, testHash] = CASH_ADDR.decode_legacy_address("mgRpP3zP1hmxyoeYJgfbcmN3c2Qsurw48D");// Returns: ["bchtest", "0e7c6e0e0b2c07d6a7b5b8b4d8b5b8b4d8b5b8b4"]</code></pre>
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id=".polymod"><span class="type-signature">(static) </span>polymod<span class="signature">(v)</span><span class="type-signature"> &rarr; {number}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Computes CashAddr polynomial checksum using the generator polynomial</p>
+<p>Implements the CashAddr checksum algorithm with a 40-bit generator polynomial.
+The algorithm processes 5-bit values and maintains a 40-bit state, applying
+the generator when specific bits are set.</p>
+<p>Generator constants:</p>
+<ul>
+<li>0x98f2bc8e61, 0x79b76d99e2, 0xf33e5fb3c4, 0xae2eabe2a8, 0x1e4f43e470</li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>v</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Buffer</span>
+|
+
+<span class="param-type">Uint8Array</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Array of 5-bit values to process</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_altAddress_BCH_cash_addr.js.html">src/altAddress/BCH/cash_addr.js</a>, <a href="src_altAddress_BCH_cash_addr.js.html#line156">line 156</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+    <dt class="tag-see">See:</dt>
+    <dd class="tag-see">
+        <ul>
+            <li><a href="https://reference.cash/protocol/blockchain/encoding/cashaddr">CashAddr Checksum Algorithm</a></li>
+        </ul>
+    </dd>
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>40-bit polynomial checksum result</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">number</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>const data = Buffer.from([1, 2, 3, 4, 5]); // 5-bit valuesconst checksum = CASH_ADDR.polymod(data);console.log(checksum.toString(16)); // Hex representation</code></pre>
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id=".prefix_5bit"><span class="type-signature">(static) </span>prefix_5bit<span class="signature">(prefix<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Uint8Array}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Converts network prefix string to 5-bit representation</p>
+<p>Extracts the lower 5 bits of each character in the prefix for use
+in checksum calculation. This ensures the network prefix is properly
+incorporated into the address validation.</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>prefix</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    'bitcoincash'
+                
+                </td>
+            
+
+            <td class="description last"><p>Network prefix to convert</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_altAddress_BCH_cash_addr.js.html">src/altAddress/BCH/cash_addr.js</a>, <a href="src_altAddress_BCH_cash_addr.js.html#line232">line 232</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>Array of 5-bit values representing the prefix</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Uint8Array</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>const prefix5bit = CASH_ADDR.prefix_5bit('bitcoincash');// Returns array of lower 5 bits: [2, 9, 20, 3, 15, 9, 14, 3, 1, 19, 8]const testPrefix = CASH_ADDR.prefix_5bit('bchtest');// Returns array: [2, 3, 8, 20, 5, 19, 20]</code></pre>
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id=".to_cashAddr"><span class="type-signature">(static) </span>to_cashAddr<span class="signature">(legacy_address<span class="signature-attributes">opt</span>, type<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {string}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Converts a legacy Bitcoin address to CashAddr format</p>
+<p>The conversion process:</p>
+<ol>
+<li>Decodes the legacy Base58Check address to extract hash and network</li>
+<li>Prepends version byte based on address type and hash length</li>
+<li>Converts from 8-bit to 5-bit representation for Base32 encoding</li>
+<li>Computes CashAddr checksum using polynomial algorithm</li>
+<li>Combines all components into final CashAddr format</li>
+</ol>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>legacy_address</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    ""
+                
+                </td>
+            
+
+            <td class="description last"><p>Legacy Base58Check address to convert</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>type</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    "p2pkh"
+                
+                </td>
+            
+
+            <td class="description last"><p>Address type: &quot;p2pkh&quot; or &quot;p2sh&quot;</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_altAddress_BCH_cash_addr.js.html">src/altAddress/BCH/cash_addr.js</a>, <a href="src_altAddress_BCH_cash_addr.js.html#line72">line 72</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Throws:</h5>
+
+        
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If legacy address is invalid or unsupported</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+
+    
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>CashAddr formatted address with network prefix</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">string</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>// Convert P2PKH addressconst p2pkh = CASH_ADDR.to_cashAddr("1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2", "p2pkh");// Returns: "bitcoincash:qztxx64w20kmy5y9sskjwtgxp3j8dc20ksvef26ssu"// Convert P2SH addressconst p2sh = CASH_ADDR.to_cashAddr("3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy", "p2sh");// Returns: "bitcoincash:pztxx64w20kmy5y9sskjwtgxp3j8dc20ksvef26ssu"</code></pre>
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id=".versionByte"><span class="type-signature">(static) </span>versionByte<span class="signature">(type<span class="signature-attributes">opt</span>, hash)</span><span class="type-signature"> &rarr; {Buffer}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Generates version byte for CashAddr encoding based on address type and hash size</p>
+<p>The version byte encodes both the address type and hash length:</p>
+<ul>
+<li>Bits 3-7: Hash size bits (mapping hash length to predefined values)</li>
+<li>Bits 0-2: Type bits (0 for P2PKH, 8 for P2SH)</li>
+</ul>
+<p>Supported hash sizes: 160, 192, 224, 256, 320, 384, 448, 512 bits</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>type</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    "p2pkh"
+                
+                </td>
+            
+
+            <td class="description last"><p>Address type: &quot;p2pkh&quot; or &quot;p2sh&quot;</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>hash</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Buffer</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last"><p>Hash buffer to determine size</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_altAddress_BCH_cash_addr.js.html">src/altAddress/BCH/cash_addr.js</a>, <a href="src_altAddress_BCH_cash_addr.js.html#line195">line 195</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Throws:</h5>
+
+        
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If hash size is unsupported or type is invalid</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+
+    
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>Single-byte buffer containing version information</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Buffer</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>const hash160 = Buffer.alloc(20); // 160-bit hashconst versionByte = CASH_ADDR.versionByte("p2pkh", hash160);console.log(versionByte[0]); // 0 (P2PKH with 160-bit hash)const versionP2SH = CASH_ADDR.versionByte("p2sh", hash160);console.log(versionP2SH[0]); // 8 (P2SH with 160-bit hash)</code></pre>
+
+
+
+        
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="AddressFormats.html">AddressFormats</a></li><li><a href="BECH32.html">BECH32</a></li><li><a href="BIP32.html">BIP32</a></li><li><a href="BIP39.html">BIP39</a></li><li><a href="CASH_ADDR.html">CASH_ADDR</a></li><li><a href="ECDSA.html">ECDSA</a></li><li><a href="KeyDecoding.html">KeyDecoding</a></li><li><a href="Signatures.html">Signatures</a></li><li><a href="ThresholdCrypto.html">ThresholdCrypto</a></li><li><a href="Utilities.html">Utilities</a></li><li><a href="Wallets.html">Wallets</a></li><li><a href="schnorr_sig.html">schnorr_sig</a></li></ul><h3>Classes</h3><ul><li><a href="Custodial_Wallet.html">Custodial_Wallet</a></li><li><a href="Non_Custodial_Wallet.html">Non_Custodial_Wallet</a></li><li><a href="Polynomial.html">Polynomial</a></li><li><a href="ThresholdSignature.html">ThresholdSignature</a></li></ul><h3>Global</h3><ul><li><a href="global.html#CHARSET">CHARSET</a></li><li><a href="global.html#FEATURES">FEATURES</a></li><li><a href="global.html#NETWORKS">NETWORKS</a></li><li><a href="global.html#address">address</a></li><li><a href="global.html#b58encode">b58encode</a></li><li><a href="global.html#base32_encode">base32_encode</a></li><li><a href="global.html#derive">derive</a></li><li><a href="global.html#fromSeed">fromSeed</a></li><li><a href="global.html#hdKey">hdKey</a></li><li><a href="global.html#legacyAddress_decode">legacyAddress_decode</a></li><li><a href="global.html#privateKey_decode">privateKey_decode</a></li><li><a href="global.html#rmd160">rmd160</a></li><li><a href="global.html#standardKey">standardKey</a></li><li><a href="global.html#table">table</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Wed Jun 04 2025 02:28:50 GMT-0400 (Eastern Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

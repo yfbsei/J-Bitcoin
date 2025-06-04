@@ -1,0 +1,5235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Class: Custodial_Wallet</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Class: Custodial_Wallet</h1>
+
+    
+
+
+
+
+<section>
+
+<header>
+    
+        <h2><span class="attribs"><span class="type-signature"></span></span>Custodial_Wallet<span class="signature">()</span><span class="type-signature"></span></h2>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+
+    
+
+    
+    <h4 class="name" id="Custodial_Wallet"><span class="type-signature"></span>new Custodial_Wallet<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Custodial wallet implementation supporting hierarchical deterministic key derivation
+and standard ECDSA signatures. Suitable for single-party control scenarios.</p>
+<p>This class provides traditional Bitcoin wallet functionality with full control over
+private keys. It implements BIP32 hierarchical deterministic key derivation, allowing
+generation of unlimited child keys from a single seed. Perfect for individual users,
+mobile wallets, and applications requiring straightforward key management.</p>
+<p><strong>Key Features:</strong></p>
+<ul>
+<li>BIP32 hierarchical deterministic key derivation</li>
+<li>BIP39 mnemonic phrase support for backup and recovery</li>
+<li>Standard ECDSA signature generation and verification</li>
+<li>Support for Bitcoin mainnet and testnet</li>
+<li>Child key derivation with configurable paths</li>
+<li>Address generation for receiving payments</li>
+</ul>
+<p><strong>Security Model:</strong></p>
+<ul>
+<li>Single point of control (private key holder has full access)</li>
+<li>Suitable for individual users and trusted environments</li>
+<li>Mnemonic phrases enable secure backup and recovery</li>
+<li>Child keys provide address privacy without exposing master key</li>
+</ul>
+<p><strong>Use Cases:</strong></p>
+<ul>
+<li>Personal Bitcoin wallets</li>
+<li>Mobile wallet applications</li>
+<li>Desktop wallet software</li>
+<li>Simple payment processing systems</li>
+<li>Development and testing environments</li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+    <dt class="tag-since">Since:</dt>
+    <dd class="tag-since"><ul class="dummy"><li>1.0.0</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line121">line 121</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Examples</h5>
+    
+    <pre class="prettyprint"><code>// Generate a new random walletconst [mnemonic, wallet] = Custodial_Wallet.fromRandom('main');console.log('Mnemonic:', mnemonic);console.log('Address:', wallet.address);</code></pre>
+
+    <pre class="prettyprint"><code>// Import from existing mnemonicconst mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";const wallet = Custodial_Wallet.fromMnemonic('main', mnemonic, 'password');console.log('Imported address:', wallet.address);</code></pre>
+
+    <pre class="prettyprint"><code>// Derive child keys for different purposesconst wallet = Custodial_Wallet.fromRandom('main')[1];// BIP44 Bitcoin receiving addresseswallet.derive("m/44'/0'/0'/0/0", 'pri'); // First receiving addresswallet.derive("m/44'/0'/0'/0/1", 'pri'); // Second receiving address// BIP44 Bitcoin change addresses  wallet.derive("m/44'/0'/0'/1/0", 'pri'); // First change addressconsole.log('Child keys:', Array.from(wallet.child_keys));</code></pre>
+
+    <pre class="prettyprint"><code>// Sign and verify messagesconst wallet = Custodial_Wallet.fromRandom('main')[1];const message = "Hello Bitcoin!";// Sign messageconst [signature, recoveryId] = wallet.sign(message);// Verify signatureconst isValid = wallet.verify(signature, message);console.log('Signature valid:', isValid); // true</code></pre>
+
+
+
+    
+    </div>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+        <h3 class="subsection-title">Members</h3>
+
+        
+            
+<h4 class="name" id=".this.address"><span class="type-signature">(static, readonly) </span>this.address<span class="type-signature"> :string</span></h4>
+
+
+
+
+<div class="description">
+    <p>Bitcoin address for this wallet, derived from the master public key.
+Used for receiving payments and identifying the wallet on the blockchain.
+Format depends on network (1... for mainnet, m/n... for testnet).</p>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">string</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line282">line 282</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>console.log(wallet.address); // "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2"</code></pre>
+
+
+
+        
+            
+<h4 class="name" id=".this.child_keys"><span class="type-signature">(static) </span>this.child_keys<span class="type-signature"> :Set.&lt;<a href="global.html#ChildKeyInfo">ChildKeyInfo</a>></span></h4>
+
+
+
+
+<div class="description">
+    <p>Set of derived child keys from this wallet.
+Contains information about all child keys derived using the derive() method.
+Each entry includes depth, index, keys, and address information.</p>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Set.&lt;<a href="global.html#ChildKeyInfo">ChildKeyInfo</a>></span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line300">line 300</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>wallet.derive("m/0'/1", 'pri');console.log(wallet.child_keys.size); // 1for (const childKey of wallet.child_keys) {  console.log('Child address:', childKey.address);  console.log('Derivation depth:', childKey.depth);}</code></pre>
+
+
+
+        
+            
+<h4 class="name" id=".this.hdKey"><span class="type-signature">(static, readonly) </span>this.hdKey<span class="type-signature"> :<a href="global.html#HDKeys">HDKeys</a></span></h4>
+
+
+
+
+<div class="description">
+    <p>Hierarchical deterministic key pair for this wallet.
+Contains both extended private and public keys in standard BIP32 format.
+Used for deriving child keys and maintaining the HD wallet structure.</p>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type"><a href="global.html#HDKeys">HDKeys</a></span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line255">line 255</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>console.log(wallet.hdKey.HDpri); // "xprv9s21ZrQH143K..."console.log(wallet.hdKey.HDpub); // "xpub661MyMwAqRbcF..."</code></pre>
+
+
+
+        
+            
+<h4 class="name" id=".this.keypair"><span class="type-signature">(static, readonly) </span>this.keypair<span class="type-signature"> :<a href="global.html#KeyPair">KeyPair</a></span></h4>
+
+
+
+
+<div class="description">
+    <p>Standard key pair for direct cryptographic operations.
+Contains WIF-encoded private key and hex-encoded compressed public key.
+Used for signing transactions and generating addresses.</p>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type"><a href="global.html#KeyPair">KeyPair</a></span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line269">line 269</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>console.log(wallet.keypair.pri); // "L5HgWvFghocq1FmxSjKNaGhVN8f67p6xYg5pY7M8FE77HXwHtGGu"console.log(wallet.keypair.pub); // "0339a36013301597daef41fbe593a02cc513d0b55527ec2df1050e2e8ff49c85c2"</code></pre>
+
+
+
+        
+            
+<h4 class="name" id=".this.net"><span class="type-signature">(static, readonly) </span>this.net<span class="type-signature"> :string</span></h4>
+
+
+
+
+<div class="description">
+    <p>Network type for this wallet instance.
+Determines address formats, version bytes, and network-specific parameters.</p>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">string</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line241">line 241</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>console.log(wallet.net); // "main" or "test"</code></pre>
+
+
+
+        
+    
+
+    
+        <h3 class="subsection-title">Methods</h3>
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="derive"><span class="type-signature"></span>derive<span class="signature">(path<span class="signature-attributes">opt</span>, keyType<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {<a href="Custodial_Wallet.html">Custodial_Wallet</a>}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Derives a child key from the current wallet using BIP32 hierarchical deterministic path.</p>
+<p>This method implements BIP32 child key derivation, allowing generation of child keys
+from the master key or any previously derived key. It supports both hardened and
+non-hardened derivation paths, with automatic path parsing and validation.</p>
+<p><strong>Derivation Types:</strong></p>
+<ul>
+<li><strong>Hardened derivation</strong> (index ≥ 2³¹, marked with '): Requires private key,
+provides security isolation between parent and child</li>
+<li><strong>Non-hardened derivation</strong> (index &lt; 2³¹): Can derive from public key only,
+enables watch-only wallets but allows parent key compromise from child + chain code</li>
+</ul>
+<p><strong>Path Format:</strong></p>
+<ul>
+<li>Standard BIP32 notation: &quot;m/44'/0'/0'/0/0&quot;</li>
+<li>m = master key</li>
+<li>Numbers = derivation indices</li>
+<li>' (apostrophe) = hardened derivation (adds 2³¹ to index)</li>
+<li>/ = path separator</li>
+</ul>
+<p><strong>Common Derivation Paths:</strong></p>
+<ul>
+<li>BIP44 Bitcoin: &quot;m/44'/0'/0'/0/0&quot; (account 0, receiving address 0)</li>
+<li>BIP44 Bitcoin Change: &quot;m/44'/0'/0'/1/0&quot; (account 0, change address 0)</li>
+<li>BIP44 Bitcoin Cash: &quot;m/44'/145'/0'/0/0&quot;</li>
+<li>BIP44 Bitcoin SV: &quot;m/44'/236'/0'/0/0&quot;</li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>path</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    "m/0'"
+                
+                </td>
+            
+
+            <td class="description last"><p>BIP32 derivation path (e.g., &quot;m/44'/0'/0'/0/0&quot;)</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>keyType</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    'pri'
+                
+                </td>
+            
+
+            <td class="description last"><p>Key type to derive ('pri' for private, 'pub' for public)</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line594">line 594</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Throws:</h5>
+<ul>
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>&quot;Public Key can't derive from hardened path&quot; if attempting hardened derivation from public key</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If derivation path format is invalid</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If derived key is invalid (extremely rare: ~1 in 2^127)</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    </ul>
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>Returns this wallet instance for method chaining</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="Custodial_Wallet.html">Custodial_Wallet</a></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Examples</h5>
+    
+    <pre class="prettyprint"><code>// Standard BIP44 Bitcoin address derivationconst wallet = Custodial_Wallet.fromRandom('main')[1];// Derive first receiving addresswallet.derive("m/44'/0'/0'/0/0", 'pri');// Derive first change addresswallet.derive("m/44'/0'/0'/1/0", 'pri');console.log('Derived keys:', wallet.child_keys.size); // 2</code></pre>
+
+    <pre class="prettyprint"><code>// Method chaining for multiple derivationsconst wallet = Custodial_Wallet.fromRandom('main')[1];wallet  .derive("m/44'/0'/0'/0/0", 'pri')  // First receiving  .derive("m/44'/0'/0'/0/1", 'pri')  // Second receiving  .derive("m/44'/0'/0'/1/0", 'pri'); // First change// Access all derived addressesfor (const child of wallet.child_keys) {  console.log(`Address ${child.childIndex}:`, child.address);}</code></pre>
+
+    <pre class="prettyprint"><code>// Public key derivation (non-hardened only)const wallet = Custodial_Wallet.fromRandom('main')[1];// This works - non-hardened derivationwallet.derive("m/0/1/2", 'pub');// This fails - hardened derivation from public keytry {  wallet.derive("m/0'/1", 'pub');} catch (error) {  console.log(error.message); // "Public Key can't derive from hardened path"}</code></pre>
+
+    <pre class="prettyprint"><code>// Multi-currency wallet derivationconst wallet = Custodial_Wallet.fromRandom('main')[1];// Bitcoin addresseswallet.derive("m/44'/0'/0'/0/0", 'pri');   // BTC receiving// Bitcoin Cash addresses (different coin type)wallet.derive("m/44'/145'/0'/0/0", 'pri'); // BCH receiving// Bitcoin SV addresseswallet.derive("m/44'/236'/0'/0/0", 'pri'); // BSV receiving</code></pre>
+
+    <pre class="prettyprint"><code>// Generate multiple addresses for a serviceconst wallet = Custodial_Wallet.fromRandom('main')[1];// Generate 10 unique receiving addressesfor (let i = 0; i &lt; 10; i++) {  wallet.derive(`m/44'/0'/0'/0/${i}`, 'pri');}// Each customer gets a unique addressconst addresses = Array.from(wallet.child_keys).map(child => child.address);console.log('Customer addresses:', addresses);</code></pre>
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="sign"><span class="type-signature"></span>sign<span class="signature">(message<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {<a href="global.html#ECDSASignatureResult">ECDSASignatureResult</a>}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Signs a message using ECDSA with the wallet's private key and deterministic nonce generation.</p>
+<p>This method creates a cryptographically secure digital signature using the wallet's
+private key. It implements deterministic nonce generation (RFC 6979) to prevent
+nonce reuse attacks and ensure signature security. The signature can be verified
+by anyone with the corresponding public key.</p>
+<p><strong>Signature Process:</strong></p>
+<ol>
+<li>Convert message to UTF-8 bytes</li>
+<li>Decode WIF private key to raw bytes</li>
+<li>Generate deterministic nonce using RFC 6979</li>
+<li>Compute ECDSA signature (r, s) values</li>
+<li>Include recovery ID for public key recovery</li>
+<li>Return DER-encoded signature with recovery information</li>
+</ol>
+<p><strong>Security Features:</strong></p>
+<ul>
+<li>RFC 6979 deterministic nonce generation prevents nonce reuse</li>
+<li>Uses secp256k1 elliptic curve (Bitcoin standard)</li>
+<li>Compatible with Bitcoin transaction signing</li>
+<li>Includes recovery ID for public key derivation</li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>message</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    ''
+                
+                </td>
+            
+
+            <td class="description last"><p>Message to sign (will be converted to UTF-8 bytes)</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line701">line 701</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Throws:</h5>
+<ul>
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If private key is invalid or signing fails</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If message cannot be converted to bytes</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    </ul>
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>Tuple containing signature bytes and recovery ID</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="global.html#ECDSASignatureResult">ECDSASignatureResult</a></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Examples</h5>
+    
+    <pre class="prettyprint"><code>// Basic message signingconst wallet = Custodial_Wallet.fromRandom('main')[1];const message = "Hello Bitcoin!";const [signature, recoveryId] = wallet.sign(message);console.log('Signature length:', signature.length); // ~71-73 bytes (DER format)console.log('Recovery ID:', recoveryId);            // 0, 1, 2, or 3</code></pre>
+
+    <pre class="prettyprint"><code>// Sign and verify workflowconst wallet = Custodial_Wallet.fromRandom('main')[1];const message = "Transfer $100 to Alice";// Create signatureconst [signature, _] = wallet.sign(message);// Verify signature (should return true)const isValid = wallet.verify(signature, message);console.log('Signature valid:', isValid); // true// Verify with wrong message (should return false)const isInvalid = wallet.verify(signature, "Transfer $200 to Bob");console.log('Wrong message valid:', isInvalid); // false</code></pre>
+
+    <pre class="prettyprint"><code>// Transaction authorization patternconst wallet = Custodial_Wallet.fromRandom('main')[1];function authorizeTransaction(txData) {  const txMessage = JSON.stringify({    to: txData.recipient,    amount: txData.amount,    timestamp: Date.now(),    nonce: Math.random()  });    const [signature, recoveryId] = wallet.sign(txMessage);    return {    transaction: txData,    signature: signature,    recovery: recoveryId,    signer: wallet.address  };}const authorization = authorizeTransaction({  recipient: "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",  amount: 0.001});</code></pre>
+
+    <pre class="prettyprint"><code>// Batch signing for multiple messagesconst wallet = Custodial_Wallet.fromRandom('main')[1];const messages = ["msg1", "msg2", "msg3"];const signatures = messages.map(msg => {  const [sig, recovery] = wallet.sign(msg);  return { message: msg, signature: sig, recovery };});console.log(`Signed ${signatures.length} messages`);</code></pre>
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="verify"><span class="type-signature"></span>verify<span class="signature">(sig, msg)</span><span class="type-signature"> &rarr; {boolean}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Verifies an ECDSA signature against a message using the wallet's public key.</p>
+<p>This method performs cryptographic verification to ensure that a given signature
+was created by the holder of this wallet's private key. It uses standard ECDSA
+verification on the secp256k1 curve and can verify signatures created by this
+wallet or any other ECDSA-compatible implementation.</p>
+<p><strong>Verification Process:</strong></p>
+<ol>
+<li>Convert message to UTF-8 bytes (same as signing)</li>
+<li>Parse signature into r and s components</li>
+<li>Compute verification values using public key</li>
+<li>Check that signature equation holds on elliptic curve</li>
+<li>Return boolean result of verification</li>
+</ol>
+<p><strong>Security Properties:</strong></p>
+<ul>
+<li>Mathematically proves signature was created with corresponding private key</li>
+<li>Cannot be forged without knowledge of private key</li>
+<li>Deterministic result for same signature/message/public key combination</li>
+<li>Compatible with Bitcoin transaction verification</li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>sig</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Uint8Array</span>
+|
+
+<span class="param-type">Buffer</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>DER-encoded signature bytes to verify</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>msg</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Original message that was signed (must match exactly)</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line793">line 793</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Throws:</h5>
+<ul>
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If signature format is invalid or corrupted</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If message cannot be converted to bytes</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    </ul>
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>True if signature is valid for this wallet's public key, false otherwise</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">boolean</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Examples</h5>
+    
+    <pre class="prettyprint"><code>// Basic signature verificationconst wallet = Custodial_Wallet.fromRandom('main')[1];const message = "Hello Bitcoin!";// Sign messageconst [signature, _] = wallet.sign(message);// Verify signatureconst isValid = wallet.verify(signature, message);console.log('Signature valid:', isValid); // true// Verify with modified messageconst isInvalid = wallet.verify(signature, "Hello Ethereum!");console.log('Modified message valid:', isInvalid); // false</code></pre>
+
+    <pre class="prettyprint"><code>// Cross-wallet verification (different wallets)const wallet1 = Custodial_Wallet.fromRandom('main')[1];const wallet2 = Custodial_Wallet.fromRandom('main')[1];const message = "Cross-wallet test";// Wallet1 signs messageconst [signature, _] = wallet1.sign(message);// Wallet1 can verify its own signatureconsole.log('Self verification:', wallet1.verify(signature, message)); // true// Wallet2 cannot verify wallet1's signatureconsole.log('Cross verification:', wallet2.verify(signature, message)); // false</code></pre>
+
+    <pre class="prettyprint"><code>// Transaction verification workflowfunction verifyTransactionSignature(txData, signature, senderAddress) {  // Reconstruct the exact message that was signed  const txMessage = JSON.stringify(txData);    // Find wallet for sender address (in real app, lookup from database)  const senderWallet = findWalletByAddress(senderAddress);    // Verify signature matches sender's private key  return senderWallet.verify(signature, txMessage);}</code></pre>
+
+    <pre class="prettyprint"><code>// Batch verification for audit trailconst wallet = Custodial_Wallet.fromRandom('main')[1];const signedMessages = [  { msg: "tx1", sig: wallet.sign("tx1")[0] },  { msg: "tx2", sig: wallet.sign("tx2")[0] },  { msg: "tx3", sig: wallet.sign("tx3")[0] }];// Verify all signatures are validconst allValid = signedMessages.every(item =>   wallet.verify(item.sig, item.msg));console.log('All signatures valid:', allValid); // true</code></pre>
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id=".fromMnemonic"><span class="type-signature">(static) </span>fromMnemonic<span class="signature">(net<span class="signature-attributes">opt</span>, mnemonic<span class="signature-attributes">opt</span>, passphrase<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {<a href="Custodial_Wallet.html">Custodial_Wallet</a>}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Creates a wallet from an existing BIP39 mnemonic phrase with optional passphrase.</p>
+<p>This static factory method restores a wallet from a previously generated mnemonic
+phrase. It validates the mnemonic checksum, derives the cryptographic seed using
+PBKDF2, and reconstructs the exact same wallet that was originally created.
+This enables secure backup and recovery of Bitcoin wallets.</p>
+<p><strong>Validation Process:</strong></p>
+<ol>
+<li>Parse mnemonic into individual words</li>
+<li>Validate words exist in BIP39 wordlist</li>
+<li>Verify built-in checksum for error detection</li>
+<li>Derive seed using PBKDF2-HMAC-SHA512 with salt</li>
+<li>Generate identical master keys as original wallet</li>
+</ol>
+<p><strong>Compatibility:</strong></p>
+<ul>
+<li>Works with any BIP39-compliant mnemonic</li>
+<li>Compatible with hardware wallets (Ledger, Trezor)</li>
+<li>Interoperable with other Bitcoin wallet software</li>
+<li>Supports 12-word mnemonics (this implementation)</li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>net</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    'main'
+                
+                </td>
+            
+
+            <td class="description last"><p>Network type ('main' for mainnet, 'test' for testnet)</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>mnemonic</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    ''
+                
+                </td>
+            
+
+            <td class="description last"><p>12-word BIP39 mnemonic phrase (space-separated)</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>passphrase</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    ''
+                
+                </td>
+            
+
+            <td class="description last"><p>Optional passphrase used during generation</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line428">line 428</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Throws:</h5>
+<ul>
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>&quot;invalid checksum&quot; if mnemonic checksum validation fails</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If mnemonic format is invalid or contains unknown words</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If network parameter is invalid</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    </ul>
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>Restored wallet instance with identical keys</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="Custodial_Wallet.html">Custodial_Wallet</a></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Examples</h5>
+    
+    <pre class="prettyprint"><code>// Restore wallet from mnemonicconst mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";const wallet = Custodial_Wallet.fromMnemonic('main', mnemonic);console.log('Restored address:', wallet.address);</code></pre>
+
+    <pre class="prettyprint"><code>// Restore with passphrase (must match original)const mnemonicWithPass = "legal winner thank year wave sausage worth useful legal winner thank yellow";const passphrase = "my-secure-passphrase";const wallet = Custodial_Wallet.fromMnemonic('main', mnemonicWithPass, passphrase);</code></pre>
+
+    <pre class="prettyprint"><code>// Handle restoration errors gracefullytry {  const invalidMnemonic = "invalid mnemonic phrase with wrong checksum";  const wallet = Custodial_Wallet.fromMnemonic('main', invalidMnemonic);} catch (error) {  console.error('Failed to restore wallet:', error.message);  // Handle error: show user-friendly message, request valid mnemonic}</code></pre>
+
+    <pre class="prettyprint"><code>// Cross-platform wallet restoration// Mnemonic generated on mobile app, restored on desktopconst mobileMnemonic = getUserInput('Enter your 12-word backup phrase:');const desktopWallet = Custodial_Wallet.fromMnemonic('main', mobileMnemonic);// Wallet will have identical addresses and keys as mobile versionconsole.log('Synced address:', desktopWallet.address);</code></pre>
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id=".fromRandom"><span class="type-signature">(static) </span>fromRandom<span class="signature">(net<span class="signature-attributes">opt</span>, passphrase<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Array|string|<a href="Custodial_Wallet.html">Custodial_Wallet</a>}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Generates a new random wallet with cryptographically secure mnemonic phrase.</p>
+<p>This static factory method creates a fresh wallet using BIP39 mnemonic generation
+and BIP32 hierarchical deterministic key derivation. The generated mnemonic provides
+a human-readable backup that can restore the entire wallet and all derived keys.</p>
+<p><strong>Process:</strong></p>
+<ol>
+<li>Generate 128 bits of cryptographically secure entropy</li>
+<li>Create 12-word BIP39 mnemonic with checksum validation</li>
+<li>Derive 512-bit seed using PBKDF2-HMAC-SHA512</li>
+<li>Generate BIP32 master keys from seed</li>
+<li>Create wallet instance with generated keys</li>
+</ol>
+<p><strong>Security:</strong></p>
+<ul>
+<li>Uses cryptographically secure random number generation</li>
+<li>Mnemonic includes built-in checksum for error detection</li>
+<li>Optional passphrase provides additional security layer</li>
+<li>Generated keys follow industry standard specifications</li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>net</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    'main'
+                
+                </td>
+            
+
+            <td class="description last"><p>Network type ('main' for mainnet, 'test' for testnet)</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>passphrase</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    ''
+                
+                </td>
+            
+
+            <td class="description last"><p>Optional passphrase for additional security (BIP39)</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line361">line 361</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Throws:</h5>
+<ul>
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If mnemonic generation fails or checksum is invalid</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If network parameter is invalid</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    </ul>
+
+
+<h5>Returns:</h5>
+<ul>
+        <li>
+<div class="param-desc">
+    <p>Tuple containing mnemonic phrase and wallet instance</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Array</span>
+
+
+    </dd>
+</dl>
+</li>
+    
+        <li>
+<div class="param-desc">
+    <p>returns.0 - Generated 12-word mnemonic phrase</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">string</span>
+
+
+    </dd>
+</dl>
+</li>
+    
+        <li>
+<div class="param-desc">
+    <p>returns.1 - New wallet instance</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="Custodial_Wallet.html">Custodial_Wallet</a></span>
+
+
+    </dd>
+</dl>
+</li>
+    </ul>
+
+
+
+
+    <h5>Examples</h5>
+    
+    <pre class="prettyprint"><code>// Generate mainnet walletconst [mnemonic, wallet] = Custodial_Wallet.fromRandom('main');console.log('Mnemonic:', mnemonic);// "abandon ability able about above absent absorb abstract absurd abuse access accident"console.log('Address:', wallet.address);// "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2"</code></pre>
+
+    <pre class="prettyprint"><code>// Generate testnet wallet with passphraseconst [mnemonic, testWallet] = Custodial_Wallet.fromRandom('test', 'my-secure-passphrase');console.log('Testnet address:', testWallet.address);// "mgRpP3zP1hmxyoeYJgfbcmN3c2Qsurw48D"</code></pre>
+
+    <pre class="prettyprint"><code>// Store mnemonic securely for backupconst [mnemonic, wallet] = Custodial_Wallet.fromRandom('main', 'company-passphrase');// Store mnemonic in secure location (encrypted, offline, etc.)secureStorage.store('wallet-mnemonic', mnemonic);secureStorage.store('wallet-passphrase', 'company-passphrase');// Wallet can be restored later using mnemonic + passphraseconst restoredWallet = Custodial_Wallet.fromMnemonic('main', mnemonic, 'company-passphrase');</code></pre>
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id=".fromSeed"><span class="type-signature">(static) </span>fromSeed<span class="signature">(net<span class="signature-attributes">opt</span>, seed<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {<a href="Custodial_Wallet.html">Custodial_Wallet</a>}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Creates a wallet from a hex-encoded cryptographic seed (typically from BIP39).</p>
+<p>This static factory method creates a wallet directly from a seed value, bypassing
+mnemonic processing. The seed is used to generate BIP32 master keys through
+HMAC-SHA512 computation. This method is typically used internally by other
+factory methods or when working with pre-computed seeds.</p>
+<p><strong>Seed Requirements:</strong></p>
+<ul>
+<li>Must be hex-encoded string</li>
+<li>Recommended length: 128-512 bits (32-128 hex characters)</li>
+<li>Should be generated with cryptographically secure randomness</li>
+<li>BIP39 seeds are 512 bits (128 hex characters)</li>
+</ul>
+<p><strong>Key Generation Process:</strong></p>
+<ol>
+<li>Convert hex seed to binary format</li>
+<li>Compute HMAC-SHA512 with &quot;Bitcoin seed&quot; as key</li>
+<li>Split result into private key (256 bits) and chain code (256 bits)</li>
+<li>Generate corresponding public key using secp256k1</li>
+<li>Create extended keys with network-specific version bytes</li>
+</ol>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>net</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    'main'
+                
+                </td>
+            
+
+            <td class="description last"><p>Network type ('main' for mainnet, 'test' for testnet)</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>seed</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    "000102030405060708090a0b0c0d0e0f"
+                
+                </td>
+            
+
+            <td class="description last"><p>Hex-encoded cryptographic seed</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line481">line 481</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Throws:</h5>
+<ul>
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If seed is not valid hexadecimal format</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If derived private key is invalid (extremely rare)</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If network parameter is invalid</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    </ul>
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>New wallet instance derived from seed</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="Custodial_Wallet.html">Custodial_Wallet</a></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Examples</h5>
+    
+    <pre class="prettyprint"><code>// Create wallet from hex seedconst seed = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";const wallet = Custodial_Wallet.fromSeed('main', seed);console.log('Seed-derived address:', wallet.address);</code></pre>
+
+    <pre class="prettyprint"><code>// Use BIP39-derived seedconst mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";const bip39Seed = bip39.mnemonic2seed(mnemonic);const wallet = Custodial_Wallet.fromSeed('main', bip39Seed);</code></pre>
+
+    <pre class="prettyprint"><code>// Custom seed for testing (deterministic addresses)const testSeed = "deadbeefcafebabe".repeat(8); // 128 hex charsconst testWallet = Custodial_Wallet.fromSeed('test', testSeed);console.log('Test address:', testWallet.address);</code></pre>
+
+
+
+        
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2><span class="attribs"><span class="type-signature"></span></span>Custodial_Wallet<span class="signature">(net, master_keys, serialization_format)</span><span class="type-signature"></span></h2>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+
+    
+
+    
+    <h4 class="name" id="Custodial_Wallet"><span class="type-signature"></span>new Custodial_Wallet<span class="signature">(net, master_keys, serialization_format)</span><span class="type-signature"></span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Creates a new Custodial_Wallet instance with specified master keys and network configuration.</p>
+<p>This constructor initializes a wallet with pre-generated master keys and serialization
+format. It's typically called internally by static factory methods rather than directly.
+The wallet instance provides access to HD keys, standard key pairs, Bitcoin addresses,
+and child key derivation capabilities.</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>net</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Network type ('main' for mainnet, 'test' for testnet)</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>master_keys</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Master key information</p>
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>hdKey</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#HDKeys">HDKeys</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Hierarchical deterministic keys</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>keypair</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#KeyPair">KeyPair</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Standard key pair (WIF private key, hex public key)</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>address</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Bitcoin address for receiving payments</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>serialization_format</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Internal serialization format for key derivation</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line230">line 230</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Throws:</h5>
+<ul>
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If network type is not 'main' or 'test'</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If master keys are invalid or malformed</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    </ul>
+
+
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>// Typically used internally by factory methodsconst masterKeys = {  hdKey: { HDpri: "xprv...", HDpub: "xpub..." },  keypair: { pri: "L5Hg...", pub: "0339..." },  address: "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2"};const wallet = new Custodial_Wallet('main', masterKeys, serializationFormat);</code></pre>
+
+
+
+    
+    </div>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+        <h3 class="subsection-title">Members</h3>
+
+        
+            
+<h4 class="name" id=".this.address"><span class="type-signature">(static, readonly) </span>this.address<span class="type-signature"> :string</span></h4>
+
+
+
+
+<div class="description">
+    <p>Bitcoin address for this wallet, derived from the master public key.
+Used for receiving payments and identifying the wallet on the blockchain.
+Format depends on network (1... for mainnet, m/n... for testnet).</p>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">string</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line282">line 282</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>console.log(wallet.address); // "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2"</code></pre>
+
+
+
+        
+            
+<h4 class="name" id=".this.child_keys"><span class="type-signature">(static) </span>this.child_keys<span class="type-signature"> :Set.&lt;<a href="global.html#ChildKeyInfo">ChildKeyInfo</a>></span></h4>
+
+
+
+
+<div class="description">
+    <p>Set of derived child keys from this wallet.
+Contains information about all child keys derived using the derive() method.
+Each entry includes depth, index, keys, and address information.</p>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Set.&lt;<a href="global.html#ChildKeyInfo">ChildKeyInfo</a>></span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line300">line 300</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>wallet.derive("m/0'/1", 'pri');console.log(wallet.child_keys.size); // 1for (const childKey of wallet.child_keys) {  console.log('Child address:', childKey.address);  console.log('Derivation depth:', childKey.depth);}</code></pre>
+
+
+
+        
+            
+<h4 class="name" id=".this.hdKey"><span class="type-signature">(static, readonly) </span>this.hdKey<span class="type-signature"> :<a href="global.html#HDKeys">HDKeys</a></span></h4>
+
+
+
+
+<div class="description">
+    <p>Hierarchical deterministic key pair for this wallet.
+Contains both extended private and public keys in standard BIP32 format.
+Used for deriving child keys and maintaining the HD wallet structure.</p>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type"><a href="global.html#HDKeys">HDKeys</a></span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line255">line 255</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>console.log(wallet.hdKey.HDpri); // "xprv9s21ZrQH143K..."console.log(wallet.hdKey.HDpub); // "xpub661MyMwAqRbcF..."</code></pre>
+
+
+
+        
+            
+<h4 class="name" id=".this.keypair"><span class="type-signature">(static, readonly) </span>this.keypair<span class="type-signature"> :<a href="global.html#KeyPair">KeyPair</a></span></h4>
+
+
+
+
+<div class="description">
+    <p>Standard key pair for direct cryptographic operations.
+Contains WIF-encoded private key and hex-encoded compressed public key.
+Used for signing transactions and generating addresses.</p>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type"><a href="global.html#KeyPair">KeyPair</a></span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line269">line 269</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>console.log(wallet.keypair.pri); // "L5HgWvFghocq1FmxSjKNaGhVN8f67p6xYg5pY7M8FE77HXwHtGGu"console.log(wallet.keypair.pub); // "0339a36013301597daef41fbe593a02cc513d0b55527ec2df1050e2e8ff49c85c2"</code></pre>
+
+
+
+        
+            
+<h4 class="name" id=".this.net"><span class="type-signature">(static, readonly) </span>this.net<span class="type-signature"> :string</span></h4>
+
+
+
+
+<div class="description">
+    <p>Network type for this wallet instance.
+Determines address formats, version bytes, and network-specific parameters.</p>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">string</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line241">line 241</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>console.log(wallet.net); // "main" or "test"</code></pre>
+
+
+
+        
+    
+
+    
+        <h3 class="subsection-title">Methods</h3>
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="derive"><span class="type-signature"></span>derive<span class="signature">(path<span class="signature-attributes">opt</span>, keyType<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {<a href="Custodial_Wallet.html">Custodial_Wallet</a>}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Derives a child key from the current wallet using BIP32 hierarchical deterministic path.</p>
+<p>This method implements BIP32 child key derivation, allowing generation of child keys
+from the master key or any previously derived key. It supports both hardened and
+non-hardened derivation paths, with automatic path parsing and validation.</p>
+<p><strong>Derivation Types:</strong></p>
+<ul>
+<li><strong>Hardened derivation</strong> (index ≥ 2³¹, marked with '): Requires private key,
+provides security isolation between parent and child</li>
+<li><strong>Non-hardened derivation</strong> (index &lt; 2³¹): Can derive from public key only,
+enables watch-only wallets but allows parent key compromise from child + chain code</li>
+</ul>
+<p><strong>Path Format:</strong></p>
+<ul>
+<li>Standard BIP32 notation: &quot;m/44'/0'/0'/0/0&quot;</li>
+<li>m = master key</li>
+<li>Numbers = derivation indices</li>
+<li>' (apostrophe) = hardened derivation (adds 2³¹ to index)</li>
+<li>/ = path separator</li>
+</ul>
+<p><strong>Common Derivation Paths:</strong></p>
+<ul>
+<li>BIP44 Bitcoin: &quot;m/44'/0'/0'/0/0&quot; (account 0, receiving address 0)</li>
+<li>BIP44 Bitcoin Change: &quot;m/44'/0'/0'/1/0&quot; (account 0, change address 0)</li>
+<li>BIP44 Bitcoin Cash: &quot;m/44'/145'/0'/0/0&quot;</li>
+<li>BIP44 Bitcoin SV: &quot;m/44'/236'/0'/0/0&quot;</li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>path</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    "m/0'"
+                
+                </td>
+            
+
+            <td class="description last"><p>BIP32 derivation path (e.g., &quot;m/44'/0'/0'/0/0&quot;)</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>keyType</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    'pri'
+                
+                </td>
+            
+
+            <td class="description last"><p>Key type to derive ('pri' for private, 'pub' for public)</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line594">line 594</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Throws:</h5>
+<ul>
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>&quot;Public Key can't derive from hardened path&quot; if attempting hardened derivation from public key</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If derivation path format is invalid</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If derived key is invalid (extremely rare: ~1 in 2^127)</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    </ul>
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>Returns this wallet instance for method chaining</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="Custodial_Wallet.html">Custodial_Wallet</a></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Examples</h5>
+    
+    <pre class="prettyprint"><code>// Standard BIP44 Bitcoin address derivationconst wallet = Custodial_Wallet.fromRandom('main')[1];// Derive first receiving addresswallet.derive("m/44'/0'/0'/0/0", 'pri');// Derive first change addresswallet.derive("m/44'/0'/0'/1/0", 'pri');console.log('Derived keys:', wallet.child_keys.size); // 2</code></pre>
+
+    <pre class="prettyprint"><code>// Method chaining for multiple derivationsconst wallet = Custodial_Wallet.fromRandom('main')[1];wallet  .derive("m/44'/0'/0'/0/0", 'pri')  // First receiving  .derive("m/44'/0'/0'/0/1", 'pri')  // Second receiving  .derive("m/44'/0'/0'/1/0", 'pri'); // First change// Access all derived addressesfor (const child of wallet.child_keys) {  console.log(`Address ${child.childIndex}:`, child.address);}</code></pre>
+
+    <pre class="prettyprint"><code>// Public key derivation (non-hardened only)const wallet = Custodial_Wallet.fromRandom('main')[1];// This works - non-hardened derivationwallet.derive("m/0/1/2", 'pub');// This fails - hardened derivation from public keytry {  wallet.derive("m/0'/1", 'pub');} catch (error) {  console.log(error.message); // "Public Key can't derive from hardened path"}</code></pre>
+
+    <pre class="prettyprint"><code>// Multi-currency wallet derivationconst wallet = Custodial_Wallet.fromRandom('main')[1];// Bitcoin addresseswallet.derive("m/44'/0'/0'/0/0", 'pri');   // BTC receiving// Bitcoin Cash addresses (different coin type)wallet.derive("m/44'/145'/0'/0/0", 'pri'); // BCH receiving// Bitcoin SV addresseswallet.derive("m/44'/236'/0'/0/0", 'pri'); // BSV receiving</code></pre>
+
+    <pre class="prettyprint"><code>// Generate multiple addresses for a serviceconst wallet = Custodial_Wallet.fromRandom('main')[1];// Generate 10 unique receiving addressesfor (let i = 0; i &lt; 10; i++) {  wallet.derive(`m/44'/0'/0'/0/${i}`, 'pri');}// Each customer gets a unique addressconst addresses = Array.from(wallet.child_keys).map(child => child.address);console.log('Customer addresses:', addresses);</code></pre>
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="sign"><span class="type-signature"></span>sign<span class="signature">(message<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {<a href="global.html#ECDSASignatureResult">ECDSASignatureResult</a>}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Signs a message using ECDSA with the wallet's private key and deterministic nonce generation.</p>
+<p>This method creates a cryptographically secure digital signature using the wallet's
+private key. It implements deterministic nonce generation (RFC 6979) to prevent
+nonce reuse attacks and ensure signature security. The signature can be verified
+by anyone with the corresponding public key.</p>
+<p><strong>Signature Process:</strong></p>
+<ol>
+<li>Convert message to UTF-8 bytes</li>
+<li>Decode WIF private key to raw bytes</li>
+<li>Generate deterministic nonce using RFC 6979</li>
+<li>Compute ECDSA signature (r, s) values</li>
+<li>Include recovery ID for public key recovery</li>
+<li>Return DER-encoded signature with recovery information</li>
+</ol>
+<p><strong>Security Features:</strong></p>
+<ul>
+<li>RFC 6979 deterministic nonce generation prevents nonce reuse</li>
+<li>Uses secp256k1 elliptic curve (Bitcoin standard)</li>
+<li>Compatible with Bitcoin transaction signing</li>
+<li>Includes recovery ID for public key derivation</li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>message</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    ''
+                
+                </td>
+            
+
+            <td class="description last"><p>Message to sign (will be converted to UTF-8 bytes)</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line701">line 701</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Throws:</h5>
+<ul>
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If private key is invalid or signing fails</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If message cannot be converted to bytes</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    </ul>
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>Tuple containing signature bytes and recovery ID</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="global.html#ECDSASignatureResult">ECDSASignatureResult</a></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Examples</h5>
+    
+    <pre class="prettyprint"><code>// Basic message signingconst wallet = Custodial_Wallet.fromRandom('main')[1];const message = "Hello Bitcoin!";const [signature, recoveryId] = wallet.sign(message);console.log('Signature length:', signature.length); // ~71-73 bytes (DER format)console.log('Recovery ID:', recoveryId);            // 0, 1, 2, or 3</code></pre>
+
+    <pre class="prettyprint"><code>// Sign and verify workflowconst wallet = Custodial_Wallet.fromRandom('main')[1];const message = "Transfer $100 to Alice";// Create signatureconst [signature, _] = wallet.sign(message);// Verify signature (should return true)const isValid = wallet.verify(signature, message);console.log('Signature valid:', isValid); // true// Verify with wrong message (should return false)const isInvalid = wallet.verify(signature, "Transfer $200 to Bob");console.log('Wrong message valid:', isInvalid); // false</code></pre>
+
+    <pre class="prettyprint"><code>// Transaction authorization patternconst wallet = Custodial_Wallet.fromRandom('main')[1];function authorizeTransaction(txData) {  const txMessage = JSON.stringify({    to: txData.recipient,    amount: txData.amount,    timestamp: Date.now(),    nonce: Math.random()  });    const [signature, recoveryId] = wallet.sign(txMessage);    return {    transaction: txData,    signature: signature,    recovery: recoveryId,    signer: wallet.address  };}const authorization = authorizeTransaction({  recipient: "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",  amount: 0.001});</code></pre>
+
+    <pre class="prettyprint"><code>// Batch signing for multiple messagesconst wallet = Custodial_Wallet.fromRandom('main')[1];const messages = ["msg1", "msg2", "msg3"];const signatures = messages.map(msg => {  const [sig, recovery] = wallet.sign(msg);  return { message: msg, signature: sig, recovery };});console.log(`Signed ${signatures.length} messages`);</code></pre>
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="verify"><span class="type-signature"></span>verify<span class="signature">(sig, msg)</span><span class="type-signature"> &rarr; {boolean}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Verifies an ECDSA signature against a message using the wallet's public key.</p>
+<p>This method performs cryptographic verification to ensure that a given signature
+was created by the holder of this wallet's private key. It uses standard ECDSA
+verification on the secp256k1 curve and can verify signatures created by this
+wallet or any other ECDSA-compatible implementation.</p>
+<p><strong>Verification Process:</strong></p>
+<ol>
+<li>Convert message to UTF-8 bytes (same as signing)</li>
+<li>Parse signature into r and s components</li>
+<li>Compute verification values using public key</li>
+<li>Check that signature equation holds on elliptic curve</li>
+<li>Return boolean result of verification</li>
+</ol>
+<p><strong>Security Properties:</strong></p>
+<ul>
+<li>Mathematically proves signature was created with corresponding private key</li>
+<li>Cannot be forged without knowledge of private key</li>
+<li>Deterministic result for same signature/message/public key combination</li>
+<li>Compatible with Bitcoin transaction verification</li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>sig</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Uint8Array</span>
+|
+
+<span class="param-type">Buffer</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>DER-encoded signature bytes to verify</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>msg</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Original message that was signed (must match exactly)</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line793">line 793</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Throws:</h5>
+<ul>
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If signature format is invalid or corrupted</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If message cannot be converted to bytes</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    </ul>
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>True if signature is valid for this wallet's public key, false otherwise</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">boolean</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Examples</h5>
+    
+    <pre class="prettyprint"><code>// Basic signature verificationconst wallet = Custodial_Wallet.fromRandom('main')[1];const message = "Hello Bitcoin!";// Sign messageconst [signature, _] = wallet.sign(message);// Verify signatureconst isValid = wallet.verify(signature, message);console.log('Signature valid:', isValid); // true// Verify with modified messageconst isInvalid = wallet.verify(signature, "Hello Ethereum!");console.log('Modified message valid:', isInvalid); // false</code></pre>
+
+    <pre class="prettyprint"><code>// Cross-wallet verification (different wallets)const wallet1 = Custodial_Wallet.fromRandom('main')[1];const wallet2 = Custodial_Wallet.fromRandom('main')[1];const message = "Cross-wallet test";// Wallet1 signs messageconst [signature, _] = wallet1.sign(message);// Wallet1 can verify its own signatureconsole.log('Self verification:', wallet1.verify(signature, message)); // true// Wallet2 cannot verify wallet1's signatureconsole.log('Cross verification:', wallet2.verify(signature, message)); // false</code></pre>
+
+    <pre class="prettyprint"><code>// Transaction verification workflowfunction verifyTransactionSignature(txData, signature, senderAddress) {  // Reconstruct the exact message that was signed  const txMessage = JSON.stringify(txData);    // Find wallet for sender address (in real app, lookup from database)  const senderWallet = findWalletByAddress(senderAddress);    // Verify signature matches sender's private key  return senderWallet.verify(signature, txMessage);}</code></pre>
+
+    <pre class="prettyprint"><code>// Batch verification for audit trailconst wallet = Custodial_Wallet.fromRandom('main')[1];const signedMessages = [  { msg: "tx1", sig: wallet.sign("tx1")[0] },  { msg: "tx2", sig: wallet.sign("tx2")[0] },  { msg: "tx3", sig: wallet.sign("tx3")[0] }];// Verify all signatures are validconst allValid = signedMessages.every(item =>   wallet.verify(item.sig, item.msg));console.log('All signatures valid:', allValid); // true</code></pre>
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id=".fromMnemonic"><span class="type-signature">(static) </span>fromMnemonic<span class="signature">(net<span class="signature-attributes">opt</span>, mnemonic<span class="signature-attributes">opt</span>, passphrase<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {<a href="Custodial_Wallet.html">Custodial_Wallet</a>}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Creates a wallet from an existing BIP39 mnemonic phrase with optional passphrase.</p>
+<p>This static factory method restores a wallet from a previously generated mnemonic
+phrase. It validates the mnemonic checksum, derives the cryptographic seed using
+PBKDF2, and reconstructs the exact same wallet that was originally created.
+This enables secure backup and recovery of Bitcoin wallets.</p>
+<p><strong>Validation Process:</strong></p>
+<ol>
+<li>Parse mnemonic into individual words</li>
+<li>Validate words exist in BIP39 wordlist</li>
+<li>Verify built-in checksum for error detection</li>
+<li>Derive seed using PBKDF2-HMAC-SHA512 with salt</li>
+<li>Generate identical master keys as original wallet</li>
+</ol>
+<p><strong>Compatibility:</strong></p>
+<ul>
+<li>Works with any BIP39-compliant mnemonic</li>
+<li>Compatible with hardware wallets (Ledger, Trezor)</li>
+<li>Interoperable with other Bitcoin wallet software</li>
+<li>Supports 12-word mnemonics (this implementation)</li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>net</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    'main'
+                
+                </td>
+            
+
+            <td class="description last"><p>Network type ('main' for mainnet, 'test' for testnet)</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>mnemonic</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    ''
+                
+                </td>
+            
+
+            <td class="description last"><p>12-word BIP39 mnemonic phrase (space-separated)</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>passphrase</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    ''
+                
+                </td>
+            
+
+            <td class="description last"><p>Optional passphrase used during generation</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line428">line 428</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Throws:</h5>
+<ul>
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>&quot;invalid checksum&quot; if mnemonic checksum validation fails</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If mnemonic format is invalid or contains unknown words</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If network parameter is invalid</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    </ul>
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>Restored wallet instance with identical keys</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="Custodial_Wallet.html">Custodial_Wallet</a></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Examples</h5>
+    
+    <pre class="prettyprint"><code>// Restore wallet from mnemonicconst mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";const wallet = Custodial_Wallet.fromMnemonic('main', mnemonic);console.log('Restored address:', wallet.address);</code></pre>
+
+    <pre class="prettyprint"><code>// Restore with passphrase (must match original)const mnemonicWithPass = "legal winner thank year wave sausage worth useful legal winner thank yellow";const passphrase = "my-secure-passphrase";const wallet = Custodial_Wallet.fromMnemonic('main', mnemonicWithPass, passphrase);</code></pre>
+
+    <pre class="prettyprint"><code>// Handle restoration errors gracefullytry {  const invalidMnemonic = "invalid mnemonic phrase with wrong checksum";  const wallet = Custodial_Wallet.fromMnemonic('main', invalidMnemonic);} catch (error) {  console.error('Failed to restore wallet:', error.message);  // Handle error: show user-friendly message, request valid mnemonic}</code></pre>
+
+    <pre class="prettyprint"><code>// Cross-platform wallet restoration// Mnemonic generated on mobile app, restored on desktopconst mobileMnemonic = getUserInput('Enter your 12-word backup phrase:');const desktopWallet = Custodial_Wallet.fromMnemonic('main', mobileMnemonic);// Wallet will have identical addresses and keys as mobile versionconsole.log('Synced address:', desktopWallet.address);</code></pre>
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id=".fromRandom"><span class="type-signature">(static) </span>fromRandom<span class="signature">(net<span class="signature-attributes">opt</span>, passphrase<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Array|string|<a href="Custodial_Wallet.html">Custodial_Wallet</a>}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Generates a new random wallet with cryptographically secure mnemonic phrase.</p>
+<p>This static factory method creates a fresh wallet using BIP39 mnemonic generation
+and BIP32 hierarchical deterministic key derivation. The generated mnemonic provides
+a human-readable backup that can restore the entire wallet and all derived keys.</p>
+<p><strong>Process:</strong></p>
+<ol>
+<li>Generate 128 bits of cryptographically secure entropy</li>
+<li>Create 12-word BIP39 mnemonic with checksum validation</li>
+<li>Derive 512-bit seed using PBKDF2-HMAC-SHA512</li>
+<li>Generate BIP32 master keys from seed</li>
+<li>Create wallet instance with generated keys</li>
+</ol>
+<p><strong>Security:</strong></p>
+<ul>
+<li>Uses cryptographically secure random number generation</li>
+<li>Mnemonic includes built-in checksum for error detection</li>
+<li>Optional passphrase provides additional security layer</li>
+<li>Generated keys follow industry standard specifications</li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>net</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    'main'
+                
+                </td>
+            
+
+            <td class="description last"><p>Network type ('main' for mainnet, 'test' for testnet)</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>passphrase</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    ''
+                
+                </td>
+            
+
+            <td class="description last"><p>Optional passphrase for additional security (BIP39)</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line361">line 361</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Throws:</h5>
+<ul>
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If mnemonic generation fails or checksum is invalid</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If network parameter is invalid</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    </ul>
+
+
+<h5>Returns:</h5>
+<ul>
+        <li>
+<div class="param-desc">
+    <p>Tuple containing mnemonic phrase and wallet instance</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Array</span>
+
+
+    </dd>
+</dl>
+</li>
+    
+        <li>
+<div class="param-desc">
+    <p>returns.0 - Generated 12-word mnemonic phrase</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">string</span>
+
+
+    </dd>
+</dl>
+</li>
+    
+        <li>
+<div class="param-desc">
+    <p>returns.1 - New wallet instance</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="Custodial_Wallet.html">Custodial_Wallet</a></span>
+
+
+    </dd>
+</dl>
+</li>
+    </ul>
+
+
+
+
+    <h5>Examples</h5>
+    
+    <pre class="prettyprint"><code>// Generate mainnet walletconst [mnemonic, wallet] = Custodial_Wallet.fromRandom('main');console.log('Mnemonic:', mnemonic);// "abandon ability able about above absent absorb abstract absurd abuse access accident"console.log('Address:', wallet.address);// "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2"</code></pre>
+
+    <pre class="prettyprint"><code>// Generate testnet wallet with passphraseconst [mnemonic, testWallet] = Custodial_Wallet.fromRandom('test', 'my-secure-passphrase');console.log('Testnet address:', testWallet.address);// "mgRpP3zP1hmxyoeYJgfbcmN3c2Qsurw48D"</code></pre>
+
+    <pre class="prettyprint"><code>// Store mnemonic securely for backupconst [mnemonic, wallet] = Custodial_Wallet.fromRandom('main', 'company-passphrase');// Store mnemonic in secure location (encrypted, offline, etc.)secureStorage.store('wallet-mnemonic', mnemonic);secureStorage.store('wallet-passphrase', 'company-passphrase');// Wallet can be restored later using mnemonic + passphraseconst restoredWallet = Custodial_Wallet.fromMnemonic('main', mnemonic, 'company-passphrase');</code></pre>
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id=".fromSeed"><span class="type-signature">(static) </span>fromSeed<span class="signature">(net<span class="signature-attributes">opt</span>, seed<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {<a href="Custodial_Wallet.html">Custodial_Wallet</a>}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Creates a wallet from a hex-encoded cryptographic seed (typically from BIP39).</p>
+<p>This static factory method creates a wallet directly from a seed value, bypassing
+mnemonic processing. The seed is used to generate BIP32 master keys through
+HMAC-SHA512 computation. This method is typically used internally by other
+factory methods or when working with pre-computed seeds.</p>
+<p><strong>Seed Requirements:</strong></p>
+<ul>
+<li>Must be hex-encoded string</li>
+<li>Recommended length: 128-512 bits (32-128 hex characters)</li>
+<li>Should be generated with cryptographically secure randomness</li>
+<li>BIP39 seeds are 512 bits (128 hex characters)</li>
+</ul>
+<p><strong>Key Generation Process:</strong></p>
+<ol>
+<li>Convert hex seed to binary format</li>
+<li>Compute HMAC-SHA512 with &quot;Bitcoin seed&quot; as key</li>
+<li>Split result into private key (256 bits) and chain code (256 bits)</li>
+<li>Generate corresponding public key using secp256k1</li>
+<li>Create extended keys with network-specific version bytes</li>
+</ol>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>net</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    'main'
+                
+                </td>
+            
+
+            <td class="description last"><p>Network type ('main' for mainnet, 'test' for testnet)</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>seed</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    "000102030405060708090a0b0c0d0e0f"
+                
+                </td>
+            
+
+            <td class="description last"><p>Hex-encoded cryptographic seed</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line481">line 481</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Throws:</h5>
+<ul>
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If seed is not valid hexadecimal format</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If derived private key is invalid (extremely rare)</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    
+        <li>
+
+<dl>
+    <dt>
+        <div class="param-desc">
+        <p>If network parameter is invalid</p>
+        </div>
+    </dt>
+    <dd></dd>
+    <dt>
+        <dl>
+            <dt>
+                Type
+            </dt>
+            <dd>
+                
+<span class="param-type">Error</span>
+
+
+            </dd>
+        </dl>
+    </dt>
+    <dd></dd>
+</dl>
+
+</li>
+    </ul>
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>New wallet instance derived from seed</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="Custodial_Wallet.html">Custodial_Wallet</a></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Examples</h5>
+    
+    <pre class="prettyprint"><code>// Create wallet from hex seedconst seed = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";const wallet = Custodial_Wallet.fromSeed('main', seed);console.log('Seed-derived address:', wallet.address);</code></pre>
+
+    <pre class="prettyprint"><code>// Use BIP39-derived seedconst mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";const bip39Seed = bip39.mnemonic2seed(mnemonic);const wallet = Custodial_Wallet.fromSeed('main', bip39Seed);</code></pre>
+
+    <pre class="prettyprint"><code>// Custom seed for testing (deterministic addresses)const testSeed = "deadbeefcafebabe".repeat(8); // 128 hex charsconst testWallet = Custodial_Wallet.fromSeed('test', testSeed);console.log('Test address:', testWallet.address);</code></pre>
+
+
+
+        
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="AddressFormats.html">AddressFormats</a></li><li><a href="BECH32.html">BECH32</a></li><li><a href="BIP32.html">BIP32</a></li><li><a href="BIP39.html">BIP39</a></li><li><a href="CASH_ADDR.html">CASH_ADDR</a></li><li><a href="ECDSA.html">ECDSA</a></li><li><a href="KeyDecoding.html">KeyDecoding</a></li><li><a href="Signatures.html">Signatures</a></li><li><a href="ThresholdCrypto.html">ThresholdCrypto</a></li><li><a href="Utilities.html">Utilities</a></li><li><a href="Wallets.html">Wallets</a></li><li><a href="schnorr_sig.html">schnorr_sig</a></li></ul><h3>Classes</h3><ul><li><a href="Custodial_Wallet.html">Custodial_Wallet</a></li><li><a href="Non_Custodial_Wallet.html">Non_Custodial_Wallet</a></li><li><a href="Polynomial.html">Polynomial</a></li><li><a href="ThresholdSignature.html">ThresholdSignature</a></li></ul><h3>Global</h3><ul><li><a href="global.html#CHARSET">CHARSET</a></li><li><a href="global.html#FEATURES">FEATURES</a></li><li><a href="global.html#NETWORKS">NETWORKS</a></li><li><a href="global.html#address">address</a></li><li><a href="global.html#b58encode">b58encode</a></li><li><a href="global.html#base32_encode">base32_encode</a></li><li><a href="global.html#derive">derive</a></li><li><a href="global.html#fromSeed">fromSeed</a></li><li><a href="global.html#hdKey">hdKey</a></li><li><a href="global.html#legacyAddress_decode">legacyAddress_decode</a></li><li><a href="global.html#privateKey_decode">privateKey_decode</a></li><li><a href="global.html#rmd160">rmd160</a></li><li><a href="global.html#standardKey">standardKey</a></li><li><a href="global.html#table">table</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Wed Jun 04 2025 02:28:50 GMT-0400 (Eastern Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: src/Threshold-signature/threshold_signature.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: src/Threshold-signature/threshold_signature.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview Threshold Signature Scheme implementation for distributed cryptography
+ * 
+ * This module implements a complete threshold signature scheme using Shamir's Secret Sharing
+ * and elliptic curve cryptography. It enables distributed key generation, secret sharing,
+ * and threshold signature creation where any t-of-n participants can collaboratively
+ * generate valid signatures without reconstructing the private key.
+ * 
+ * The implementation includes:
+ * - Joint Verifiable Random Secret Sharing (JVRSS) for distributed key generation
+ * - Additive Secret Sharing (ADDSS) for linear operations on shared secrets
+ * - Polynomial Reconstruction Secret Sharing (PROSS) for multiplicative operations
+ * - Inverse Secret Sharing (INVSS) for computing modular inverses of shared secrets
+ * - Threshold ECDSA signature generation with proper validation
+ * 
+ * @see {@link https://en.wikipedia.org/wiki/Shamir%27s_Secret_Sharing|Shamir's Secret Sharing}
+ * @see {@link https://en.wikipedia.org/wiki/Threshold_cryptosystem|Threshold Cryptography}
+ * @see {@link https://eprint.iacr.org/2019/114.pdf|Fast Multiparty Threshold ECDSA with Fast Trustless Setup}
+ * @author yfbsei
+ * @version 1.0.0
+ */
+
+import Polynomial from "./Polynomial.js";
+import { secp256k1 } from '@noble/curves/secp256k1';
+import BN from "bn.js";
+import { createHash } from 'node:crypto';
+import { bufToBigint } from 'bigint-conversion';
+
+// secp256k1 curve order for modular arithmetic
+const N = new BN("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", "hex");
+
+/**
+ * @typedef {Object} ThresholdSignatureResult
+ * @property {Object} sig - ECDSA signature object with r and s components
+ * @property {bigint} sig.r - Signature r value as BigInt
+ * @property {bigint} sig.s - Signature s value as BigInt
+ * @property {string} serialized_sig - Base64-encoded compact signature format
+ * @property {Buffer} msgHash - SHA256 hash of the signed message
+ * @property {number} recovery_id - Recovery ID for public key recovery (0-3)
+ */
+
+/**
+ * @typedef {Array&lt;Array&lt;number>>} SharePoints
+ * @description Array of [x, y] coordinate pairs for polynomial interpolation
+ * @example [[1, share1], [2, share2], [3, share3]]
+ */
+
+/**
+ * Threshold Signature Scheme implementation for distributed cryptography
+ * 
+ * This class implements a complete threshold signature scheme that allows any subset
+ * of participants (meeting the threshold) to collaboratively generate valid ECDSA
+ * signatures without ever reconstructing the private key. The scheme is based on
+ * Shamir's Secret Sharing and provides the following security guarantees:
+ * 
+ * **Security Properties:**
+ * - **Threshold Security**: Requires exactly t participants to generate signatures
+ * - **Information-Theoretic Privacy**: &lt; t participants learn nothing about the private key
+ * - **Robustness**: Works even if some participants are unavailable (up to n-t)
+ * - **Unforgeability**: Signatures are cryptographically secure and unforgeable
+ * 
+ * **Key Features:**
+ * - Distributed key generation without trusted dealer
+ * - Threshold ECDSA signature generation
+ * - Support for linear and multiplicative operations on shared secrets
+ * - Compatible with standard ECDSA verification
+ * - Efficient polynomial-based secret sharing
+ * 
+ * **Use Cases:**
+ * - Multi-signature wallets and escrow services
+ * - Corporate treasury management with distributed control
+ * - Cryptocurrency exchanges with operator separation
+ * - Secure key management for high-value assets
+ * - Compliance requirements for multi-party authorization
+ * 
+ * @class ThresholdSignature
+ * @example
+ * // Create a 2-of-3 threshold signature scheme
+ * const tss = new ThresholdSignature(3, 2);
+ * 
+ * // Generate a threshold signature
+ * const signature = tss.sign("Transfer $1000 to Alice");
+ * 
+ * // Verify the signature
+ * const isValid = ThresholdSignature.verify_threshold_signature(
+ *   tss.public_key, 
+ *   signature.msgHash, 
+ *   signature.sig
+ * );
+ * 
+ * @example
+ * // Corporate treasury with 3-of-5 executive approval
+ * const corporateTSS = new ThresholdSignature(5, 3);
+ * const executiveShares = corporateTSS.shares;
+ * 
+ * // Distribute shares to 5 executives
+ * // Any 3 can authorize transactions
+ * const authSignature = corporateTSS.sign("Quarterly dividend payment");
+ * 
+ * @example
+ * // Escrow service with dispute resolution
+ * const escrowTSS = new ThresholdSignature(3, 2);
+ * const [buyerShare, sellerShare, arbiterShare] = escrowTSS.shares;
+ * 
+ * // Normal case: buyer + seller release funds
+ * // Dispute case: buyer/seller + arbiter resolve
+ */
+class ThresholdSignature {
+	/**
+	 * Creates a new threshold signature scheme instance
+	 * 
+	 * Initializes the threshold cryptographic system with specified parameters
+	 * and generates the initial shared secret distribution. The constructor
+	 * performs the following operations:
+	 * 
+	 * 1. **Parameter Validation**: Ensures threshold constraints are met
+	 * 2. **JVRSS Execution**: Runs Joint Verifiable Random Secret Sharing
+	 * 3. **Key Generation**: Creates distributed private key shares
+	 * 4. **Public Key Derivation**: Computes the corresponding public key
+	 * 
+	 * **Threshold Constraints:**
+	 * - threshold ≥ 2 (minimum for meaningful security)
+	 * - threshold ≤ group_size (cannot exceed total participants)
+	 * - group_size ≥ 2 (minimum for distribution)
+	 * 
+	 * @param {number} [group_size=3] - Total number of participants in the scheme
+	 * @param {number} [threshold=2] - Minimum number of participants needed for operations
+	 * @throws {Error} "Threshold is too high or low" if constraints are violated
+	 * @example
+	 * // Create a 2-of-3 threshold scheme
+	 * const tss = new ThresholdSignature(3, 2);
+	 * console.log(tss.group_size);    // 3
+	 * console.log(tss.threshold);     // 2
+	 * console.log(tss.shares.length); // 3 shares generated
+	 * 
+	 * @example
+	 * // Create a 5-of-7 corporate scheme
+	 * const corporateTSS = new ThresholdSignature(7, 5);
+	 * console.log(corporateTSS.polynomial_order); // 4 (threshold - 1)
+	 * 
+	 * @example
+	 * // Error cases
+	 * try {
+	 *   new ThresholdSignature(3, 5); // threshold > group_size
+	 * } catch (error) {
+	 *   console.log(error.message); // "Threshold is too high or low"
+	 * }
+	 * 
+	 * try {
+	 *   new ThresholdSignature(3, 1); // threshold &lt; 2
+	 * } catch (error) {
+	 *   console.log(error.message); // "Threshold is too high or low"
+	 * }
+	 */
+	constructor(group_size = 3, threshold = 2) {
+		/**
+		 * Total number of participants in the threshold scheme
+		 * @type {number}
+		 * @readonly
+		 */
+		this.group_size = group_size;
+
+		/**
+		 * Polynomial degree (threshold - 1) for secret sharing
+		 * @type {number}
+		 * @readonly
+		 */
+		this.polynomial_order = threshold - 1;
+
+		/**
+		 * Minimum number of participants needed for cryptographic operations
+		 * @type {number}
+		 * @readonly
+		 */
+		this.threshold = threshold;
+
+		// Validate threshold constraints
+		if (this.polynomial_order &lt; 1 || this.threshold > this.group_size) {
+			throw new Error("Threshold is too high or low");
+		}
+
+		// Generate distributed key shares and aggregate public key
+		[this.shares, this.public_key] = this.jvrss();
+	}
+
+	/**
+	 * Converts share values to coordinate points for polynomial interpolation
+	 * 
+	 * Transforms an array of share values into the coordinate format required
+	 * for Lagrange interpolation. Each share at index i becomes a point (i+1, share)
+	 * since polynomial evaluation uses 1-based indexing (x=0 is reserved for secrets).
+	 * 
+	 * @param {BN[]} [shares=[]] - Array of BigNumber share values to convert
+	 * @returns {SharePoints} Array of [x, y] coordinate pairs for interpolation
+	 * @example
+	 * const tss = new ThresholdSignature(3, 2);
+	 * const points = tss.shares_to_points(tss.shares);
+	 * console.log(points);
+	 * // [[1, share1_value], [2, share2_value], [3, share3_value]]
+	 * 
+	 * // Use for secret reconstruction
+	 * const secret = Polynomial.interpolate_evaluate(points, 0);
+	 * 
+	 * @example
+	 * // Partial reconstruction with threshold shares
+	 * const partialShares = tss.shares.slice(0, tss.threshold);
+	 * const thresholdPoints = tss.shares_to_points(partialShares);
+	 * const reconstructed = Polynomial.interpolate_evaluate(thresholdPoints, 0);
+	 */
+	shares_to_points(shares = []) {
+		return shares.map((x, i) => [i + 1, x]);
+	}
+
+	/**
+	 * Joint Verifiable Random Secret Sharing (JVRSS) protocol implementation
+	 * 
+	 * JVRSS is the core protocol for distributed key generation without a trusted dealer.
+	 * It combines multiple random polynomials from all participants to create a
+	 * shared secret that no single party knows or can control.
+	 * 
+	 * **Protocol Steps:**
+	 * 1. **Polynomial Generation**: Each participant conceptually generates a random polynomial
+	 * 2. **Share Distribution**: Each polynomial contributes to every participant's final share
+	 * 3. **Linear Combination**: Shares are combined additively to create the final distribution
+	 * 4. **Public Key Derivation**: The aggregate public key is computed from polynomial constants
+	 * 
+	 * **Security Properties:**
+	 * - No single participant controls the final secret
+	 * - The secret is uniformly random over the field
+	 * - Shares are properly distributed according to Shamir's scheme
+	 * - Public key is verifiable and corresponds to the shared secret
+	 * 
+	 * @returns {Array} Tuple containing shares array and aggregate public key
+	 * @returns {BN[]} returns.0 - Array of secret shares for each participant
+	 * @returns {Object} returns.1 - Aggregate elliptic curve public key point
+	 * @example
+	 * const tss = new ThresholdSignature(5, 3);
+	 * const [shares, publicKey] = tss.jvrss();
+	 * 
+	 * console.log(shares.length);        // 5 shares
+	 * console.log(publicKey.constructor.name); // ProjectivePoint
+	 * 
+	 * // Shares are properly distributed
+	 * const points = tss.shares_to_points(shares);
+	 * const secret = Polynomial.interpolate_evaluate(points, 0);
+	 * const derivedPubKey = secp256k1.ProjectivePoint.fromPrivateKey(secret.toBuffer());
+	 * 
+	 * // Public keys should match
+	 * console.log(publicKey.equals(derivedPubKey)); // true
+	 * 
+	 * @example
+	 * // Manual JVRSS execution for understanding
+	 * const groupSize = 3, threshold = 2;
+	 * const polynomials = Array(groupSize).fill(null)
+	 *   .map(() => Polynomial.fromRandom(threshold - 1));
+	 * 
+	 * // Each participant's share is sum of evaluations
+	 * let manualShares = Array(groupSize).fill(new BN(0));
+	 * for (let i = 0; i &lt; groupSize; i++) {
+	 *   for (let j = 0; j &lt; groupSize; j++) {
+	 *     manualShares[j] = manualShares[j].add(polynomials[i].evaluate(j + 1));
+	 *   }
+	 * }
+	 * 
+	 * // This produces the same result as jvrss()
+	 */
+	jvrss() {
+		// Generate random polynomials for each participant
+		const polynomials = new Array(this.group_size)
+			.fill(null)
+			.map(_ => Polynomial.fromRandom(this.polynomial_order));
+
+		// Initialize shares array with zeros
+		let shares = new Array(this.group_size).fill(new BN(0));
+
+		// Combine polynomial evaluations to create final shares
+		for (let i = 0; i &lt; this.group_size; i++) {
+			for (let j = 0; j &lt; this.group_size; j++) {
+				shares[j] = shares[j].add(polynomials[i].evaluate(j + 1));
+			}
+		}
+
+		// Reduce all shares modulo curve order
+		shares = shares.map(val => val.umod(N));
+
+		// Compute aggregate public key from polynomial constants
+		let public_key = secp256k1.ProjectivePoint.ZERO;
+		for (let i = 0; i &lt; this.group_size; i++) {
+			const key = polynomials[i].coefficients[0].toBuffer("be", 32);
+			public_key = secp256k1.ProjectivePoint.fromPrivateKey(key).add(public_key);
+		}
+
+		return [shares, public_key];
+	}
+
+	/**
+	 * Additive Secret Sharing (ADDSS) - combines two sets of shares additively
+	 * 
+	 * ADDSS enables secure addition of two shared secrets without revealing
+	 * the individual secrets. Each participant adds their corresponding shares,
+	 * and the result can be reconstructed to obtain the sum of the original secrets.
+	 * 
+	 * **Mathematical Foundation:**
+	 * - If secret A is shared as (a₁, a₂, ..., aₙ)
+	 * - And secret B is shared as (b₁, b₂, ..., bₙ)  
+	 * - Then A + B is shared as (a₁+b₁, a₂+b₂, ..., aₙ+bₙ)
+	 * 
+	 * **Applications:**
+	 * - Combining multiple randomness sources
+	 * - Adding constants to shared secrets
+	 * - Building complex cryptographic protocols
+	 * - Secure multi-party computation primitives
+	 * 
+	 * @param {BN[]} [a_shares=[]] - First set of secret shares
+	 * @param {BN[]} [b_shares=[]] - Second set of secret shares  
+	 * @returns {BN} The sum of the two original secrets
+	 * @throws {Error} If share arrays have different lengths
+	 * @example
+	 * const tss = new ThresholdSignature(3, 2);
+	 * 
+	 * // Generate two sets of shares
+	 * const [shares1, _] = tss.jvrss();
+	 * const [shares2, __] = tss.jvrss();
+	 * 
+	 * // Add the shared secrets
+	 * const sum = tss.addss(shares1, shares2);
+	 * 
+	 * // Verify: sum should equal individual secret sum
+	 * const secret1 = tss.privite_key(shares1);
+	 * const secret2 = tss.privite_key(shares2);
+	 * const expectedSum = secret1.add(secret2).umod(N);
+	 * console.log(sum.eq(expectedSum)); // true
+	 * 
+	 * @example
+	 * // Adding a constant to a shared secret
+	 * const constant = new BN(42);
+	 * const constantShares = Array(tss.group_size).fill(new BN(0));
+	 * constantShares[0] = constant; // Only first share gets the constant
+	 * 
+	 * const result = tss.addss(tss.shares, constantShares);
+	 * // result = original_secret + 42
+	 */
+	addss(a_shares = [], b_shares = []) {
+		// Perform element-wise addition of shares
+		const shares_addition = new Array(this.group_size)
+			.fill(null)
+			.map((_, i) => a_shares[i].add(b_shares[i]).umod(N));
+
+		// Reconstruct the sum using random subset of shares
+		const random_points = this.shares_to_points(shares_addition)
+			.sort(() => 0.5 - Math.random())
+			.slice(0, this.polynomial_order + 1);
+
+		return Polynomial.interpolate_evaluate(random_points, 0);
+	}
+
+	/**
+	 * Polynomial Reconstruction Secret Sharing (PROSS) - computes product of shared secrets
+	 * 
+	 * PROSS enables secure multiplication of two shared secrets. This is more complex
+	 * than addition because the product of two degree-t polynomials yields a degree-2t
+	 * polynomial, requiring more shares for reconstruction.
+	 * 
+	 * **Mathematical Foundation:**
+	 * - Product of degree-t polynomials has degree 2t
+	 * - Requires 2t+1 shares for reconstruction (vs t+1 for addition)
+	 * - Uses polynomial interpolation on the product values
+	 * - Result is the product of the original secrets
+	 * 
+	 * **Security Note:**
+	 * - Requires more participants for security than addition
+	 * - Product shares reveal more information than additive shares
+	 * - Should be used carefully in cryptographic protocols
+	 * 
+	 * **Applications:**
+	 * - Computing multiplicative inverses (used in INVSS)
+	 * - Secure polynomial evaluation
+	 * - Advanced threshold cryptographic protocols
+	 * - Zero-knowledge proof systems
+	 * 
+	 * @param {BN[]} [a_shares=[]] - First set of secret shares
+	 * @param {BN[]} [b_shares=[]] - Second set of secret shares
+	 * @returns {BN} The product of the two original secrets
+	 * @example
+	 * const tss = new ThresholdSignature(5, 2); // Need larger group for PROSS
+	 * 
+	 * // Generate two secrets
+	 * const [shares1, _] = tss.jvrss();
+	 * const [shares2, __] = tss.jvrss();
+	 * 
+	 * // Compute product
+	 * const product = tss.pross(shares1, shares2);
+	 * 
+	 * // Verify result
+	 * const secret1 = tss.privite_key(shares1);
+	 * const secret2 = tss.privite_key(shares2);
+	 * const expectedProduct = secret1.mul(secret2).umod(N);
+	 * console.log(product.eq(expectedProduct)); // true
+	 * 
+	 * @example
+	 * // Squaring a shared secret
+	 * const squared = tss.pross(tss.shares, tss.shares);
+	 * const originalSecret = tss.privite_key();
+	 * const expectedSquare = originalSecret.mul(originalSecret).umod(N);
+	 * console.log(squared.eq(expectedSquare)); // true
+	 */
+	pross(a_shares = [], b_shares = []) {
+		// Compute element-wise product of shares
+		const shares_product = new Array(this.group_size)
+			.fill(null)
+			.map((_, i) => a_shares[i].mul(b_shares[i]).umod(N));
+
+		// Reconstruct using 2t+1 shares (product polynomial has degree 2t)
+		const random_points = this.shares_to_points(shares_product)
+			.sort(() => 0.5 - Math.random())
+			.slice(0, 2 * this.polynomial_order + 1);
+
+		return Polynomial.interpolate_evaluate(random_points, 0);
+	}
+
+	/**
+	 * Inverse Secret Sharing (INVSS) - computes modular inverse of shared secret
+	 * 
+	 * INVSS computes the modular inverse of a shared secret without revealing the secret.
+	 * This is crucial for threshold ECDSA signatures where we need to compute k⁻¹
+	 * (inverse of the nonce) as part of the signature generation process.
+	 * 
+	 * **Algorithm:**
+	 * 1. Generate a fresh random secret b using JVRSS
+	 * 2. Compute c = a × b using PROSS (where a is the input secret)
+	 * 3. Reconstruct c (this reveals c but not a or b individually)
+	 * 4. Compute c⁻¹ using standard modular inverse
+	 * 5. Multiply b shares by c⁻¹ to get shares of a⁻¹
+	 * 
+	 * **Security:**
+	 * - The intermediate value c is revealed but provides no information about a
+	 * - The randomness b masks the original secret a
+	 * - Final result is properly shared according to the threshold scheme
+	 * 
+	 * @param {BN[]} [a_shares=[]] - Shares of the secret to invert
+	 * @returns {BN[]} Shares of the modular inverse of the original secret
+	 * @example
+	 * const tss = new ThresholdSignature(5, 3);
+	 * 
+	 * // Compute inverse of shared secret
+	 * const inverseShares = tss.invss(tss.shares);
+	 * 
+	 * // Verify: secret × inverse = 1 (mod N)
+	 * const product = tss.pross(tss.shares, inverseShares);
+	 * console.log(product.eq(new BN(1))); // true
+	 * 
+	 * @example
+	 * // Use in threshold signature (simplified)
+	 * const message = Buffer.from("Hello World!");
+	 * const msgHash = new BN(createHash('sha256').update(message).digest());
+	 * 
+	 * // Generate nonce shares
+	 * const [kShares, kPubKey] = tss.jvrss();
+	 * 
+	 * // Compute inverse of nonce
+	 * const kInvShares = tss.invss(kShares);
+	 * 
+	 * // This would be used in signature computation
+	 * // s = k⁻¹(hash + r × private_key)
+	 */
+	invss(a_shares = []) {
+		// Generate fresh randomness b
+		const [b_shares, _] = this.jvrss();
+
+		// Compute c = a × b (this will be revealed)
+		const pross = this.pross(a_shares, b_shares);
+
+		// Compute modular inverse of c using Fermat's Little Theorem
+		const x_bn = new BN(pross.toBuffer('be', 32));
+		const curveOrder_bn = new BN(secp256k1.CURVE.n.toString());
+
+		// For prime p: a^(-1) = a^(p-2) mod p
+		const exponent = curveOrder_bn.sub(new BN(2));
+		const mod_inv_bn = x_bn.toRed(BN.red(curveOrder_bn)).redPow(exponent).fromRed();
+
+		// Multiply b shares by c⁻¹ to get shares of a⁻¹
+		const inverse_shares = b_shares.map(val => mod_inv_bn.mul(val).umod(N));
+		return inverse_shares;
+	}
+
+	/**
+	 * Reconstructs the private key from secret shares using polynomial interpolation
+	 * 
+	 * This method recovers the original private key from the distributed shares.
+	 * It should be used with caution as it reconstructs the full private key,
+	 * defeating the purpose of the threshold scheme. Typically used only for
+	 * specific operations like computing WIF format or for emergency recovery.
+	 * 
+	 * **Security Warning:**
+	 * - Reconstructing the private key centralizes control
+	 * - Should only be done when absolutely necessary
+	 * - Consider using threshold operations instead when possible
+	 * - Ensure secure deletion of reconstructed key after use
+	 * 
+	 * @param {BN[]} [a_shares] - Secret shares to reconstruct from (defaults to this.shares)
+	 * @returns {BN} The reconstructed private key as a BigNumber
+	 * @example
+	 * const tss = new ThresholdSignature(3, 2);
+	 * 
+	 * // Reconstruct private key (use with caution!)
+	 * const privateKey = tss.privite_key();
+	 * 
+	 * // Verify it corresponds to the public key
+	 * const derivedPubKey = secp256k1.ProjectivePoint.fromPrivateKey(privateKey.toBuffer());
+	 * console.log(derivedPubKey.equals(tss.public_key)); // true
+	 * 
+	 * @example
+	 * // Partial reconstruction with threshold shares only
+	 * const thresholdShares = tss.shares.slice(0, tss.threshold);
+	 * const partialKey = tss.privite_key(thresholdShares);
+	 * 
+	 * // Should equal full reconstruction
+	 * const fullKey = tss.privite_key();
+	 * console.log(partialKey.eq(fullKey)); // true
+	 * 
+	 * @example
+	 * // Emergency recovery scenario
+	 * function emergencyRecovery(shareHolders) {
+	 *   if (shareHolders.length &lt; tss.threshold) {
+	 *     throw new Error("Insufficient shares for recovery");
+	 *   }
+	 *   
+	 *   const recoveredKey = tss.privite_key(shareHolders.slice(0, tss.threshold));
+	 *   
+	 *   // Use recovered key for emergency operations
+	 *   // ... perform emergency actions ...
+	 *   
+	 *   // Securely delete the key
+	 *   recoveredKey.fill(0);
+	 * }
+	 */
+	privite_key(a_shares) {
+		a_shares = a_shares || this.shares;
+		return Polynomial.interpolate_evaluate(this.shares_to_points(a_shares), 0);
+	}
+
+	/**
+	 * Generates a threshold signature for a given message
+	 * 
+	 * This is the core method that produces threshold ECDSA signatures. The signature
+	 * is generated collaboratively using the threshold scheme without reconstructing
+	 * the private key. The process follows the threshold ECDSA protocol:
+	 * 
+	 * **Threshold ECDSA Algorithm:**
+	 * 1. **Nonce Generation**: Create shared random nonce k using JVRSS
+	 * 2. **R Value Computation**: Compute R = k×G and extract r = R.x mod n
+	 * 3. **Inverse Computation**: Compute k⁻¹ using INVSS without revealing k
+	 * 4. **Signature Shares**: Each party computes their share of s = k⁻¹(hash + r×private)
+	 * 5. **Reconstruction**: Combine shares to get final signature (r, s)
+	 * 6. **Validation**: Ensure signature is valid and non-zero
+	 * 
+	 * **Security Properties:**
+	 * - Private key never reconstructed during signing
+	 * - Nonce is generated distributively and remains secret
+	 * - Resulting signature is indistinguishable from single-party ECDSA
+	 * - Compatible with standard ECDSA verification
+	 * 
+	 * @param {string} message - Message to sign (will be SHA256 hashed)
+	 * @returns {ThresholdSignatureResult} Complete signature with metadata
+	 * @example
+	 * const tss = new ThresholdSignature(3, 2);
+	 * 
+	 * // Generate threshold signature
+	 * const signature = tss.sign("Transfer $1000 to Alice");
+	 * 
+	 * console.log(signature.sig.r);           // BigInt r value
+	 * console.log(signature.sig.s);           // BigInt s value  
+	 * console.log(signature.serialized_sig);  // Base64 compact format
+	 * console.log(signature.recovery_id);     // 0-3 for public key recovery
+	 * 
+	 * // Verify signature
+	 * const isValid = ThresholdSignature.verify_threshold_signature(
+	 *   tss.public_key,
+	 *   signature.msgHash,
+	 *   signature.sig
+	 * );
+	 * console.log(isValid); // true
+	 * 
+	 * @example
+	 * // Corporate authorization workflow
+	 * const corporateTSS = new ThresholdSignature(5, 3);
+	 * 
+	 * const authMessage = JSON.stringify({
+	 *   action: "wire_transfer",
+	 *   amount: 1000000,
+	 *   recipient: "operations_account",
+	 *   timestamp: Date.now()
+	 * });
+	 * 
+	 * const authorization = corporateTSS.sign(authMessage);
+	 * console.log("Authorization signature:", authorization.serialized_sig);
+	 * 
+	 * @example
+	 * // Escrow release with buyer + seller
+	 * const escrowTSS = new ThresholdSignature(3, 2);
+	 * 
+	 * const releaseMessage = "Release escrow funds to seller";
+	 * const escrowSignature = escrowTSS.sign(releaseMessage);
+	 * 
+	 * // This signature can be verified by anyone
+	 * const verified = ThresholdSignature.verify_threshold_signature(
+	 *   escrowTSS.public_key,
+	 *   escrowSignature.msgHash,
+	 *   escrowSignature.sig
+	 * );
+	 */
+	sign(message) {
+		// Hash the message using SHA256
+		const msgHash = new BN(createHash('sha256').update(Buffer.from(message)).digest());
+		let [recovery_id, r, s] = [0, 0, 0];
+
+		// Retry until we get a valid signature
+		while (!s) {
+			let invss_shares = [];
+
+			// Generate nonce and retry until we get valid r
+			while (!r) {
+				// Generate distributed nonce k
+				const [k_shares, k_public_key] = this.jvrss();
+				const [k_x, k_y] = [new BN(k_public_key.x), new BN(k_public_key.y)];
+				r = k_x.umod(N);
+
+				// Compute recovery ID for public key recovery
+				recovery_id = 0 | k_x.gt(N) ? 2 : 0 | k_y.modrn(2);
+
+				// Compute inverse of nonce for signature
+				invss_shares = this.invss(k_shares);
+			}
+
+			// Compute signature shares: s_i = k⁻¹(hash + r × private_key_i)
+			let s_shares = [];
+			for (let i = 0; i &lt; this.group_size; i++) {
+				s_shares.push(
+					r.mul(this.shares[i]).add(msgHash).mul(invss_shares[i])
+				);
+			}
+
+			// Reconstruct final s value
+			s = Polynomial.interpolate_evaluate(this.shares_to_points(s_shares), 0);
+		}
+
+		// Convert to standard format
+		[r, s] = [r.toBuffer(), s.toBuffer()];
+		const prefix = new BN(27 + recovery_id + 4).toBuffer();
+		const serialized_sig = Buffer.concat([prefix, r, s]).toString('base64');
+
+		return {
+			sig: secp256k1.Signature.fromCompact(Buffer.concat([r, s])),
+			serialized_sig,
+			msgHash: msgHash.toBuffer(),
+			recovery_id
+		};
+	}
+
+	/**
+	 * Verifies a threshold signature against a public key and message hash
+	 * 
+	 * This static method verifies threshold signatures using standard ECDSA verification.
+	 * Threshold signatures are indistinguishable from regular ECDSA signatures, so
+	 * standard verification algorithms work without modification.
+	 * 
+	 * **Verification Algorithm:**
+	 * 1. **Input Validation**: Ensure signature components r and s are valid
+	 * 2. **Hash Processing**: Use the provided message hash (already computed)
+	 * 3. **Inverse Computation**: Compute w = s⁻¹ mod n
+	 * 4. **Point Calculation**: Compute u₁ = w×hash and u₂ = w×r
+	 * 5. **Point Addition**: Compute point = u₁×G + u₂×PublicKey
+	 * 6. **Verification**: Check if point.x ≡ r (mod n)
+	 * 
+	 * **Compatibility:**
+	 * - Works with any ECDSA signature, threshold or single-party
+	 * - Uses standard secp256k1 curve parameters
+	 * - Compatible with Bitcoin and Ethereum signature formats
+	 * - Can be used by third parties without threshold scheme knowledge
+	 * 
+	 * @static
+	 * @param {Object} public_key - Elliptic curve public key point
+	 * @param {Buffer} msgHash - SHA256 hash of the original message
+	 * @param {Object} sig - Signature object with r and s components
+	 * @param {bigint} sig.r - Signature r value
+	 * @param {bigint} sig.s - Signature s value
+	 * @returns {boolean} True if signature is valid, false otherwise
+	 * @example
+	 * // Verify a threshold signature
+	 * const tss = new ThresholdSignature(3, 2);
+	 * const signature = tss.sign("Hello World!");
+	 * 
+	 * const isValid = ThresholdSignature.verify_threshold_signature(
+	 *   tss.public_key,
+	 *   signature.msgHash,
+	 *   signature.sig
+	 * );
+	 * console.log(isValid); // true
+	 * 
+	 * @example
+	 * // Third-party verification (doesn't need threshold scheme)
+	 * function verifyTransaction(publicKey, messageHash, signature) {
+	 *   return ThresholdSignature.verify_threshold_signature(
+	 *     publicKey,
+	 *     messageHash,
+	 *     signature
+	 *   );
+	 * }
+	 * 
+	 * // Works with any ECDSA signature
+	 * const valid = verifyTransaction(
+	 *   somePublicKey,
+	 *   someMessageHash,
+	 *   someSignature
+	 * );
+	 * 
+	 * @example
+	 * // Batch verification for multiple signatures
+	 * function verifyBatch(signatures) {
+	 *   return signatures.every(({ publicKey, msgHash, sig }) =>
+	 *     ThresholdSignature.verify_threshold_signature(publicKey, msgHash, sig)
+	 *   );
+	 * }
+	 * 
+	 * @example
+	 * // Integration with Bitcoin transaction verification
+	 * function verifyBitcoinTransaction(transaction, publicKey) {
+	 *   const messageHash = computeTransactionHash(transaction);
+	 *   const signature = extractSignature(transaction);
+	 *   
+	 *   return ThresholdSignature.verify_threshold_signature(
+	 *     publicKey,
+	 *     messageHash,
+	 *     signature
+	 *   );
+	 * }
+	 */
+	static verify_threshold_signature(public_key, msgHash, sig) {
+		msgHash = new BN(msgHash);
+
+		// Compute modular inverse of s using Fermat's Little Theorem
+		const s_bn = new BN(sig.s);
+		const curveOrder_bn = new BN(secp256k1.CURVE.n.toString());
+
+		// For prime p: a^(-1) = a^(p-2) mod p
+		const exponent = curveOrder_bn.sub(new BN(2));
+		const w = s_bn.toRed(BN.red(curveOrder_bn)).redPow(exponent).fromRed();
+
+		// Compute verification values
+		const u1 = w.mul(msgHash).umod(N).toBuffer('be', 32);
+		const u2 = w.mul(new BN(sig.r)).umod(N).toBuffer('be', 32);
+
+		// Compute verification point: u1*G + u2*PublicKey
+		const x = secp256k1.ProjectivePoint.fromPrivateKey(u1)
+			.add(public_key.multiply(bufToBigint(u2))).x
+
+		// Verify that point.x equals signature.r
+		return sig.r === x % secp256k1.CURVE.n;
+	}
+}
+
+export default ThresholdSignature;</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="AddressFormats.html">AddressFormats</a></li><li><a href="BECH32.html">BECH32</a></li><li><a href="BIP32.html">BIP32</a></li><li><a href="BIP39.html">BIP39</a></li><li><a href="CASH_ADDR.html">CASH_ADDR</a></li><li><a href="ECDSA.html">ECDSA</a></li><li><a href="KeyDecoding.html">KeyDecoding</a></li><li><a href="Signatures.html">Signatures</a></li><li><a href="ThresholdCrypto.html">ThresholdCrypto</a></li><li><a href="Utilities.html">Utilities</a></li><li><a href="Wallets.html">Wallets</a></li><li><a href="schnorr_sig.html">schnorr_sig</a></li></ul><h3>Classes</h3><ul><li><a href="Custodial_Wallet.html">Custodial_Wallet</a></li><li><a href="Non_Custodial_Wallet.html">Non_Custodial_Wallet</a></li><li><a href="Polynomial.html">Polynomial</a></li><li><a href="ThresholdSignature.html">ThresholdSignature</a></li></ul><h3>Global</h3><ul><li><a href="global.html#CHARSET">CHARSET</a></li><li><a href="global.html#FEATURES">FEATURES</a></li><li><a href="global.html#NETWORKS">NETWORKS</a></li><li><a href="global.html#address">address</a></li><li><a href="global.html#b58encode">b58encode</a></li><li><a href="global.html#base32_encode">base32_encode</a></li><li><a href="global.html#derive">derive</a></li><li><a href="global.html#fromSeed">fromSeed</a></li><li><a href="global.html#hdKey">hdKey</a></li><li><a href="global.html#legacyAddress_decode">legacyAddress_decode</a></li><li><a href="global.html#privateKey_decode">privateKey_decode</a></li><li><a href="global.html#rmd160">rmd160</a></li><li><a href="global.html#standardKey">standardKey</a></li><li><a href="global.html#table">table</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Wed Jun 04 2025 02:28:50 GMT-0400 (Eastern Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

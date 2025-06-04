@@ -112,7 +112,7 @@ pids
 .env*
 
 # Documentation (generated)
-docs/
+#docs/
 
 # Test coverage reports
 coverage/
