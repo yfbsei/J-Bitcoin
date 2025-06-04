@@ -514,8 +514,6 @@ class Custodial_Wallet {
 	 * **Common Derivation Paths:**
 	 * - BIP44 Bitcoin: "m/44'/0'/0'/0/0" (account 0, receiving address 0)
 	 * - BIP44 Bitcoin Change: "m/44'/0'/0'/1/0" (account 0, change address 0)
-	 * - BIP44 Bitcoin Cash: "m/44'/145'/0'/0/0"
-	 * - BIP44 Bitcoin SV: "m/44'/236'/0'/0/0"
 	 * 
 	 * @param {string} [path="m/0'"] - BIP32 derivation path (e.g., "m/44'/0'/0'/0/0")
 	 * @param {string} [keyType='pri'] - Key type to derive ('pri' for private, 'pub' for public)
@@ -566,17 +564,11 @@ class Custodial_Wallet {
 	 * }
 	 * 
 	 * @example
-	 * // Multi-currency wallet derivation
 	 * const wallet = Custodial_Wallet.fromRandom('main')[1];
 	 * 
 	 * // Bitcoin addresses
 	 * wallet.derive("m/44'/0'/0'/0/0", 'pri');   // BTC receiving
 	 * 
-	 * // Bitcoin Cash addresses (different coin type)
-	 * wallet.derive("m/44'/145'/0'/0/0", 'pri'); // BCH receiving
-	 * 
-	 * // Bitcoin SV addresses
-	 * wallet.derive("m/44'/236'/0'/0/0", 'pri'); // BSV receiving
 	 * 
 	 * @example
 	 * // Generate multiple addresses for a service

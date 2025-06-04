@@ -1,7 +1,7 @@
 /**
  * @fileoverview Main entry point for J-Bitcoin cryptocurrency library
  * 
- * J-Bitcoin is a comprehensive JavaScript library for Bitcoin, Bitcoin Cash, and Bitcoin SV
+ * J-Bitcoin is a comprehensive JavaScript library for Bitcoin 
  * that provides both custodial and non-custodial wallet functionality with advanced
  * cryptographic features including threshold signatures and hierarchical deterministic keys.
  * 
@@ -213,17 +213,6 @@ export { rmd160 };
  */
 
 /**
- * Bitcoin Cash CashAddr format utilities
- * @memberof AddressFormats
- * @namespace
- * @example
- * // Convert legacy address to CashAddr
- * const cashAddr = CASH_ADDR.to_cashAddr("1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2");
- * // Returns: "bitcoincash:qztxx64w20kmy5y9sskjwtgxp3j8dc20ksvef26ssu"
- */
-export { CASH_ADDR };
-
-/**
  * Bitcoin Bech32 SegWit address utilities
  * @memberof AddressFormats
  * @namespace
@@ -272,7 +261,7 @@ export { legacyAddress_decode };
 /**
  * @typedef {Object} AddressInfo
  * @property {string} address - Bitcoin address string
- * @property {string} format - Address format ('legacy', 'segwit', 'cashaddr')
+ * @property {string} format - Address format ('legacy', 'segwit')
  * @property {string} network - Network type ('main', 'test')
  */
 
@@ -294,8 +283,6 @@ export const FEATURES = {
     P2PKH: true,
     /** P2WPKH SegWit Addresses */
     P2WPKH: true,
-    /** Bitcoin Cash CashAddr */
-    CASHADDR: true,
     /** P2SH Script Hash Addresses */
     P2SH: false,
     /** P2WSH SegWit Script Hash */
@@ -316,12 +303,4 @@ export const NETWORKS = {
     BTC_MAIN: { name: 'Bitcoin', symbol: 'BTC', network: 'main' },
     /** Bitcoin testnet */
     BTC_TEST: { name: 'Bitcoin Testnet', symbol: 'BTC', network: 'test' },
-    /** Bitcoin Cash mainnet */
-    BCH_MAIN: { name: 'Bitcoin Cash', symbol: 'BCH', network: 'main' },
-    /** Bitcoin Cash testnet */
-    BCH_TEST: { name: 'Bitcoin Cash Testnet', symbol: 'BCH', network: 'test' },
-    /** Bitcoin SV mainnet */
-    BSV_MAIN: { name: 'Bitcoin SV', symbol: 'BSV', network: 'main' },
-    /** Bitcoin SV testnet */
-    BSV_TEST: { name: 'Bitcoin SV Testnet', symbol: 'BSV', network: 'test' }
 };

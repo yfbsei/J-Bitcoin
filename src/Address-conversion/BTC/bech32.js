@@ -11,7 +11,7 @@
  * @version 1.0.0
  */
 
-import CASH_ADDR from '../BCH/cash_addr.js';
+import { decode_legacy_address, convertBits, checksum_5bit } from '../../utilities/addressHelpers.js';
 import base32_encode from '../../utilities/Base32.js';
 
 /**
@@ -65,10 +65,10 @@ const BECH32 = {
 		// Calculate polynomial checksum and apply encoding constant
 		checksum = this.polymod(checksum) ^ (encoding === 'bech32' ? 1 : 0x2bc830a3);
 
-		// Combine data with checksum (excluding first 2 bytes from BCH template)
+		// Combine data with checksum (excluding first 2 bytes from template)
 		const payload = Buffer.concat([
 			data, // Original data
-			CASH_ADDR.checksum_5bit(checksum).subarray(2) // 6-byte checksum
+			checksum_5bit(checksum).subarray(2) // 6-byte checksum
 		]);
 
 		// Return complete address: HRP + "1" + Base32(data+checksum)
@@ -157,14 +157,11 @@ const BECH32 = {
 	 */
 	to_P2WPKH(witness_program = "legacy address") {
 		// Decode legacy address to get network prefix and hash160
-		let [bch_prefix, hash] = CASH_ADDR.decode_legacy_address(witness_program);
-
-		// Map BCH prefix to BTC prefix
-		const btc_prefix = bch_prefix === "bitcoincash" ? 'bc' : 'tb';
+		let [btc_prefix, hash] = decode_legacy_address(witness_program);
 
 		// Convert hash from hex string to buffer, then to 5-bit representation
 		hash = Buffer.from(hash, 'hex');
-		hash = CASH_ADDR.convertBits(hash, 8, 5); // Convert to 5 bits per group
+		hash = convertBits(hash, 8, 5); // Convert to 5 bits per group
 
 		// Create witness program: version 0 + converted hash
 		const data = Buffer.concat([Buffer.from([0]), hash]);
@@ -196,7 +193,7 @@ const BECH32 = {
 	data_to_bech32(prefix = "Jamallo", data = "hex", encoding = 'bech32') {
 		// Convert hex string to buffer and then to 5-bit representation
 		const hex_to_buffer = Buffer.from(data, 'hex');
-		data = CASH_ADDR.convertBits(hex_to_buffer, 8, 5);
+		data = convertBits(hex_to_buffer, 8, 5);
 
 		// Validate total length: 2*prefix + 1 separator + data + 6 checksum ≤ 90
 		const len = 2 * prefix.length + 1 + data.length + 6;

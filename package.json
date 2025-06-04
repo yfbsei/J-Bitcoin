@@ -1,7 +1,7 @@
 {
   "name": "j-bitcoin",
   "version": "1.0.2",
-  "description": "Comprehensive JavaScript cryptocurrency wallet library for Bitcoin (BTC), Bitcoin Cash (BCH), and Bitcoin SV (BSV) with custodial and non-custodial wallet support, threshold signatures, and multiple address formats",
+  "description": "Comprehensive JavaScript cryptocurrency wallet library for Bitcoin (BTC) with custodial and non-custodial wallet support, threshold signatures, and multiple address formats",
   "main": "index.js",
   "types": "index.d.ts",
   "exports": {
@@ -101,10 +101,6 @@
     "secp256k1",
     "elliptic-curve",
     "cryptography",
-    "bitcoin-cash",
-    "bitcoin-sv",
-    "bch",
-    "bsv",
     "btc",
     "segwit",
     "bech32",

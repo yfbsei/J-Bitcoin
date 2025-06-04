@@ -1,7 +1,7 @@
 /**
  * J-Bitcoin - Comprehensive TypeScript definitions
  * 
- * Complete type definitions for Bitcoin, Bitcoin Cash, and Bitcoin SV
+ * Complete type definitions for Bitcoin
  * cryptocurrency wallet library with custodial and non-custodial support.
  * 
  * @version 1.0.0
@@ -371,17 +371,6 @@ declare module 'j-bitcoin' {
         function data_to_bech32(prefix?: string, data?: string, encoding?: Bech32Encoding): string;
     }
 
-    export namespace CASH_ADDR {
-        /**
-         * Converts a legacy Bitcoin address to CashAddr format
-         * @param legacy_address Legacy Base58Check address to convert
-         * @param type Address type: "p2pkh" or "p2sh"
-         * @returns CashAddr formatted address with network prefix
-         * @throws Error if legacy address is invalid or unsupported
-         */
-        function to_cashAddr(legacy_address?: string, type?: AddressType): string;
-    }
-
     // ============================================================================
     // BIP32 UTILITIES
     // ============================================================================
@@ -611,8 +600,6 @@ declare module 'j-bitcoin' {
         P2PKH: boolean;
         /** P2WPKH SegWit Addresses */
         P2WPKH: boolean;
-        /** Bitcoin Cash CashAddr */
-        CASHADDR: boolean;
         /** P2SH Script Hash Addresses */
         P2SH: boolean;
         /** P2WSH SegWit Script Hash */
@@ -629,14 +616,6 @@ declare module 'j-bitcoin' {
         BTC_MAIN: { name: string; symbol: string; network: string };
         /** Bitcoin testnet */
         BTC_TEST: { name: string; symbol: string; network: string };
-        /** Bitcoin Cash mainnet */
-        BCH_MAIN: { name: string; symbol: string; network: string };
-        /** Bitcoin Cash testnet */
-        BCH_TEST: { name: string; symbol: string; network: string };
-        /** Bitcoin SV mainnet */
-        BSV_MAIN: { name: string; symbol: string; network: string };
-        /** Bitcoin SV testnet */
-        BSV_TEST: { name: string; symbol: string; network: string };
     };
 }
 
