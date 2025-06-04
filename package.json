@@ -145,5 +145,12 @@
     "node": "18.17.0",
     "npm": "9.6.7"
   },
-  "packageManager": "npm@9.6.7"
+  "packageManager": "npm@9.6.7",
+  "releaseDate": "2024-12-19",
+  "changelog": {
+    "version": "2.0.0",
+    "released": "2024-12-19",
+    "breaking": true,
+    "description": "Bitcoin(BTC) support only"
+  }
 }

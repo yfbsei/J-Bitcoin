@@ -5,13 +5,14 @@ All notable changes to J-Bitcoin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.0] - 2024-12-XX
+## [2.0.0] - 2024-12-19
 
 ### BREAKING CHANGES
 - **Removed Bitcoin Cash (BCH) support** - All BCH-related functionality removed
 - **Removed Bitcoin SV (BSV) support** - All BSV-related functionality removed  
 - **Removed CashAddr format support** - No longer supports BCH address format
 - **Bitcoin-only focus** - Library now exclusively supports Bitcoin (BTC)
+- **Error handling improvements** - All errors now throw proper Error objects instead of strings
 
 ### Removed
 - `CASH_ADDR` namespace and all CashAddr functionality
@@ -37,21 +38,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Enhanced TypeScript definitions** for Bitcoin-only operations
 - **Improved documentation** with Bitcoin-focused examples
 - **Address helper utilities** - Extracted shared functions to `src/utilities/addressHelpers.js`
+- **Integrated wallet functionality**
+  - `Custodial_Wallet.deriveReceivingAddress()` - Standard BIP44 receiving addresses
+  - `Custodial_Wallet.deriveChangeAddress()` - Standard BIP44 change addresses
+  - `Custodial_Wallet.deriveTestnetAddress()` - Testnet address generation
+  - `Custodial_Wallet.getChildKeysByType()` - Filter child keys by address type
+  - `Custodial_Wallet.getSummary()` - Wallet summary information
+  - `Non_Custodial_Wallet.getSummary()` - Threshold wallet summary
+- **Enhanced security warnings** - Runtime warnings for sensitive operations
+- **Network configuration integration** - Automatic network config assignment
 
 ### Changed
 - **Updated derivation path examples** to Bitcoin-only (coin types 0 and 1)
 - **Simplified network configuration** to mainnet/testnet only
-- **Enhanced TypeScript support** with Bitcoin-specific types
+- **Enhanced TypeScript support** with Bitcoin-specific types and interfaces
 - **Improved Bech32 implementation** with extracted helper functions
 - **Updated documentation** to reflect Bitcoin-only focus
 - **Streamlined codebase** for Bitcoin-specific operations
 - **Version bump** to 2.0.0 indicating major breaking changes
+- **Enhanced error handling** - All functions now throw proper Error objects
+- **Improved input validation** - Network parameters validated in constructors
+- **Constants integration** - Wallet classes now use integrated Bitcoin constants
+- **Better type safety** - Enhanced TypeScript definitions with proper interfaces
 
 ### Fixed
 - **Removed circular dependencies** by extracting shared utilities
 - **Improved error handling** for Bitcoin address validation
 - **Better type safety** for Bitcoin operations
 - **Consistent naming** for Bitcoin-only functions
+- **Proper error objects** - BIP39 functions now throw Error objects instead of strings
+- **Network validation** - Wallet constructors validate network parameters
+- **Security warnings** - Added runtime warnings for private key reconstruction
+- **Documentation alignment** - Removed all BCH/BSV references from examples
+
+### Security
+- **Enhanced private key warnings** - Runtime security warnings for sensitive operations
+- **Network validation** - Proper validation of network parameters
+- **Input sanitization** - Improved validation throughout the library
+- **Error information** - Better error messages without exposing sensitive data
 
 ### Migration Guide
 
@@ -74,6 +98,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    // New (Bitcoin only)
    wallet.derive("m/44'/0'/0'/0/0");   // Bitcoin mainnet
    wallet.derive("m/44'/1'/0'/0/0");   // Bitcoin testnet
+   
+   // Or use new convenience methods
+   wallet.deriveReceivingAddress(0);   // Standard BIP44 receiving
+   wallet.deriveChangeAddress(0);      // Standard BIP44 change
+   wallet.deriveTestnetAddress(0);     // Testnet address
    ```
 
 3. **Use new Bitcoin constants**:
@@ -103,10 +132,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    console.log(BITCOIN_NETWORKS.MAINNET);   // New detailed config
    ```
 
+5. **Enhanced error handling**:
+   ```javascript
+   // Errors are now proper Error objects
+   try {
+     const seed = BIP39.mnemonic2seed("invalid mnemonic");
+   } catch (error) {
+     console.log(error.message); // Proper error message
+     console.log(error instanceof Error); // true
+   }
+   ```
+
 #### TypeScript Changes
 1. **Updated type definitions** for Bitcoin-only operations
 2. **New utility types** for derivation paths and network configurations
 3. **Enhanced IntelliSense** support for Bitcoin-specific functions
+4. **Improved interface definitions** with comprehensive wallet summaries
 
 #### Feature Replacements
 | Removed Feature | Bitcoin Replacement |
@@ -115,13 +156,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | BCH derivation paths | Bitcoin testnet paths (`m/44'/1'/0'/0/0`) |
 | Multi-currency examples | Bitcoin mainnet/testnet examples |
 | CashAddr format | Bech32 SegWit format |
+| String error throwing | Proper Error objects |
 
 #### Benefits of Migration
 - **Smaller bundle size** - Reduced by ~40% with removed BCH/BSV code
 - **Better performance** - Optimized for Bitcoin-only operations
-- **Enhanced security** - Focused codebase reduces attack surface
+- **Enhanced security** - Focused codebase reduces attack surface and adds security warnings
 - **Improved maintainability** - Single-currency focus simplifies updates
 - **Better TypeScript support** - More precise types for Bitcoin operations
+- **Enhanced developer experience** - Integrated constants and utility functions
+- **Improved error handling** - Proper Error objects with better messages
 
 ---
 

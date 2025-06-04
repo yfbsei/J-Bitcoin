@@ -7,7 +7,7 @@
  * 
  * @see {@link https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki|BIP39 Specification}
  * @author yfbsei
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 import { createHash, randomBytes, pbkdf2Sync } from 'node:crypto';
@@ -147,7 +147,7 @@ const BIP39 = {
 	 * 
 	 * @param {string} [passphrase=''] - Optional passphrase for seed derivation
 	 * @returns {MnemonicResult} Object containing both mnemonic and seed
-	 * @throws {string} Throws 'invalid checksum' if generated mnemonic fails validation
+	 * @throws {Error} Throws Error object if generated mnemonic fails validation
 	 * @example
 	 * const { mnemonic, seed } = BIP39.random('my-secure-passphrase');
 	 * console.log(mnemonic); // "word1 word2 word3 ..."
@@ -164,7 +164,7 @@ const BIP39 = {
 			}
 		}
 		else {
-			throw 'invalid checksum';
+			throw new Error('Invalid checksum: Generated mnemonic failed validation');
 		}
 	},
 
@@ -177,7 +177,7 @@ const BIP39 = {
 	 * @param {string} [mnemonic=''] - Space-separated mnemonic phrase
 	 * @param {string} [passphrase=''] - Optional passphrase for additional security
 	 * @returns {string} Hex-encoded 64-byte seed
-	 * @throws {string} Throws 'invalid checksum' if mnemonic validation fails
+	 * @throws {Error} Throws Error object if mnemonic validation fails
 	 * @example
 	 * const mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 	 * const seed = BIP39.mnemonic2seed(mnemonic, "passphrase");
@@ -186,7 +186,7 @@ const BIP39 = {
 	 * try {
 	 *   const seed = BIP39.mnemonic2seed("invalid mnemonic phrase");
 	 * } catch (error) {
-	 *   console.log(error); // "invalid checksum"
+	 *   console.log(error.message); // "Invalid checksum: Mnemonic phrase validation failed"
 	 * }
 	 */
 	mnemonic2seed(mnemonic = '', passphrase = '') {
@@ -194,7 +194,7 @@ const BIP39 = {
 			return this.seed(mnemonic, passphrase);
 		}
 		else {
-			throw 'invalid checksum';
+			throw new Error('Invalid checksum: Mnemonic phrase validation failed');
 		}
 	}
 

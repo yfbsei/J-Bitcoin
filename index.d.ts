@@ -21,7 +21,7 @@ declare module 'j-bitcoin' {
     type KeyType = 'pri' | 'pub';
 
     /** Address type for different Bitcoin script formats */
-    type AddressType = 'p2pkh' | 'p2sh' | 'p2wpkh';
+    type AddressType = 'receiving' | 'change' | 'testnet';
 
     /** Bech32 encoding type for SegWit addresses */
     type Bech32Encoding = 'bech32' | 'bech32m';
@@ -163,6 +163,18 @@ declare module 'j-bitcoin' {
         pub: string;
     }
 
+    /** Network configuration interface */
+    interface NetworkConfig {
+        name: string;
+        symbol: string;
+        coinType: number;
+        addressPrefix: string;
+        legacyPrefix: string;
+        p2shPrefix: string;
+        network: string;
+        legacyPrefixAlt?: string;
+    }
+
     /** Child key information with derivation metadata */
     interface ChildKeyInfo {
         /** Derivation depth in the HD tree */
@@ -175,6 +187,10 @@ declare module 'j-bitcoin' {
         keypair: KeyPair;
         /** Bitcoin address for this child key */
         address: string;
+        /** The full BIP32 path used to derive this key */
+        derivationPath: string;
+        /** Parsed derivation path components */
+        pathInfo: ParsedDerivationPath | { path: string; format: 'custom' };
     }
 
     /** ECDSA signature result with recovery information */
@@ -208,6 +224,26 @@ declare module 'j-bitcoin' {
         seed: string;
     }
 
+    /** Wallet summary information */
+    interface WalletSummary {
+        network: string;
+        address: string;
+        derivedKeys: number;
+        receivingAddresses: number;
+        changeAddresses: number;
+        testnetAddresses: number;
+    }
+
+    /** Threshold wallet summary information */
+    interface ThresholdWalletSummary {
+        network: string;
+        address: string;
+        thresholdScheme: string;
+        participants: number;
+        requiredSigners: number;
+        securityLevel: 'Low' | 'Medium' | 'High';
+    }
+
     // ============================================================================
     // CUSTODIAL WALLET CLASS
     // ============================================================================
@@ -219,6 +255,8 @@ declare module 'j-bitcoin' {
     export class Custodial_Wallet {
         /** Network type ('main' or 'test') */
         readonly net: NetworkType;
+        /** Bitcoin network configuration */
+        readonly networkConfig: NetworkConfig;
         /** Hierarchical deterministic key pair */
         readonly hdKey: HDKeys;
         /** Standard key pair (WIF private key and hex public key) */
@@ -272,6 +310,40 @@ declare module 'j-bitcoin' {
         derive(path?: string, keyType?: KeyType): this;
 
         /**
+         * Derives a Bitcoin receiving address using standard BIP44 path
+         * @param addressIndex Address index (0, 1, 2, ...)
+         * @returns Returns this wallet instance for method chaining
+         */
+        deriveReceivingAddress(addressIndex?: number): this;
+
+        /**
+         * Derives a Bitcoin change address using standard BIP44 path
+         * @param addressIndex Address index (0, 1, 2, ...)
+         * @returns Returns this wallet instance for method chaining
+         */
+        deriveChangeAddress(addressIndex?: number): this;
+
+        /**
+         * Derives a testnet address regardless of current wallet network
+         * @param addressIndex Address index (0, 1, 2, ...)
+         * @returns Returns this wallet instance for method chaining
+         */
+        deriveTestnetAddress(addressIndex?: number): this;
+
+        /**
+         * Gets all child keys of a specific address type
+         * @param addressType Type: 'receiving', 'change', or 'testnet'
+         * @returns Array of matching child keys
+         */
+        getChildKeysByType(addressType?: AddressType): ChildKeyInfo[];
+
+        /**
+         * Gets wallet summary information including network details and key counts
+         * @returns Wallet summary object
+         */
+        getSummary(): WalletSummary;
+
+        /**
          * Signs a message using ECDSA with the wallet's private key
          * @param message Message to sign
          * @returns Tuple of [signature bytes, recovery ID]
@@ -298,6 +370,8 @@ declare module 'j-bitcoin' {
     export class Non_Custodial_Wallet {
         /** Network type ('main' or 'test') */
         readonly net: NetworkType;
+        /** Bitcoin network configuration */
+        readonly networkConfig: NetworkConfig;
         /** Total number of participants in the threshold scheme */
         readonly group_size: number;
         /** Minimum number of participants required to sign */
@@ -345,6 +419,12 @@ declare module 'j-bitcoin' {
          * @returns WIF-encoded private key
          */
         get _privateKey(): string;
+
+        /**
+         * Gets threshold wallet summary information
+         * @returns Threshold wallet summary object
+         */
+        getSummary(): ThresholdWalletSummary;
 
         /**
          * Generates a threshold signature for a given message

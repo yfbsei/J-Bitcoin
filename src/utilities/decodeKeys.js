@@ -204,17 +204,6 @@ function privateKey_decode(pri_key = "L1vHfV6GUbMJSvFaqjnButzwq5x4ThdFaotpUgsfSc
  * console.log('Regenerated:  ', regeneratedAddress);
  * console.log('Decoded hash: ', Buffer.from(decodedHash).toString('hex'));
  * 
- * @example
- * // Extract hash for address conversion
- * import { CASH_ADDR } from '../altAddress/BCH/cash_addr.js';
- * 
- * const legacyAddr = "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2";
- * const hash160 = legacyAddress_decode(legacyAddr);
- * 
- * // Use hash160 for CashAddr conversion
- * console.log('Legacy address:', legacyAddr);
- * console.log('Extracted hash:', Buffer.from(hash160).toString('hex'));
- * // Hash can now be used for format conversion
  * 
  * @example
  * // Validate multiple address types

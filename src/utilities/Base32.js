@@ -9,7 +9,7 @@
  * @see {@link https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki|BIP173 - Base32 address format for native v0-16 witness outputs}
  * @see {@link https://github.com/bitcoincashorg/bitcoincash.org/blob/master/spec/cashaddr.md|CashAddr Specification}
  * @author yfbsei
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 /**
@@ -85,7 +85,7 @@ const CHARSET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
  * // "qw508d6qejxtdg4y5r3zarvary0c5xw7k" (example P2WPKH payload)
  * 
  * @example
- * // Encode CashAddr checksum
+ * // Encode checksum data
  * const checksumData = new Uint8Array([21, 15, 9, 14, 26, 20, 0, 15]);
  * const checksumString = base32_encode(checksumData);
  * console.log(checksumString); // "54n5063"
@@ -162,6 +162,20 @@ const CHARSET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
  * - Matches reference implementations in Bitcoin Core and Bitcoin ABC
  * - Consistent with other Bitcoin libraries and wallets
  */
-const base32_encode = data => data.reduce((base32, x) => base32 + CHARSET[x], '');
+const base32_encode = (data = new Uint8Array()) => {
+    // Input validation
+    if (!data || data.length === 0) {
+        throw new Error('Input data cannot be empty');
+    }
+
+    // Validate all values are in 5-bit range
+    for (let i = 0; i < data.length; i++) {
+        if (data[i] < 0 || data[i] > 31) {
+            throw new Error(`Invalid 5-bit value at index ${i}: ${data[i]} (must be 0-31)`);
+        }
+    }
+
+    return data.reduce((base32, x) => base32 + CHARSET[x], '');
+};
 
 export default base32_encode;

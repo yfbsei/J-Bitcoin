@@ -42,7 +42,17 @@ import bip39 from './BIP39/bip39.js';
 import ecdsa from './ECDSA/ecdsa.js';
 
 import { standardKey, address } from './utilities/encodeKeys.js';
-import { BIP44_CONSTANTS, DERIVATION_PATHS } from './utilities/constants.js';
+import {
+	BIP44_CONSTANTS,
+	DERIVATION_PATHS,
+	NETWORKS as BITCOIN_NETWORKS,
+	ADDRESS_FORMATS,
+	BIP_PURPOSES,
+	generateDerivationPath,
+	parseDerivationPath,
+	isValidBitcoinPath,
+	getNetworkByCoinType
+} from './utilities/constants.js';
 import ThresholdSignature from './Threshold-signature/threshold_signature.js';
 import BN from 'bn.js';
 import { secp256k1 } from '@noble/curves/secp256k1';
@@ -81,6 +91,8 @@ import { secp256k1 } from '@noble/curves/secp256k1';
  * @property {HDKeys} hdKey - HD key pair for this child
  * @property {KeyPair} keypair - Standard key pair for this child
  * @property {string} address - Bitcoin address generated from this child key
+ * @property {string} derivationPath - The full BIP32 path used to derive this key
+ * @property {Object} pathInfo - Parsed derivation path components
  * @example
  * // Child key at m/44'/0'/0'/0/0
  * const childInfo = {
@@ -88,7 +100,9 @@ import { secp256k1 } from '@noble/curves/secp256k1';
  *   childIndex: 0,
  *   hdKey: { HDpri: "...", HDpub: "..." },
  *   keypair: { pri: "...", pub: "..." },
- *   address: "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2"
+ *   address: "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2",
+ *   derivationPath: "m/44'/0'/0'/0/0",
+ *   pathInfo: { purpose: 44, coinType: 0, account: 0, change: 0, addressIndex: 0 }
  * };
  */
 
@@ -135,6 +149,7 @@ import { secp256k1 } from '@noble/curves/secp256k1';
  * - Support for Bitcoin mainnet and testnet
  * - Child key derivation with configurable paths
  * - Address generation for receiving payments
+ * - Integrated Bitcoin constants and utility functions
  * 
  * **Security Model:**
  * - Single point of control (private key holder has full access)
@@ -165,48 +180,15 @@ import { secp256k1 } from '@noble/curves/secp256k1';
  * console.log('Imported address:', wallet.address);
  * 
  * @example
- * // Derive child keys for different purposes
+ * // Use integrated constants for standardized derivation
  * const wallet = Custodial_Wallet.fromRandom('main')[1];
  * 
- * // BIP44 Bitcoin receiving addresses
- * wallet.derive("m/44'/0'/0'/0/0", 'pri'); // First receiving address
- * wallet.derive("m/44'/0'/0'/0/1", 'pri'); // Second receiving address
- * 
- * // BIP44 Bitcoin change addresses  
- * wallet.derive("m/44'/0'/0'/1/0", 'pri'); // First change address
- * 
- * // BIP44 Bitcoin testnet addresses
- * wallet.derive("m/44'/1'/0'/0/0", 'pri'); // Testnet receiving address
+ * // Generate standard Bitcoin addresses using built-in methods
+ * wallet.deriveReceivingAddress(0);  // First receiving address
+ * wallet.deriveChangeAddress(0);     // First change address
+ * wallet.deriveTestnetAddress(0);    // Testnet address
  * 
  * console.log('Child keys:', Array.from(wallet.child_keys));
- * 
- * @example
- * // Using Bitcoin constants for standardized paths
- * import { BIP44_CONSTANTS, DERIVATION_PATHS } from './utilities/constants.js';
- * 
- * const wallet = Custodial_Wallet.fromRandom('main')[1];
- * 
- * // Standard Bitcoin derivation using constants
- * wallet.derive(DERIVATION_PATHS.BITCOIN_FIRST_ADDRESS, 'pri');   // m/44'/0'/0'/0/0
- * wallet.derive(DERIVATION_PATHS.BITCOIN_FIRST_CHANGE, 'pri');    // m/44'/0'/0'/1/0
- * 
- * // Generate paths programmatically
- * for (let i = 0; i < 5; i++) {
- *   const receivePath = `m/${BIP44_CONSTANTS.PURPOSE}'/${BIP44_CONSTANTS.COIN_TYPES.BITCOIN_MAINNET}'/${BIP44_CONSTANTS.ACCOUNT}'/${BIP44_CONSTANTS.CHANGE.EXTERNAL}/${i}`;
- *   wallet.derive(receivePath, 'pri');
- * }
- * 
- * @example
- * // Sign and verify messages
- * const wallet = Custodial_Wallet.fromRandom('main')[1];
- * const message = "Hello Bitcoin!";
- * 
- * // Sign message
- * const [signature, recoveryId] = wallet.sign(message);
- * 
- * // Verify signature
- * const isValid = wallet.verify(signature, message);
- * console.log('Signature valid:', isValid); // true
  */
 class Custodial_Wallet {
 	/**
@@ -248,6 +230,11 @@ class Custodial_Wallet {
 	 * const wallet = new Custodial_Wallet('main', masterKeys, serializationFormat);
 	 */
 	constructor(net, master_keys, serialization_format) {
+		// Validate network parameter
+		if (net !== 'main' && net !== 'test') {
+			throw new Error(`Invalid network: ${net}. Must be 'main' or 'test'`);
+		}
+
 		/**
 		 * Network type for this wallet instance.
 		 * Determines address formats, version bytes, and network-specific parameters.
@@ -259,6 +246,20 @@ class Custodial_Wallet {
 		 * console.log(wallet.net); // "main" or "test"
 		 */
 		this.net = net;
+
+		/**
+		 * Bitcoin network configuration for this wallet.
+		 * Contains network-specific parameters and constants.
+		 * 
+		 * @type {Object}
+		 * @readonly
+		 * @memberof Custodial_Wallet
+		 * @example
+		 * console.log(wallet.networkConfig.name);        // "Bitcoin" or "Bitcoin Testnet"
+		 * console.log(wallet.networkConfig.symbol);      // "BTC"
+		 * console.log(wallet.networkConfig.coinType);    // 0 or 1
+		 */
+		this.networkConfig = getNetworkByCoinType(net === 'main' ? 0 : 1);
 
 		/**
 		 * Hierarchical deterministic key pair for this wallet.
@@ -366,17 +367,6 @@ class Custodial_Wallet {
 	 * const [mnemonic, testWallet] = Custodial_Wallet.fromRandom('test', 'my-secure-passphrase');
 	 * console.log('Testnet address:', testWallet.address);
 	 * // "mgRpP3zP1hmxyoeYJgfbcmN3c2Qsurw48D"
-	 * 
-	 * @example
-	 * // Store mnemonic securely for backup
-	 * const [mnemonic, wallet] = Custodial_Wallet.fromRandom('main', 'company-passphrase');
-	 * 
-	 * // Store mnemonic in secure location (encrypted, offline, etc.)
-	 * secureStorage.store('wallet-mnemonic', mnemonic);
-	 * secureStorage.store('wallet-passphrase', 'company-passphrase');
-	 * 
-	 * // Wallet can be restored later using mnemonic + passphrase
-	 * const restoredWallet = Custodial_Wallet.fromMnemonic('main', mnemonic, 'company-passphrase');
 	 */
 	static fromRandom(net = 'main', passphrase = '') {
 		const { mnemonic, seed } = bip39.random(passphrase);
@@ -410,7 +400,7 @@ class Custodial_Wallet {
 	 * @param {string} [passphrase=''] - Optional passphrase used during generation
 	 * @returns {Custodial_Wallet} Restored wallet instance with identical keys
 	 * 
-	 * @throws {Error} "invalid checksum" if mnemonic checksum validation fails
+	 * @throws {Error} If mnemonic checksum validation fails
 	 * @throws {Error} If mnemonic format is invalid or contains unknown words
 	 * @throws {Error} If network parameter is invalid
 	 * 
@@ -425,25 +415,6 @@ class Custodial_Wallet {
 	 * const mnemonicWithPass = "legal winner thank year wave sausage worth useful legal winner thank yellow";
 	 * const passphrase = "my-secure-passphrase";
 	 * const wallet = Custodial_Wallet.fromMnemonic('main', mnemonicWithPass, passphrase);
-	 * 
-	 * @example
-	 * // Handle restoration errors gracefully
-	 * try {
-	 *   const invalidMnemonic = "invalid mnemonic phrase with wrong checksum";
-	 *   const wallet = Custodial_Wallet.fromMnemonic('main', invalidMnemonic);
-	 * } catch (error) {
-	 *   console.error('Failed to restore wallet:', error.message);
-	 *   // Handle error: show user-friendly message, request valid mnemonic
-	 * }
-	 * 
-	 * @example
-	 * // Cross-platform wallet restoration
-	 * // Mnemonic generated on mobile app, restored on desktop
-	 * const mobileMnemonic = getUserInput('Enter your 12-word backup phrase:');
-	 * const desktopWallet = Custodial_Wallet.fromMnemonic('main', mobileMnemonic);
-	 * 
-	 * // Wallet will have identical addresses and keys as mobile version
-	 * console.log('Synced address:', desktopWallet.address);
 	 */
 	static fromMnemonic(net = 'main', mnemonic = '', passphrase = '') {
 		const seed = bip39.mnemonic2seed(mnemonic, passphrase);
@@ -485,18 +456,6 @@ class Custodial_Wallet {
 	 * const seed = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
 	 * const wallet = Custodial_Wallet.fromSeed('main', seed);
 	 * console.log('Seed-derived address:', wallet.address);
-	 * 
-	 * @example
-	 * // Use BIP39-derived seed
-	 * const mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
-	 * const bip39Seed = bip39.mnemonic2seed(mnemonic);
-	 * const wallet = Custodial_Wallet.fromSeed('main', bip39Seed);
-	 * 
-	 * @example
-	 * // Custom seed for testing (deterministic addresses)
-	 * const testSeed = "deadbeefcafebabe".repeat(8); // 128 hex chars
-	 * const testWallet = Custodial_Wallet.fromSeed('test', testSeed);
-	 * console.log('Test address:', testWallet.address);
 	 */
 	static fromSeed(net = 'main', seed = "000102030405060708090a0b0c0d0e0f") {
 		const [hdKey, serialization_format] = fromSeed(seed, net);
@@ -554,83 +513,142 @@ class Custodial_Wallet {
 	 * wallet.derive("m/44'/0'/0'/1/0", 'pri');
 	 * 
 	 * console.log('Derived keys:', wallet.child_keys.size); // 2
-	 * 
-	 * @example
-	 * // Method chaining for multiple derivations
-	 * const wallet = Custodial_Wallet.fromRandom('main')[1];
-	 * 
-	 * // Derive Bitcoin addresses with proper network paths
-	 * wallet
-	 *   .derive("m/44'/0'/0'/0/0", 'pri')  // Bitcoin mainnet receiving
-	 *   .derive("m/44'/0'/0'/0/1", 'pri')  // Bitcoin mainnet receiving #2
-	 *   .derive("m/44'/0'/0'/1/0", 'pri')  // Bitcoin mainnet change
-	 *   .derive("m/44'/1'/0'/0/0", 'pri'); // Bitcoin testnet receiving
-	 * 
-	 * // Access all derived addresses
-	 * for (const child of wallet.child_keys) {
-	 *   console.log(`Address ${child.childIndex}:`, child.address);
-	 * }
-	 * 
-	 * @example
-	 * // Public key derivation (non-hardened only)
-	 * const wallet = Custodial_Wallet.fromRandom('main')[1];
-	 * 
-	 * // This works - non-hardened derivation
-	 * wallet.derive("m/0/1/2", 'pub');
-	 * 
-	 * // This fails - hardened derivation from public key
-	 * try {
-	 *   wallet.derive("m/0'/1", 'pub');
-	 * } catch (error) {
-	 *   console.log(error.message); // "Public Key can't derive from hardened path"
-	 * }
-	 * 
-	 * @example
-	 * const wallet = Custodial_Wallet.fromRandom('main')[1];
-	 * 
-	 * // Bitcoin mainnet addresses (coin type 0)
-	 * wallet.derive("m/44'/0'/0'/0/0", 'pri');   // BTC receiving
-	 * wallet.derive("m/44'/0'/0'/1/0", 'pri');   // BTC change
-	 * 
-	 * // Bitcoin testnet addresses (coin type 1)  
-	 * wallet.derive("m/44'/1'/0'/0/0", 'pri');   // BTC testnet receiving
-	 * wallet.derive("m/44'/1'/0'/1/0", 'pri');   // BTC testnet change
-	 * 
-	 * @example
-	 * // Generate multiple Bitcoin addresses for a service
-	 * const wallet = Custodial_Wallet.fromRandom('main')[1];
-	 * 
-	 * // Generate 10 unique mainnet receiving addresses
-	 * for (let i = 0; i < 10; i++) {
-	 *   wallet.derive(`m/44'/0'/0'/0/${i}`, 'pri');
-	 * }
-	 * 
-	 * // Generate testnet addresses for development
-	 * for (let i = 0; i < 5; i++) {
-	 *   wallet.derive(`m/44'/1'/0'/0/${i}`, 'pri');
-	 * }
-	 * 
-	 * // Each customer gets a unique Bitcoin address
-	 * const addresses = Array.from(wallet.child_keys).map(child => ({
-	 *   address: child.address,
-	 *   network: child.address.startsWith('1') ? 'mainnet' : 'testnet',
-	 *   path: `index_${child.childIndex}`
-	 * }));
-	 * console.log('Generated addresses:', addresses);
 	 */
 	derive(path = "m/0'", keyType = 'pri') {
+		// Validate derivation path format
+		if (!isValidBitcoinPath(path)) {
+			console.warn(`⚠️  Non-standard derivation path: ${path}. Consider using Bitcoin standard paths.`);
+		}
+
 		const key = this.hdKey[keyType === 'pri' ? 'HDpri' : 'HDpub'];
 		const [hdKey, serialization_format] = derive(path, key, this.#serialization_format);
+
+		// Parse path information for additional metadata
+		let pathInfo = null;
+		try {
+			pathInfo = parseDerivationPath(path);
+		} catch (error) {
+			// If path doesn't match standard format, store basic info
+			pathInfo = { path, format: 'custom' };
+		}
 
 		this.child_keys.add({
 			depth: serialization_format.depth,
 			childIndex: serialization_format.childIndex,
 			hdKey,
 			keypair: standardKey(keyType !== 'pub' ? serialization_format.privKey : false, serialization_format.pubKey),
-			address: address(serialization_format.versionByte.pubKey, serialization_format.pubKey.key)
+			address: address(serialization_format.versionByte.pubKey, serialization_format.pubKey.key),
+			derivationPath: path,
+			pathInfo
 		});
 
 		return this;
+	}
+
+	/**
+	 * Derives a Bitcoin receiving address using standard BIP44 path.
+	 * 
+	 * This convenience method generates a receiving address following BIP44 standard:
+	 * m/44'/coinType'/0'/0/addressIndex where coinType depends on network.
+	 * 
+	 * @param {number} [addressIndex=0] - Address index (0, 1, 2, ...)
+	 * @returns {Custodial_Wallet} Returns this wallet instance for method chaining
+	 * 
+	 * @example
+	 * const wallet = Custodial_Wallet.fromRandom('main')[1];
+	 * wallet.deriveReceivingAddress(0);  // First receiving address
+	 * wallet.deriveReceivingAddress(1);  // Second receiving address
+	 */
+	deriveReceivingAddress(addressIndex = 0) {
+		const path = generateDerivationPath({
+			purpose: BIP44_CONSTANTS.PURPOSE,
+			coinType: this.networkConfig.coinType,
+			account: BIP44_CONSTANTS.ACCOUNT,
+			change: BIP44_CONSTANTS.CHANGE.EXTERNAL,
+			addressIndex
+		});
+		return this.derive(path, 'pri');
+	}
+
+	/**
+	 * Derives a Bitcoin change address using standard BIP44 path.
+	 * 
+	 * This convenience method generates a change address following BIP44 standard:
+	 * m/44'/coinType'/0'/1/addressIndex where coinType depends on network.
+	 * 
+	 * @param {number} [addressIndex=0] - Address index (0, 1, 2, ...)
+	 * @returns {Custodial_Wallet} Returns this wallet instance for method chaining
+	 * 
+	 * @example
+	 * const wallet = Custodial_Wallet.fromRandom('main')[1];
+	 * wallet.deriveChangeAddress(0);  // First change address
+	 * wallet.deriveChangeAddress(1);  // Second change address
+	 */
+	deriveChangeAddress(addressIndex = 0) {
+		const path = generateDerivationPath({
+			purpose: BIP44_CONSTANTS.PURPOSE,
+			coinType: this.networkConfig.coinType,
+			account: BIP44_CONSTANTS.ACCOUNT,
+			change: BIP44_CONSTANTS.CHANGE.INTERNAL,
+			addressIndex
+		});
+		return this.derive(path, 'pri');
+	}
+
+	/**
+	 * Derives a testnet address regardless of current wallet network.
+	 * 
+	 * This convenience method generates a testnet address using BIP44 standard,
+	 * useful for testing or cross-network operations.
+	 * 
+	 * @param {number} [addressIndex=0] - Address index (0, 1, 2, ...)
+	 * @returns {Custodial_Wallet} Returns this wallet instance for method chaining
+	 * 
+	 * @example
+	 * const wallet = Custodial_Wallet.fromRandom('main')[1];
+	 * wallet.deriveTestnetAddress(0);  // Testnet address for testing
+	 */
+	deriveTestnetAddress(addressIndex = 0) {
+		const path = generateDerivationPath({
+			purpose: BIP44_CONSTANTS.PURPOSE,
+			coinType: BIP44_CONSTANTS.COIN_TYPES.BITCOIN_TESTNET,
+			account: BIP44_CONSTANTS.ACCOUNT,
+			change: BIP44_CONSTANTS.CHANGE.EXTERNAL,
+			addressIndex
+		});
+		return this.derive(path, 'pri');
+	}
+
+	/**
+	 * Gets all child keys of a specific address type.
+	 * 
+	 * @param {string} [addressType='receiving'] - Type: 'receiving', 'change', or 'testnet'
+	 * @returns {Array<ChildKeyInfo>} Array of matching child keys
+	 * 
+	 * @example
+	 * const wallet = Custodial_Wallet.fromRandom('main')[1];
+	 * wallet.deriveReceivingAddress(0).deriveReceivingAddress(1).deriveChangeAddress(0);
+	 * 
+	 * const receivingAddresses = wallet.getChildKeysByType('receiving');
+	 * console.log(`Generated ${receivingAddresses.length} receiving addresses`);
+	 */
+	getChildKeysByType(addressType = 'receiving') {
+		return Array.from(this.child_keys).filter(child => {
+			if (!child.pathInfo || child.pathInfo.format === 'custom') return false;
+
+			switch (addressType) {
+				case 'receiving':
+					return child.pathInfo.change === BIP44_CONSTANTS.CHANGE.EXTERNAL &&
+						child.pathInfo.coinType !== BIP44_CONSTANTS.COIN_TYPES.BITCOIN_TESTNET;
+				case 'change':
+					return child.pathInfo.change === BIP44_CONSTANTS.CHANGE.INTERNAL &&
+						child.pathInfo.coinType !== BIP44_CONSTANTS.COIN_TYPES.BITCOIN_TESTNET;
+				case 'testnet':
+					return child.pathInfo.coinType === BIP44_CONSTANTS.COIN_TYPES.BITCOIN_TESTNET;
+				default:
+					return false;
+			}
+		});
 	}
 
 	/**
@@ -669,61 +687,6 @@ class Custodial_Wallet {
 	 * const [signature, recoveryId] = wallet.sign(message);
 	 * console.log('Signature length:', signature.length); // ~71-73 bytes (DER format)
 	 * console.log('Recovery ID:', recoveryId);            // 0, 1, 2, or 3
-	 * 
-	 * @example
-	 * // Sign and verify workflow
-	 * const wallet = Custodial_Wallet.fromRandom('main')[1];
-	 * const message = "Transfer $100 to Alice";
-	 * 
-	 * // Create signature
-	 * const [signature, _] = wallet.sign(message);
-	 * 
-	 * // Verify signature (should return true)
-	 * const isValid = wallet.verify(signature, message);
-	 * console.log('Signature valid:', isValid); // true
-	 * 
-	 * // Verify with wrong message (should return false)
-	 * const isInvalid = wallet.verify(signature, "Transfer $200 to Bob");
-	 * console.log('Wrong message valid:', isInvalid); // false
-	 * 
-	 * @example
-	 * // Transaction authorization pattern
-	 * const wallet = Custodial_Wallet.fromRandom('main')[1];
-	 * 
-	 * function authorizeTransaction(txData) {
-	 *   const txMessage = JSON.stringify({
-	 *     to: txData.recipient,
-	 *     amount: txData.amount,
-	 *     timestamp: Date.now(),
-	 *     nonce: Math.random()
-	 *   });
-	 *   
-	 *   const [signature, recoveryId] = wallet.sign(txMessage);
-	 *   
-	 *   return {
-	 *     transaction: txData,
-	 *     signature: signature,
-	 *     recovery: recoveryId,
-	 *     signer: wallet.address
-	 *   };
-	 * }
-	 * 
-	 * const authorization = authorizeTransaction({
-	 *   recipient: "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
-	 *   amount: 0.001
-	 * });
-	 * 
-	 * @example
-	 * // Batch signing for multiple messages
-	 * const wallet = Custodial_Wallet.fromRandom('main')[1];
-	 * const messages = ["msg1", "msg2", "msg3"];
-	 * 
-	 * const signatures = messages.map(msg => {
-	 *   const [sig, recovery] = wallet.sign(msg);
-	 *   return { message: msg, signature: sig, recovery };
-	 * });
-	 * 
-	 * console.log(`Signed ${signatures.length} messages`);
 	 */
 	sign(message = '') {
 		return ecdsa.sign(this.keypair.pri, message);
@@ -768,57 +731,40 @@ class Custodial_Wallet {
 	 * // Verify signature
 	 * const isValid = wallet.verify(signature, message);
 	 * console.log('Signature valid:', isValid); // true
-	 * 
-	 * // Verify with modified message
-	 * const isInvalid = wallet.verify(signature, "Hello Ethereum!");
-	 * console.log('Modified message valid:', isInvalid); // false
-	 * 
-	 * @example
-	 * // Cross-wallet verification (different wallets)
-	 * const wallet1 = Custodial_Wallet.fromRandom('main')[1];
-	 * const wallet2 = Custodial_Wallet.fromRandom('main')[1];
-	 * const message = "Cross-wallet test";
-	 * 
-	 * // Wallet1 signs message
-	 * const [signature, _] = wallet1.sign(message);
-	 * 
-	 * // Wallet1 can verify its own signature
-	 * console.log('Self verification:', wallet1.verify(signature, message)); // true
-	 * 
-	 * // Wallet2 cannot verify wallet1's signature
-	 * console.log('Cross verification:', wallet2.verify(signature, message)); // false
-	 * 
-	 * @example
-	 * // Transaction verification workflow
-	 * function verifyTransactionSignature(txData, signature, senderAddress) {
-	 *   // Reconstruct the exact message that was signed
-	 *   const txMessage = JSON.stringify(txData);
-	 *   
-	 *   // Find wallet for sender address (in real app, lookup from database)
-	 *   const senderWallet = findWalletByAddress(senderAddress);
-	 *   
-	 *   // Verify signature matches sender's private key
-	 *   return senderWallet.verify(signature, txMessage);
-	 * }
-	 * 
-	 * @example
-	 * // Batch verification for audit trail
-	 * const wallet = Custodial_Wallet.fromRandom('main')[1];
-	 * const signedMessages = [
-	 *   { msg: "tx1", sig: wallet.sign("tx1")[0] },
-	 *   { msg: "tx2", sig: wallet.sign("tx2")[0] },
-	 *   { msg: "tx3", sig: wallet.sign("tx3")[0] }
-	 * ];
-	 * 
-	 * // Verify all signatures are valid
-	 * const allValid = signedMessages.every(item => 
-	 *   wallet.verify(item.sig, item.msg)
-	 * );
-	 * 
-	 * console.log('All signatures valid:', allValid); // true
 	 */
 	verify(sig, msg) {
 		return ecdsa.verify(sig, msg, this.#serialization_format.pubKey.key);
+	}
+
+	/**
+	 * Gets wallet summary information including network details and key counts.
+	 * 
+	 * @returns {Object} Wallet summary object
+	 * 
+	 * @example
+	 * const wallet = Custodial_Wallet.fromRandom('main')[1];
+	 * wallet.deriveReceivingAddress(0).deriveChangeAddress(0);
+	 * 
+	 * const summary = wallet.getSummary();
+	 * console.log(summary);
+	 * // {
+	 * //   network: "Bitcoin",
+	 * //   address: "1BvBM...",
+	 * //   derivedKeys: 2,
+	 * //   receivingAddresses: 1,
+	 * //   changeAddresses: 1,
+	 * //   testnetAddresses: 0
+	 * // }
+	 */
+	getSummary() {
+		return {
+			network: this.networkConfig.name,
+			address: this.address,
+			derivedKeys: this.child_keys.size,
+			receivingAddresses: this.getChildKeysByType('receiving').length,
+			changeAddresses: this.getChildKeysByType('change').length,
+			testnetAddresses: this.getChildKeysByType('testnet').length
+		};
 	}
 }
 
@@ -838,6 +784,7 @@ class Custodial_Wallet {
  * - Configurable t-of-n threshold schemes (e.g., 2-of-3, 3-of-5, 5-of-7)
  * - Secret shares can be distributed across different entities or devices
  * - Compatible with Bitcoin transaction signing and verification
+ * - Integrated Bitcoin network configuration and constants
  * 
  * **Security Model:**
  * - Requires exactly t participants to generate signatures
@@ -857,58 +804,6 @@ class Custodial_Wallet {
  * @class Non_Custodial_Wallet
  * @extends ThresholdSignature
  * @since 1.0.0
- * 
- * @example
- * // Create a 2-of-3 escrow wallet
- * const escrowWallet = Non_Custodial_Wallet.fromRandom("main", 3, 2);
- * const [buyerShare, sellerShare, arbiterShare] = escrowWallet._shares;
- * 
- * // Normal release: buyer + seller
- * const releaseWallet = Non_Custodial_Wallet.fromShares("main", [buyerShare, sellerShare], 2);
- * const releaseSignature = releaseWallet.sign("Release funds to seller");
- * 
- * // Dispute resolution: buyer + arbiter or seller + arbiter
- * const disputeWallet = Non_Custodial_Wallet.fromShares("main", [buyerShare, arbiterShare], 2);
- * const disputeSignature = disputeWallet.sign("Refund to buyer after dispute");
- * 
- * @example
- * // Corporate treasury with 3-of-5 executive approval
- * const corporateWallet = Non_Custodial_Wallet.fromRandom("main", 5, 3);
- * const executiveShares = corporateWallet._shares;
- * 
- * // Distribute shares to 5 executives
- * const executives = [
- *   { name: "CEO", share: executiveShares[0] },
- *   { name: "CFO", share: executiveShares[1] },
- *   { name: "COO", share: executiveShares[2] },
- *   { name: "CTO", share: executiveShares[3] },
- *   { name: "Board Rep", share: executiveShares[4] }
- * ];
- * 
- * // Any 3 executives can authorize payments
- * const paymentAuth = Non_Custodial_Wallet.fromShares("main", 
- *   [executives[0].share, executives[1].share, executives[2].share], 3);
- * 
- * const authSignature = paymentAuth.sign("Q4 dividend payment: $1M");
- * 
- * @example
- * // Cryptocurrency exchange cold storage
- * const exchangeWallet = Non_Custodial_Wallet.fromRandom("main", 7, 4);
- * const operatorShares = exchangeWallet._shares;
- * 
- * // Distribute shares across geographic locations and roles
- * const distribution = [
- *   { location: "US-East", role: "Security Officer", share: operatorShares[0] },
- *   { location: "US-West", role: "Operations Lead", share: operatorShares[1] },
- *   { location: "EU", role: "Compliance Officer", share: operatorShares[2] },
- *   { location: "Asia", role: "Technical Lead", share: operatorShares[3] },
- *   { location: "Backup-1", role: "Emergency Access", share: operatorShares[4] },
- *   { location: "Backup-2", role: "Emergency Access", share: operatorShares[5] },
- *   { location: "Audit", role: "External Auditor", share: operatorShares[6] }
- * ];
- * 
- * // Requires 4 of 7 operators to authorize large withdrawals
- * // Provides redundancy and prevents single operator compromise
  */
 class Non_Custodial_Wallet extends ThresholdSignature {
 
@@ -947,22 +842,14 @@ class Non_Custodial_Wallet extends ThresholdSignature {
 	 * console.log('Threshold:', wallet.threshold);       // 2
 	 * console.log('Address:', wallet.address);           // Bitcoin address
 	 * console.log('Shares:', wallet._shares.length);     // 3 hex-encoded shares
-	 * 
-	 * @example
-	 * // Corporate wallet with higher security
-	 * const corporateWallet = new Non_Custodial_Wallet('main', 7, 4);
-	 * // Requires 4 of 7 executives to authorize transactions
-	 * 
-	 * @example
-	 * // Error handling for invalid parameters
-	 * try {
-	 *   const invalidWallet = new Non_Custodial_Wallet('main', 3, 5); // threshold > group_size
-	 * } catch (error) {
-	 *   console.error('Invalid parameters:', error.message);
-	 * }
 	 */
 	constructor(net, group_size, threshold) {
 		super(group_size, threshold);
+
+		// Validate network parameter
+		if (net !== 'main' && net !== 'test') {
+			throw new Error(`Invalid network: ${net}. Must be 'main' or 'test'`);
+		}
 
 		/**
 		 * Network type for this threshold wallet instance.
@@ -975,6 +862,20 @@ class Non_Custodial_Wallet extends ThresholdSignature {
 		 * console.log(wallet.net); // "main" or "test"
 		 */
 		this.net = net;
+
+		/**
+		 * Bitcoin network configuration for this threshold wallet.
+		 * Contains network-specific parameters and constants.
+		 * 
+		 * @type {Object}
+		 * @readonly
+		 * @memberof Non_Custodial_Wallet
+		 * @example
+		 * console.log(wallet.networkConfig.name);        // "Bitcoin" or "Bitcoin Testnet"
+		 * console.log(wallet.networkConfig.symbol);      // "BTC"
+		 * console.log(wallet.networkConfig.coinType);    // 0 or 1
+		 */
+		this.networkConfig = getNetworkByCoinType(net === 'main' ? 0 : 1);
 
 		// Generate wallet address and public key from threshold scheme
 		[this.publicKey, this.address] = this.#wallet();
@@ -1017,33 +918,6 @@ class Non_Custodial_Wallet extends ThresholdSignature {
 	 * // Get shares for distribution
 	 * const [share1, share2, share3] = multiSigWallet._shares;
 	 * console.log('Share 1:', share1); // Hex-encoded secret share
-	 * 
-	 * @example
-	 * // Corporate treasury wallet (3-of-5)
-	 * const treasuryWallet = Non_Custodial_Wallet.fromRandom("main", 5, 3);
-	 * const executiveShares = treasuryWallet._shares;
-	 * 
-	 * // Distribute shares to executives
-	 * const shareDistribution = [
-	 *   { executive: "CEO", share: executiveShares[0] },
-	 *   { executive: "CFO", share: executiveShares[1] },
-	 *   { executive: "COO", share: executiveShares[2] },
-	 *   { executive: "CTO", share: executiveShares[3] },
-	 *   { executive: "Board Rep", share: executiveShares[4] }
-	 * ];
-	 * 
-	 * @example
-	 * // High-security vault (5-of-9)
-	 * const vaultWallet = Non_Custodial_Wallet.fromRandom("main", 9, 5);
-	 * console.log(`Vault requires ${vaultWallet.threshold} of ${vaultWallet.group_size} participants`);
-	 * 
-	 * // Example distribution across different security zones
-	 * const vaultShares = vaultWallet._shares;
-	 * const securityZones = [
-	 *   { zone: "Primary Datacenter", shares: vaultShares.slice(0, 3) },
-	 *   { zone: "Secondary Datacenter", shares: vaultShares.slice(3, 6) },
-	 *   { zone: "Offline Storage", shares: vaultShares.slice(6, 9) }
-	 * ];
 	 */
 	static fromRandom(net = "main", group_size = 3, threshold = 2) {
 		return new this(
@@ -1093,46 +967,6 @@ class Non_Custodial_Wallet extends ThresholdSignature {
 	 * 
 	 * const reconstructedWallet = Non_Custodial_Wallet.fromShares("main", originalShares, 2);
 	 * console.log('Reconstructed address:', reconstructedWallet.address);
-	 * 
-	 * @example
-	 * // Partial reconstruction for signing (only threshold shares needed)
-	 * const originalWallet = Non_Custodial_Wallet.fromRandom("main", 5, 3);
-	 * const allShares = originalWallet._shares;
-	 * 
-	 * // Use only 3 shares (minimum threshold)
-	 * const signingShares = [allShares[0], allShares[2], allShares[4]];
-	 * const signingWallet = Non_Custodial_Wallet.fromShares("main", signingShares, 3);
-	 * 
-	 * // Can generate signatures with just threshold shares
-	 * const signature = signingWallet.sign("Authorized payment");
-	 * 
-	 * @example
-	 * // Corporate recovery scenario
-	 * function recoverCorporateWallet(executiveShares) {
-	 *   if (executiveShares.length < 3) {
-	 *     throw new Error("Insufficient executives present for recovery");
-	 *   }
-	 *   
-	 *   // Reconstruct wallet from available executive shares
-	 *   const recoveredWallet = Non_Custodial_Wallet.fromShares(
-	 *     "main", 
-	 *     executiveShares.slice(0, 3), // Use first 3 available shares
-	 *     3
-	 *   );
-	 *   
-	 *   return recoveredWallet;
-	 * }
-	 * 
-	 * @example
-	 * // Cross-platform wallet migration
-	 * // Export shares from mobile app
-	 * const mobileShares = mobileWallet._shares;
-	 * 
-	 * // Import to desktop application
-	 * const desktopWallet = Non_Custodial_Wallet.fromShares("main", mobileShares, 2);
-	 * 
-	 * // Desktop wallet has identical functionality
-	 * console.log('Same address:', mobileWallet.address === desktopWallet.address); // true
 	 */
 	static fromShares(net = "main", shares, threshold = 2) {
 		const wallet = new this(
@@ -1180,57 +1014,6 @@ class Non_Custodial_Wallet extends ThresholdSignature {
 	 * 
 	 * console.log('Number of shares:', shares.length); // 3
 	 * console.log('Share format:', shares[0]);          // "79479395a59a8e9d..."
-	 * 
-	 * @example
-	 * // Secure share distribution to participants
-	 * const corporateWallet = Non_Custodial_Wallet.fromRandom("main", 5, 3);
-	 * const executiveShares = corporateWallet._shares;
-	 * 
-	 * const executives = [
-	 *   { name: "Alice Johnson", email: "alice@company.com", share: executiveShares[0] },
-	 *   { name: "Bob Smith", email: "bob@company.com", share: executiveShares[1] },
-	 *   { name: "Carol Davis", email: "carol@company.com", share: executiveShares[2] },
-	 *   { name: "Dave Wilson", email: "dave@company.com", share: executiveShares[3] },
-	 *   { name: "Eve Brown", email: "eve@company.com", share: executiveShares[4] }
-	 * ];
-	 * 
-	 * // Distribute shares securely
-	 * executives.forEach(exec => {
-	 *   sendSecureEmail(exec.email, `Your wallet share: ${exec.share}`);
-	 *   console.log(`Share distributed to ${exec.name}`);
-	 * });
-	 * 
-	 * @example
-	 * // QR code generation for offline distribution
-	 * const wallet = Non_Custodial_Wallet.fromRandom("main", 3, 2);
-	 * const shares = wallet._shares;
-	 * 
-	 * shares.forEach((share, index) => {
-	 *   const qrCode = generateQRCode(share);
-	 *   saveQRCode(qrCode, `share_${index + 1}.png`);
-	 *   console.log(`QR code generated for share ${index + 1}`);
-	 * });
-	 * 
-	 * @example
-	 * // Backup and recovery documentation
-	 * const wallet = Non_Custodial_Wallet.fromRandom("main", 5, 3);
-	 * const shares = wallet._shares;
-	 * 
-	 * const backupDocument = {
-	 *   walletAddress: wallet.address,
-	 *   threshold: wallet.threshold,
-	 *   totalShares: wallet.group_size,
-	 *   creationDate: new Date().toISOString(),
-	 *   shares: shares.map((share, index) => ({
-	 *     index: index + 1,
-	 *     share: share,
-	 *     holder: `Participant ${index + 1}`,
-	 *     status: 'Active'
-	 *   }))
-	 * };
-	 * 
-	 * // Store backup document securely
-	 * storeSecureBackup(JSON.stringify(backupDocument, null, 2));
 	 */
 	get _shares() {
 		return this.shares.map(x => x.toString('hex'));
@@ -1302,45 +1085,9 @@ class Non_Custodial_Wallet extends ThresholdSignature {
 	 * const privateKey = wallet._privateKey;
 	 * console.log('WIF Private Key:', privateKey);
 	 * // "L5HgWvFghocq1FmxSjKNaGhVN8f67p6xYg5pY7M8FE77HXwHtGGu"
-	 * 
-	 * @example
-	 * // Secure private key extraction with cleanup
-	 * function emergencyKeyExtraction(thresholdWallet) {
-	 *   console.warn('SECURITY WARNING: Extracting private key from threshold wallet');
-	 *   
-	 *   try {
-	 *     // Extract private key
-	 *     const privateKey = thresholdWallet._privateKey;
-	 *     
-	 *     // Use private key for emergency operation
-	 *     const emergencyOperation = performEmergencyTransfer(privateKey);
-	 *     
-	 *     // Clear private key from memory (best effort)
-	 *     privateKey.fill('\0'); // Overwrite string content
-	 *     
-	 *     return emergencyOperation;
-	 *   } catch (error) {
-	 *     console.error('Private key extraction failed:', error);
-	 *     throw error;
-	 *   }
-	 * }
-	 * 
-	 * @example
-	 * // Migration to single-key wallet
-	 * const thresholdWallet = Non_Custodial_Wallet.fromShares("main", shares, 2);
-	 * 
-	 * // Extract private key for migration
-	 * const migratedPrivateKey = thresholdWallet._privateKey;
-	 * 
-	 * // Create equivalent single-key wallet
-	 * const singleKeyWallet = Custodial_Wallet.fromSeed("main", 
-	 *   privateKeyToSeed(migratedPrivateKey));
-	 * 
-	 * // Verify address consistency
-	 * console.log('Address match:', 
-	 *   thresholdWallet.address === singleKeyWallet.address); // true
 	 */
 	get _privateKey() {
+		console.warn('⚠️  SECURITY WARNING: Reconstructing private key defeats threshold security!');
 		const privKey = {
 			key: this.privite_key().toBuffer(),
 			versionByteNum: this.net === 'main' ? 0x80 : 0xef
@@ -1387,76 +1134,41 @@ class Non_Custodial_Wallet extends ThresholdSignature {
 	 * // Verify signature
 	 * const isValid = wallet.verify(signature.sig, signature.msgHash);
 	 * console.log('Threshold signature valid:', isValid); // true
-	 * 
-	 * @example
-	 * // Cross-verification with different wallet instances
-	 * const originalWallet = Non_Custodial_Wallet.fromRandom("main", 5, 3);
-	 * const shares = originalWallet._shares;
-	 * 
-	 * // Create signing wallet with threshold shares
-	 * const signingWallet = Non_Custodial_Wallet.fromShares("main", shares.slice(0, 3), 3);
-	 * 
-	 * // Create verification wallet with different shares
-	 * const verifyingWallet = Non_Custodial_Wallet.fromShares("main", shares.slice(2, 5), 3);
-	 * 
-	 * const message = "Cross-wallet verification test";
-	 * const signature = signingWallet.sign(message);
-	 * 
-	 * // Both wallets should verify the same signature
-	 * const valid1 = signingWallet.verify(signature.sig, signature.msgHash);
-	 * const valid2 = verifyingWallet.verify(signature.sig, signature.msgHash);
-	 * console.log('Both verify same:', valid1 === valid2 && valid1 === true); // true
-	 * 
-	 * @example
-	 * // Third-party verification without threshold knowledge
-	 * function verifyPaymentAuthorization(publicKeyHex, messageHash, signature) {
-	 *   // This function doesn't know about threshold signatures
-	 *   // It just uses standard ECDSA verification
-	 *   
-	 *   const publicKey = secp256k1.ProjectivePoint.fromHex(publicKeyHex);
-	 *   return ThresholdSignature.verify_threshold_signature(publicKey, messageHash, signature);
-	 * }
-	 * 
-	 * const wallet = Non_Custodial_Wallet.fromRandom("main", 3, 2);
-	 * const authorization = wallet.sign("Payment approved: $10,000");
-	 * 
-	 * // Third party can verify without knowing about threshold scheme
-	 * const thirdPartyVerification = verifyPaymentAuthorization(
-	 *   wallet.publicKey,
-	 *   authorization.msgHash,
-	 *   authorization.sig
-	 * );
-	 * 
-	 * console.log('Third party verification:', thirdPartyVerification); // true
-	 * 
-	 * @example
-	 * // Batch verification for audit trail
-	 * const wallet = Non_Custodial_Wallet.fromRandom("main", 5, 3);
-	 * const transactions = [
-	 *   "Transfer $1000 to Account A",
-	 *   "Transfer $2000 to Account B", 
-	 *   "Transfer $3000 to Account C"
-	 * ];
-	 * 
-	 * // Generate signatures for all transactions
-	 * const signedTransactions = transactions.map(tx => {
-	 *   const signature = wallet.sign(tx);
-	 *   return {
-	 *     transaction: tx,
-	 *     signature: signature.sig,
-	 *     messageHash: signature.msgHash
-	 *   };
-	 * });
-	 * 
-	 * // Verify all signatures
-	 * const allValid = signedTransactions.every(item =>
-	 *   wallet.verify(item.signature, item.messageHash)
-	 * );
-	 * 
-	 * console.log('All transactions valid:', allValid); // true
 	 */
 	verify(sig, msgHash) {
 		return ThresholdSignature.verify_threshold_signature(this.public_key, msgHash, sig);
+	}
+
+	/**
+	 * Gets threshold wallet summary information.
+	 * 
+	 * @returns {Object} Threshold wallet summary object
+	 * 
+	 * @example
+	 * const wallet = Non_Custodial_Wallet.fromRandom("main", 5, 3);
+	 * const summary = wallet.getSummary();
+	 * console.log(summary);
+	 * // {
+	 * //   network: "Bitcoin",
+	 * //   address: "1BvBM...",
+	 * //   thresholdScheme: "3-of-5",
+	 * //   participants: 5,
+	 * //   requiredSigners: 3,
+	 * //   securityLevel: "High"
+	 * // }
+	 */
+	getSummary() {
+		const securityLevel = this.threshold >= this.group_size * 0.6 ? 'High' :
+			this.threshold >= this.group_size * 0.4 ? 'Medium' : 'Low';
+
+		return {
+			network: this.networkConfig.name,
+			address: this.address,
+			thresholdScheme: `${this.threshold}-of-${this.group_size}`,
+			participants: this.group_size,
+			requiredSigners: this.threshold,
+			securityLevel
+		};
 	}
 }
 
