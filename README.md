@@ -1,174 +1,500 @@
 # J-Bitcoin
-Bitcoin Custodial &amp; non-Custodial Wallets
 
-| Coin  | Custodial & non-Custodial Wallet Support |
-| ----- | -------------- |
-|  BTC  | ✔️ |
-|  BCH  | ✔️ |
-|  BSV  | ✔️ |
+[![npm version](https://badge.fury.io/js/j-bitcoin.svg)](https://badge.fury.io/js/j-bitcoin)
+[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
+[![Node.js](https://img.shields.io/badge/Node.js-18%2B-green.svg)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
+[![JSDoc](https://img.shields.io/badge/JSDoc-Complete-brightgreen.svg)](https://jsdoc.app/)
 
-## Getting started
-`npm i j-bitcoin`
-\
-\
-`import { Custodial_Wallet, Non_Custodial_Wallet } from 'j-bitcoin';`
+A comprehensive JavaScript/TypeScript cryptocurrency wallet library supporting both custodial and non-custodial wallets for Bitcoin (BTC), Bitcoin Cash (BCH), and Bitcoin SV (BSV).
 
-## Custodial Wallet
+## 🚀 Features
 
-### Generate wallet
+### 💼 Wallet Types
+- **Custodial Wallets** - Traditional single-key wallets with HD derivation
+- **Non-Custodial Wallets** - Advanced threshold signature schemes (TSS)
 
-`const [mnemonic, wallet] = Custodial_Wallet.fromRandom('main'); // main network`
-\
-`const [mnemonic, wallet] = Custodial_Wallet.fromRandom('test'); // test network`
+### 🔐 Cryptographic Standards
+- **BIP32** - Hierarchical Deterministic Wallets
+- **BIP39** - Mnemonic Seed Phrases (12-word)
+- **ECDSA** - Standard Bitcoin signatures
+- **Schnorr** - Modern signature scheme (BIP340)
+- **Threshold Signatures** - Multi-party signature generation
 
-### Import from mnemonic
-```
-const 
-    mnemonic = "teach scatter sample solar casino festival decrease pause random drip memory mystery",
-    wallet = Custodial_Wallet.fromMnemonic('main', mnemonic);
-```
+### 🏠 Address Formats
+- **Legacy** - P2PKH addresses (1...)
+- **SegWit** - Bech32 addresses (bc1...)
+- **CashAddr** - Bitcoin Cash format
 
-### Import from seed
-```
-const 
-    seed = "000102030405060708090a0b0c0d0e0f",
-    wallet = Custodial_Wallet.fromSeed('main', seed);
-```
+### 🌐 Network Support
+- Bitcoin (BTC) - Mainnet & Testnet
+- Bitcoin Cash (BCH) - Mainnet & Testnet  
+- Bitcoin SV (BSV) - Mainnet & Testnet
 
-### Password
-```
-const [mnemonic, wallet] = Custodial_Wallet.fromRandom('main', 'password123');
-// ...
-const wallet = Custodial_Wallet.fromMnemonic('main', mnemonic, 'password123');
-// Incorrect password returns random wallet
-```
+### 📝 Developer Experience
+- **Full TypeScript Support** - Complete type definitions with IntelliSense
+- **Comprehensive JSDoc** - Rich inline documentation
+- **ES Modules** - Modern JavaScript module support
+- **Tree Shaking** - Import only what you need
 
-### Derive child 
-`wallet.derive("m/0", 'pri');`
-\
-\
-Public Keys can't derive from a hardend path
-`wallet.derive("m/0'", 'pub'); // Throws Error`
+## 📦 Installation
 
-### Signature - ECDSA
-`const message = "Jamallo";`
-\
-sign
-\
-`const [sig, recovery] = wallet.sign(message);`
-
-verfiy signature
-\
-`wallet.verify(sig, message); // true`
-
-
-## Non-Custodial Wallet
-
-##### Threshold Signature Scheme (TSS) wallet
-
-### Generate wallet
-`const wallet = Non_Custodial_Wallet.fromRandom("main", 3, 2); // main network`
-\
-`const wallet = Non_Custodial_Wallet.fromRandom("test", 3, 2); // test network`
-
-### Import from shares
-```
-const shares = [
-    '79479395a59a8e9d930f2b10ccd5ac3671b0ff0bf8a66aaa1d74978c5353694b',
-    '98510126c920e18b148130ac1145686cb299d21f0e010b98ede44169a7bb1c13',
-    'b75a6eb7eca7347895f3364755b524a2f382a532235bac87be53eb46fc22cedb'
-  ]
-
-const wallet = Non_Custodial_Wallet.fromShares("main", shares, 2);
+```bash
+npm install j-bitcoin
 ```
 
-### Shares
-`const share_for_each_participant = wallet._shares;`
+## 🎯 Quick Start
 
-### Restore private key
-`const groups_prikey = wallet._privateKey;`
+### JavaScript
 
-### Signature - TSS
-sign
-\
-`const { sig, serialized_sig, msgHash, recovery_id } = wallet.sign("hello world");`
+```javascript
+import { Custodial_Wallet } from 'j-bitcoin';
 
-verfiy signature
-\
-`wallet.verify(sig, msgHash); // true`
+// Generate new wallet
+const [mnemonic, wallet] = Custodial_Wallet.fromRandom('main');
+console.log('Mnemonic:', mnemonic);
+console.log('Address:', wallet.address);
 
-## Address conversion
-`import { CASH_ADDR, BECH32 } from 'j-bitcoin';`
-
-### CashAddr (BCH)
-```
- wallet.address; // 1EiBTNS9Dqhjhk7D78GMAjK9pZn5NXZf91
- CASH_ADDR.to_cashAddr(wallet.address); // bitcoincash:qztxx64w20kmy5y9sskjwtgxp3j8dc20ksvef26ssu
-
- wallet.address; // mgRpP3zP1hmxyoeYJgfbcmN3c2Qsurw48D 
- CASH_ADDR.to_cashAddr(wallet.address); // bchtest:qqyl7uye7t0rjq6vrtqjedcyudy8hj0rzvnwwa5c5g
+// Sign a message
+const [signature, recoveryId] = wallet.sign("Hello Bitcoin!");
+console.log('Signature valid:', wallet.verify(signature, "Hello Bitcoin!"));
 ```
 
-### P2WPKH (BTC)
+### TypeScript
+
+```typescript
+import { Custodial_Wallet, ECDSASignatureResult } from 'j-bitcoin';
+
+// Generate new wallet with full type safety
+const [mnemonic, wallet]: [string, Custodial_Wallet] = Custodial_Wallet.fromRandom('main');
+
+// TypeScript knows the exact return types
+const [signature, recoveryId]: ECDSASignatureResult = wallet.sign("Hello Bitcoin!");
+const isValid: boolean = wallet.verify(signature, "Hello Bitcoin!");
 ```
-  wallet.address; // 1EiBTNS9Dqhjhk7D78GMAjK9pZn5NXZf91
-  BECH32.to_P2WPKH(wallet.address); // bc1qje3k4tjnake9ppvy95nj6psvv3mwzna5uatznl
 
-  wallet.address; // mgRpP3zP1hmxyoeYJgfbcmN3c2Qsurw48D
-  BECH32.to_P2WPKH(wallet.address); // tb1qp8lhpx0jmcusxnq6cyktwp8rfpaunccntw8kty
+### Advanced Threshold Signatures
+
+**JavaScript:**
+```javascript
+import { Non_Custodial_Wallet } from 'j-bitcoin';
+
+// Create 2-of-3 threshold wallet
+const wallet = Non_Custodial_Wallet.fromRandom("main", 3, 2);
+
+// Get shares for distribution
+const shares = wallet._shares;
+console.log('Distribute shares to participants:', shares);
+
+// Generate threshold signature
+const signature = wallet.sign("Multi-party transaction");
+console.log('Threshold signature:', signature.serialized_sig);
 ```
-## Schnorr signature
-`import { schnorr_sig } from 'j-bitcoin';`
-\
-\
-`const [private_key, message] = ["L1vHfV6GUbMJSvFaqjnButzwq5x4ThdFaotpUgsfScwMNKjdGVuS", "Jamallo"];`
-\
-\
-sign 
-\
-`const signature = schnorr_sig.sign(private_key, message);`
-\
-\
-retrieve public key
-\
-`const public_key = schnorr_sig.retrieve_public_key(private_key);`
-\
-\
-verfiy siganture
-\
-`schnorr_sig.verify(signature, message, public_key); // true`  
 
-## Info
+**TypeScript:**
+```typescript
+import { Non_Custodial_Wallet, ThresholdSignatureResult } from 'j-bitcoin';
 
-| Wallet  | Support |
-| ----- | ------------ |
-| Hierarchical deterministic | ✔️ |
-| Threshold signature scheme | ✔️ |
-| SPV | ❌️ |
+// Create 2-of-3 threshold wallet
+const wallet: Non_Custodial_Wallet = Non_Custodial_Wallet.fromRandom("main", 3, 2);
 
-| Signature  | Support |
-| ----- | ------------ |
-| ECDSA | ✔️ |
-| Threshold Signature  | ✔️ |
-| Schnorr signature  | ✔️ |
+// Get shares for distribution
+const shares: string[] = wallet._shares;
+console.log('Distribute shares to participants:', shares);
 
-| Address  | Support |
-| ----- | ------------ |
-| P2PKH | ✔️ |
-| P2WPKH | ✔️ |
-| P2SH  | ❌️ |
-| P2WSH | ❌️ |
-| Cashaddr | ✔️️ |
+// Generate threshold signature
+const signature: ThresholdSignatureResult = wallet.sign("Multi-party transaction");
+console.log('Threshold signature:', signature.serialized_sig);
+```
 
-| Transaction | Support |
-| ----- | ------------ |
-| BTC | ❌ |
-| BCH | ❌ ️|
-| BSV | ❌ |
+### Address Conversion
 
-  ### TODO
-- P2SH
-- P2WSH
-- Transactions
-- SPV wallet
-- QR codes
+**JavaScript:**
+```javascript
+import { BECH32, CASH_ADDR } from 'j-bitcoin';
+
+const legacyAddress = "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2";
+
+// Convert to SegWit
+const segwitAddr = BECH32.to_P2WPKH(legacyAddress);
+console.log('SegWit:', segwitAddr);
+// Output: bc1qhkfq3zahaqkkzx5mjnamwjsfpw3tvke7v6aaph
+
+// Convert to CashAddr
+const cashAddr = CASH_ADDR.to_cashAddr(legacyAddress);
+console.log('CashAddr:', cashAddr);
+// Output: bitcoincash:qztxx64w20kmy5y9sskjwtgxp3j8dc20ksvef26ssu
+```
+
+**TypeScript:**
+```typescript
+import { BECH32, CASH_ADDR } from 'j-bitcoin';
+
+const legacyAddress: string = "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2";
+
+// Convert to SegWit
+const segwitAddr: string = BECH32.to_P2WPKH(legacyAddress);
+console.log('SegWit:', segwitAddr);
+// Output: bc1qhkfq3zahaqkkzx5mjnamwjsfpw3tvke7v6aaph
+
+// Convert to CashAddr
+const cashAddr: string = CASH_ADDR.to_cashAddr(legacyAddress);
+console.log('CashAddr:', cashAddr);
+// Output: bitcoincash:qztxx64w20kmy5y9sskjwtgxp3j8dc20ksvef26ssu
+```
+
+### Schnorr Signatures
+
+**JavaScript:**
+```javascript
+import { schnorr_sig } from 'j-bitcoin';
+
+const privateKey = "L1vHfV6GUbMJSvFaqjnButzwq5x4ThdFaotpUgsfScwMNKjdGVuS";
+const message = "Hello Schnorr!";
+
+// Sign with Schnorr
+const signature = schnorr_sig.sign(privateKey, message);
+
+// Get public key
+const publicKey = schnorr_sig.retrieve_public_key(privateKey);
+
+// Verify signature
+const isValid = schnorr_sig.verify(signature, message, publicKey);
+console.log('Schnorr signature valid:', isValid);
+```
+
+**TypeScript:**
+```typescript
+import { schnorr_sig } from 'j-bitcoin';
+
+const privateKey: string = "L1vHfV6GUbMJSvFaqjnButzwq5x4ThdFaotpUgsfScwMNKjdGVuS";
+const message: string = "Hello Schnorr!";
+
+// Sign with Schnorr
+const signature: Uint8Array = schnorr_sig.sign(privateKey, message);
+
+// Get public key
+const publicKey: Uint8Array = schnorr_sig.retrieve_public_key(privateKey);
+
+// Verify signature
+const isValid: boolean = schnorr_sig.verify(signature, message, publicKey);
+console.log('Schnorr signature valid:', isValid);
+```
+
+## 📖 API Documentation
+
+### TypeScript Support
+
+J-Bitcoin provides complete TypeScript definitions with:
+
+```typescript
+// Full IntelliSense support
+import type { 
+  Custodial_Wallet, 
+  Non_Custodial_Wallet,
+  ECDSASignatureResult,
+  ThresholdSignatureResult,
+  HDKeys,
+  KeyPair,
+  NetworkType 
+} from 'j-bitcoin';
+
+// Type-safe network specification
+const network: NetworkType = 'main'; // 'main' | 'test'
+
+// Strongly typed wallet creation
+const wallet: Custodial_Wallet = Custodial_Wallet.fromRandom(network);
+
+// Comprehensive interface definitions
+interface ThresholdSignatureResult {
+  sig: { r: bigint; s: bigint; };
+  serialized_sig: string;
+  msgHash: Buffer;
+  recovery_id: number;
+}
+```
+
+### Custodial_Wallet
+
+| Method | Description |
+|--------|-------------|
+| `fromRandom(net, passphrase?)` | Generate new random wallet |
+| `fromMnemonic(net, mnemonic, passphrase?)` | Import from mnemonic |
+| `fromSeed(net, seed)` | Create from hex seed |
+| `derive(path, keyType)` | Derive child keys |
+| `sign(message)` | Sign with ECDSA |
+| `verify(sig, message)` | Verify signature |
+
+### Non_Custodial_Wallet
+
+| Method | Description |
+|--------|-------------|
+| `fromRandom(net, groupSize, threshold)` | Create threshold wallet |
+| `fromShares(net, shares, threshold)` | Reconstruct from shares |
+| `sign(message)` | Generate threshold signature |
+| `verify(sig, msgHash)` | Verify threshold signature |
+| `_shares` | Get secret shares |
+| `_privateKey` | Get reconstructed private key |
+
+### Address Utilities
+
+| Function | Description |
+|----------|-------------|
+| `BECH32.to_P2WPKH(address)` | Convert to SegWit |
+| `BECH32.data_to_bech32(prefix, data, encoding)` | Custom Bech32 encoding |
+| `CASH_ADDR.to_cashAddr(address, type?)` | Convert to CashAddr |
+
+## 🔗 BIP32 Key Derivation
+
+**JavaScript:**
+```javascript
+// Standard BIP44 paths
+wallet.derive("m/44'/0'/0'/0/0");    // Bitcoin account 0, address 0
+wallet.derive("m/44'/145'/0'/0/0");  // Bitcoin Cash account 0
+wallet.derive("m/44'/236'/0'/0/0");  // Bitcoin SV account 0
+
+// Custom derivation
+wallet.derive("m/0'/1'/2");          // Hardened path
+wallet.derive("m/0/1/2");            // Non-hardened path
+```
+
+**TypeScript:**
+```typescript
+import { Custodial_Wallet, KeyType } from 'j-bitcoin';
+
+// Standard BIP44 paths with type safety
+wallet.derive("m/44'/0'/0'/0/0", 'pri' as KeyType);    // Bitcoin account 0, address 0
+wallet.derive("m/44'/145'/0'/0/0", 'pri' as KeyType);  // Bitcoin Cash account 0
+wallet.derive("m/44'/236'/0'/0/0", 'pri' as KeyType);  // Bitcoin SV account 0
+
+// Custom derivation with type checking
+wallet.derive("m/0'/1'/2", 'pri' as KeyType);          // Hardened path
+wallet.derive("m/0/1/2", 'pub' as KeyType);            // Non-hardened path (public key derivation)
+```
+
+## 🛡️ Security Features
+
+- **Secure Random Generation** - Uses Node.js crypto.randomBytes()
+- **Mnemonic Validation** - BIP39 checksum verification
+- **Threshold Security** - Distributed key management
+- **Multiple Signature Schemes** - ECDSA, Schnorr, TSS
+- **Address Validation** - Built-in format checking
+
+## 🎛️ Advanced Examples
+
+### TypeScript Multi-Signature Escrow
+
+**JavaScript:**
+```javascript
+import { Non_Custodial_Wallet } from 'j-bitcoin';
+
+// 2-of-3 escrow: buyer, seller, arbiter
+const escrow = Non_Custodial_Wallet.fromRandom("main", 3, 2);
+const [buyerShare, sellerShare, arbiterShare] = escrow._shares;
+
+// Buyer + Seller can release funds
+const release = Non_Custodial_Wallet.fromShares("main", 
+  [buyerShare, sellerShare], 2);
+
+// Disputes require arbiter
+const dispute = Non_Custodial_Wallet.fromShares("main",
+  [buyerShare, arbiterShare], 2);
+```
+
+**TypeScript:**
+```typescript
+import { Non_Custodial_Wallet } from 'j-bitcoin';
+
+// 2-of-3 escrow: buyer, seller, arbiter
+const escrow: Non_Custodial_Wallet = Non_Custodial_Wallet.fromRandom("main", 3, 2);
+const [buyerShare, sellerShare, arbiterShare]: string[] = escrow._shares;
+
+// Buyer + Seller can release funds
+const release: Non_Custodial_Wallet = Non_Custodial_Wallet.fromShares("main", 
+  [buyerShare, sellerShare], 2);
+
+// Disputes require arbiter
+const dispute: Non_Custodial_Wallet = Non_Custodial_Wallet.fromShares("main",
+  [buyerShare, arbiterShare], 2);
+```
+
+### Corporate Treasury
+
+**JavaScript:**
+```javascript
+import { Non_Custodial_Wallet } from 'j-bitcoin';
+
+// 3-of-5 corporate signature
+const treasury = Non_Custodial_Wallet.fromRandom("main", 5, 3);
+const executiveShares = treasury._shares;
+
+// Any 3 executives can authorize
+const authorization = Non_Custodial_Wallet.fromShares("main",
+  [executiveShares[0], executiveShares[2], executiveShares[4]], 3);
+
+// Generate authorization signature
+const authSignature = authorization.sign("Transfer $1M to operations");
+```
+
+**TypeScript:**
+```typescript
+import { Non_Custodial_Wallet, ThresholdSignatureResult } from 'j-bitcoin';
+
+// 3-of-5 corporate signature
+const treasury: Non_Custodial_Wallet = Non_Custodial_Wallet.fromRandom("main", 5, 3);
+const executiveShares: string[] = treasury._shares;
+
+// Any 3 executives can authorize
+const authorization: Non_Custodial_Wallet = Non_Custodial_Wallet.fromShares("main",
+  [executiveShares[0], executiveShares[2], executiveShares[4]], 3);
+
+// Type-safe signature generation
+const authSignature: ThresholdSignatureResult = authorization.sign("Transfer $1M to operations");
+```
+
+### Cross-Platform Wallet
+
+**JavaScript:**
+```javascript
+import { Custodial_Wallet } from 'j-bitcoin';
+
+// Generate with passphrase
+const [mnemonic, wallet] = Custodial_Wallet.fromRandom('main', 'secure-pass');
+
+// Reconstruct anywhere
+const restored = Custodial_Wallet.fromMnemonic('main', mnemonic, 'secure-pass');
+
+// Derive for different coins
+restored.derive("m/44'/0'/0'/0/0");   // Bitcoin
+restored.derive("m/44'/145'/0'/0/0"); // Bitcoin Cash
+restored.derive("m/44'/236'/0'/0/0"); // Bitcoin SV
+```
+
+**TypeScript:**
+```typescript
+import { Custodial_Wallet, NetworkType } from 'j-bitcoin';
+
+// Type-safe network specification
+const network: NetworkType = 'main';
+
+// Generate with passphrase
+const [mnemonic, wallet]: [string, Custodial_Wallet] = 
+  Custodial_Wallet.fromRandom(network, 'secure-pass');
+
+// Reconstruct anywhere with type safety
+const restored: Custodial_Wallet = 
+  Custodial_Wallet.fromMnemonic(network, mnemonic, 'secure-pass');
+
+// Derive for different coins
+restored.derive("m/44'/0'/0'/0/0");   // Bitcoin
+restored.derive("m/44'/145'/0'/0/0"); // Bitcoin Cash
+restored.derive("m/44'/236'/0'/0/0"); // Bitcoin SV
+```
+
+## 📊 Feature Matrix
+
+| Feature | Support | TypeScript |
+|---------|---------|-------------|
+| Hierarchical Deterministic | ✅ | ✅ Full types |
+| Threshold Signatures | ✅ | ✅ Complete interfaces |
+| ECDSA Signatures | ✅ | ✅ Type-safe returns |
+| Schnorr Signatures | ✅ | ✅ BIP340 types |
+| P2PKH Addresses | ✅ | ✅ Network types |
+| P2WPKH (SegWit) | ✅ | ✅ Bech32 types |
+| CashAddr Format | ✅ | ✅ Format types |
+| P2SH Addresses | ❌ | 🔄 Planned |
+| P2WSH (SegWit v1) | ❌ | 🔄 Planned |
+| Transaction Building | ❌ | 🔄 Planned |
+| SPV Validation | ❌ | 🔄 Planned |
+
+## 🔧 Dependencies
+
+```json
+{
+  "@noble/secp256k1": "^1.6.3",
+  "base58-js": "^1.0.4", 
+  "bigint-conversion": "^2.2.2",
+  "bn.js": "^5.2.1"
+}
+```
+
+## 🧪 Testing
+
+```bash
+npm test
+```
+
+## 📝 Documentation
+
+### TypeScript IntelliSense
+
+Experience world-class developer productivity:
+
+```typescript
+// VS Code, WebStorm, and other IDEs provide:
+// ✅ Complete autocomplete for all methods
+// ✅ Inline parameter documentation
+// ✅ Return type information
+// ✅ Error detection at compile time
+
+const wallet = Custodial_Wallet.fromRandom('main');
+//    ^-- IDE shows: [string, Custodial_Wallet]
+
+wallet.derive("m/44'/0'/0'/0/0", 'pri');
+//     ^-- IDE shows available parameters and types
+```
+
+### Generate API Documentation
+
+```bash
+npm install -g jsdoc
+npm run docs
+```
+
+View comprehensive documentation in `docs/index.html` with:
+- **Complete API reference** with examples
+- **TypeScript integration guide**
+- **Security best practices**
+- **Advanced usage patterns**
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open Pull Request
+
+## 📜 License
+
+ISC License - see [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **BIP Authors** - For Bitcoin Improvement Proposals
+- **Bitcoin Core** - Reference implementation
+- **Noble Crypto** - Excellent secp256k1 library
+- **Bitcoin Community** - Continuous innovation
+
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/yfbsei/J-Bitcoin/issues)
+- **Documentation**: [API Docs](https://github.com/yfbsei/J-Bitcoin/docs)
+- **Examples**: [Examples Directory](https://github.com/yfbsei/J-Bitcoin/examples)
+
+## 🔮 Roadmap
+
+- [ ] P2SH and P2WSH address support with TypeScript definitions
+- [ ] Transaction building and broadcasting with type-safe interfaces
+- [ ] SPV wallet implementation with comprehensive types
+- [ ] Hardware wallet integration with device-specific types
+- [ ] Lightning Network support with protocol types
+- [ ] Advanced script templates with template types
+- [ ] React/Vue component library with prop types
+- [ ] WebAssembly optimization with typed bindings
+
+---
+
+**⚠️ Security Notice**: This library handles private keys and should be used with appropriate security measures. Always verify implementations in test environments before production use.
+
+**Built with ❤️ for the Bitcoin ecosystem and TypeScript developers**

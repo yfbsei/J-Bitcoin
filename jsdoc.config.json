@@ -1,0 +1,40 @@
+{
+  "source": {
+    "include": [
+      "./src/",
+      "./index.js",
+      "./README.md"
+    ],
+    "includePattern": "\\.(js|jsx)$",
+    "exclude": [
+      "node_modules/",
+      "test/",
+      "docs/",
+      "examples/",
+      "benchmarks/"
+    ]
+  },
+  "opts": {
+    "destination": "./docs/",
+    "recurse": true,
+    "readme": "./README.md",
+    "package": "./package.json"
+  },
+  "plugins": [
+    "plugins/markdown"
+  ],
+  "templates": {
+    "cleverLinks": false,
+    "monospaceLinks": false,
+    "useLongnameInNav": false,
+    "showInheritedInNav": true
+  },
+  "markdown": {
+    "hardwrap": false,
+    "idInHeadings": true
+  },
+  "tags": {
+    "allowUnknownTags": true,
+    "dictionaries": ["jsdoc", "closure"]
+  }
+}

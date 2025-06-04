@@ -1,45 +1,154 @@
 {
   "name": "j-bitcoin",
   "version": "1.0.0",
-  "description": "Bitcoin Custodial & non-Custodial Wallets",
+  "description": "Comprehensive JavaScript cryptocurrency wallet library for Bitcoin (BTC), Bitcoin Cash (BCH), and Bitcoin SV (BSV) with custodial and non-custodial wallet support, threshold signatures, and multiple address formats",
   "main": "index.js",
   "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./index.js",
+      "require": "./index.js",
+      "types": "./index.d.ts"
+    }
+  },
   "scripts": {
-    "test": "mocha"
+    "test": "mocha test/**/*.test.js --timeout 10000",
+    "test:watch": "mocha test/**/*.test.js --watch",
+    "test:coverage": "c8 mocha test/**/*.test.js",
+    "docs": "jsdoc -c jsdoc.config.json",
+    "docs:watch": "nodemon --exec 'npm run docs' --watch src --ext js",
+    "docs:serve": "http-server docs -p 8080 -o",
+    "docs:clean": "rm -rf docs",
+    "build": "npm run docs",
+    "lint": "eslint src/**/*.js index.js --ignore-missing",
+    "lint:fix": "eslint src/**/*.js index.js --fix --ignore-missing",
+    "format": "prettier --write \"src/**/*.js\" \"index.js\" \"*.md\"",
+    "format:check": "prettier --check \"src/**/*.js\" \"index.js\" \"*.md\"",
+    "validate": "npm run test",
+    "prepare": "npm run docs",
+    "audit:security": "npm audit --audit-level moderate",
+    "examples": "node examples/basic-usage.js",
+    "benchmark": "node benchmarks/performance.js"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yfbsei/J-Bitcoin"
+    "url": "https://github.com/yfbsei/J-Bitcoin.git"
+  },
+  "homepage": "https://github.com/yfbsei/J-Bitcoin#readme",
+  "bugs": {
+    "url": "https://github.com/yfbsei/J-Bitcoin/issues"
   },
   "type": "module",
-  "author": "yfbsei",
+  "author": {
+    "name": "yfbsei",
+    "url": "https://github.com/yfbsei"
+  },
   "license": "ISC",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=7.0.0"
+  },
+  "files": [
+    "src/",
+    "index.js",
+    "index.d.ts",
+    "README.md",
+    "LICENSE",
+    "docs/",
+    "examples/"
+  ],
   "dependencies": {
-    "@noble/secp256k1": "^1.6.3",
+    "@noble/secp256k1": "^1.7.1",
     "base58-js": "^1.0.4",
-    "bigint-conversion": "^2.2.2",
+    "bigint-conversion": "^2.4.0",
     "bn.js": "^5.2.1"
   },
+  "devDependencies": {
+    "c8": "^8.0.1",
+    "eslint": "^8.50.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-jsdoc": "^46.8.2",
+    "http-server": "^14.1.1",
+    "jsdoc": "^4.0.2",
+    "jsdoc-to-markdown": "^8.0.0",
+    "mocha": "^10.2.0",
+    "nodemon": "^3.0.1",
+    "prettier": "^3.0.3"
+  },
+  "peerDependencies": {
+    "node": ">=16.0.0"
+  },
+  "funding": {
+    "type": "individual",
+    "url": "https://github.com/sponsors/yfbsei"
+  },
   "keywords": [
-    "Bitcoin",
-    "secp256",
-    "blockchain",
-    "elliptic",
-    "curve",
-    "Threshold signature",
-    "signature",
-    "J-BSV",
-    "BSV",
-    "BCH",
-    "BTC",
-    "Schnorr signature",
-    "bip32",
     "bitcoin",
-    "bitcoinCash",
-    "bitcoinSV",
-    "bip",
+    "cryptocurrency",
+    "wallet",
+    "blockchain",
+    "bip32",
+    "bip39",
+    "hierarchical-deterministic",
+    "hd-wallet",
+    "custodial",
+    "non-custodial",
+    "threshold-signatures",
+    "multi-signature",
+    "multisig",
     "ecdsa",
+    "schnorr",
+    "secp256k1",
+    "elliptic-curve",
     "cryptography",
-    "security"
-  ]
+    "bitcoin-cash",
+    "bitcoin-sv",
+    "bch",
+    "bsv",
+    "btc",
+    "segwit",
+    "bech32",
+    "cashaddr",
+    "p2pkh",
+    "p2wpkh",
+    "base58",
+    "mnemonic",
+    "seed-phrase",
+    "private-key",
+    "public-key",
+    "address-generation",
+    "key-derivation",
+    "shamir-secret-sharing",
+    "polynomial-interpolation",
+    "threshold-cryptography",
+    "distributed-signatures",
+    "tss",
+    "javascript",
+    "nodejs",
+    "crypto",
+    "security",
+    "fintech",
+    "defi",
+    "web3"
+  ],
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "not ie <= 11"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "volta": {
+    "node": "18.17.0",
+    "npm": "9.6.7"
+  },
+  "packageManager": "npm@9.6.7"
 }

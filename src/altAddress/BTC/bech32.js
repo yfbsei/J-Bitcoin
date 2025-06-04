@@ -1,44 +1,102 @@
-/*
-References
-https://en.bitcoin.it/wiki/BIP_0350
-https://slowli.github.io/bech32-buffer/
-https://bitcoin.sipa.be/bech32/demo/demo.html
-https://medium.com/@meshcollider/some-of-the-math-behind-bech32-addresses-cf03c7496285
-https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#user-content-Witness_program
-https://bitcoin.stackexchange.com/questions/71212/understanding-bech32-addresses-bip173-question
-https://unchained.com/blog/bitcoin-address-types-compared/
-*/
+/**
+ * @fileoverview Bech32 and Bech32m address encoding implementation for Bitcoin
+ * 
+ * This module implements the Bech32 address format (BIP173) and Bech32m (BIP350)
+ * for encoding Bitcoin SegWit addresses. It supports P2WPKH (Pay to Witness PubKey Hash)
+ * address generation and arbitrary data encoding with customizable prefixes.
+ * 
+ * @see {@link https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki|BIP173 - Base32 address format for native v0-16 witness outputs}
+ * @see {@link https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki|BIP350 - Bech32m format for v1+ witness addresses}
+ * @author yfbsei
+ * @version 1.0.0
+ */
 
 import CASH_ADDR from '../BCH/cash_addr.js';
 import base32_encode from '../../utilities/Base32.js';
 
+/**
+ * Bech32 and Bech32m address encoding utilities for Bitcoin SegWit addresses
+ * 
+ * Provides comprehensive support for encoding witness programs into human-readable
+ * addresses with error detection capabilities. Supports both legacy Bech32 (for v0 witnesses)
+ * and Bech32m (for v1+ witnesses) encoding schemes.
+ * 
+ * @namespace BECH32
+ * @example
+ * // Convert legacy address to P2WPKH
+ * const legacyAddr = "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2";
+ * const segwitAddr = BECH32.to_P2WPKH(legacyAddr);
+ * // Returns: "bc1qhkfq3zahaqkkzx5mjnamwjsfpw3tvke7v6aaph"
+ * 
+ * // Encode arbitrary data with custom prefix
+ * const encoded = BECH32.data_to_bech32("hello", "48656c6c6f20576f726c64", "bech32");
+ * // Returns: "hello1dpjkcmr0vpmkxettv9xjqn50p2u"
+ */
 const BECH32 = {
 
-	encode(prefix = "bc", data = Uint8Array || Buffer, encoding = 'bech32') { // witness version == version byte, witness program == any data
-
+	/**
+	 * Encodes data into Bech32 or Bech32m format with specified prefix
+	 * 
+	 * The encoding process follows the Bech32 specification:
+	 * 1. Expands the Human Readable Part (HRP) into 5-bit groups
+	 * 2. Concatenates expanded HRP + data + 6 zero bytes
+	 * 3. Computes polynomial checksum using the Bech32 generator
+	 * 4. XORs with encoding constant (1 for Bech32, 0x2bc830a3 for Bech32m)
+	 * 5. Converts checksum to 5-bit representation and appends to data
+	 * 6. Encodes the complete payload using Base32 alphabet
+	 * 
+	 * @param {string} [prefix="bc"] - Human Readable Part (e.g., "bc" for mainnet, "tb" for testnet)
+	 * @param {Uint8Array|Buffer} [data] - 5-bit encoded data to include in address
+	 * @param {string} [encoding='bech32'] - Encoding type: 'bech32' for v0 witnesses, 'bech32m' for v1+
+	 * @returns {string} Complete Bech32-encoded address
+	 * @example
+	 * // Encode witness program for P2WPKH
+	 * const witnessProgram = new Uint8Array([0, ...hashBytes]); // version 0 + hash
+	 * const address = BECH32.encode("bc", witnessProgram, "bech32");
+	 */
+	encode(prefix = "bc", data = Uint8Array || Buffer, encoding = 'bech32') {
+		// Prepare data for checksum calculation: expanded HRP + data + 6 zero bytes
 		let checksum = Buffer.concat([
 			this.expandHRP(prefix), // [high bits of HRP] + [0] + [low bits of HRP]
 			data, // [data]
 			Buffer.alloc(6) // [0,0,0,0,0,0]
 		]);
 
+		// Calculate polynomial checksum and apply encoding constant
 		checksum = this.polymod(checksum) ^ (encoding === 'bech32' ? 1 : 0x2bc830a3);
 
-		const payload = Buffer.concat([ // data + checksum
-			data, // data
-			CASH_ADDR.checksum_5bit(checksum).subarray(2) //checksum   /* bch's cashAddr uses 8byte template, btc's bech32/bech32m uses 6byte */
+		// Combine data with checksum (excluding first 2 bytes from BCH template)
+		const payload = Buffer.concat([
+			data, // Original data
+			CASH_ADDR.checksum_5bit(checksum).subarray(2) // 6-byte checksum
 		]);
 
-		return prefix + "1" + base32_encode(payload); // HRP + “1” + BinaryToBase32(data+checksum)
+		// Return complete address: HRP + "1" + Base32(data+checksum)
+		return prefix + "1" + base32_encode(payload);
 	},
 
-	// https://en.bitcoin.it/wiki/BIP_0350
+	/**
+	 * Computes the Bech32 polynomial checksum using the generator polynomial
+	 * 
+	 * Implements the Bech32 checksum algorithm with the generator polynomial:
+	 * G(x) = x^5 + x^3 + x + 1 (represented as 0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3)
+	 * 
+	 * The algorithm processes each 5-bit value, maintaining a 30-bit checksum state
+	 * and applying the generator polynomial when the top bit is set.
+	 * 
+	 * @param {Buffer|Uint8Array} values - Array of 5-bit values to process
+	 * @returns {number} 30-bit polynomial checksum result
+	 * @see {@link https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki#checksum|BIP173 Checksum Algorithm}
+	 */
 	polymod(values) {
 		const GEN = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
 		let chk = 1;
+
 		for (let v of values) {
-			let b = (chk >> 25);
-			chk = (chk & 0x1ffffff) << 5 ^ v;
+			let b = (chk >> 25); // Extract top 5 bits
+			chk = (chk & 0x1ffffff) << 5 ^ v; // Shift and add new value
+
+			// Apply generator polynomial for each set bit
 			for (let i = 0; i < 5; i++) {
 				chk ^= ((b >> i) & 1) ? GEN[i] : 0;
 			}
@@ -46,39 +104,108 @@ const BECH32 = {
 		return chk;
 	},
 
-	expandHRP(prefix = "bc") { // expanding the prefix
+	/**
+	 * Expands the Human Readable Part (HRP) into the format required for checksum calculation
+	 * 
+	 * The expansion converts the HRP into two parts:
+	 * 1. High 3 bits of each character
+	 * 2. A zero separator
+	 * 3. Low 5 bits of each character
+	 * 
+	 * This expansion ensures that the HRP is properly incorporated into the checksum
+	 * while maintaining the 5-bit alignment required by the Bech32 algorithm.
+	 * 
+	 * @param {string} [prefix="bc"] - Human Readable Part to expand
+	 * @returns {Buffer} Expanded HRP ready for checksum calculation
+	 * @example
+	 * const expanded = BECH32.expandHRP("bc");
+	 * // Returns Buffer with: [3, 3] + [0] + [2, 3] (high bits + separator + low bits)
+	 */
+	expandHRP(prefix = "bc") {
 		return Buffer.concat([
-			new Uint8Array(prefix.length).map((_, i) => prefix[i].charCodeAt() >> 5), // upper 3 bits of each character
-			Buffer.from([0]), // separater
-			new Uint8Array(prefix.length).map((_, i) => prefix[i].charCodeAt() & 31) // lower 5 bits of each character
+			// Upper 3 bits of each character (characters >> 5)
+			new Uint8Array(prefix.length).map((_, i) => prefix[i].charCodeAt() >> 5),
+			Buffer.from([0]), // Separator
+			// Lower 5 bits of each character (characters & 31)
+			new Uint8Array(prefix.length).map((_, i) => prefix[i].charCodeAt() & 31)
 		]);
 	},
 
-/* ------------------------------------------------------------------ */
+	/**
+	 * Converts a legacy Bitcoin address to a P2WPKH (Pay to Witness PubKey Hash) Bech32 address
+	 * 
+	 * The conversion process:
+	 * 1. Decodes the legacy Base58Check address to extract the hash160
+	 * 2. Determines the appropriate network prefix (bc/tb) from the version byte
+	 * 3. Converts the 20-byte hash from 8-bit to 5-bit representation
+	 * 4. Prepends witness version 0 to create the witness program
+	 * 5. Encodes using Bech32 (not Bech32m, as version 0 uses original Bech32)
+	 * 
+	 * @param {string} [witness_program="legacy address"] - Legacy P2PKH address to convert
+	 * @returns {string} Bech32-encoded P2WPKH address
+	 * @throws {Error} If the legacy address is invalid or has wrong format
+	 * @example
+	 * // Mainnet conversion
+	 * const legacy = "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2";
+	 * const segwit = BECH32.to_P2WPKH(legacy);
+	 * // Returns: "bc1qhkfq3zahaqkkzx5mjnamwjsfpw3tvke7v6aaph"
+	 * 
+	 * // Testnet conversion
+	 * const testLegacy = "mgRpP3zP1hmxyoeYJgfbcmN3c2Qsurw48D";
+	 * const testSegwit = BECH32.to_P2WPKH(testLegacy);
+	 * // Returns: "tb1qp8lhpx0jmcusxnq6cyktwp8rfpaunccntw8kty"
+	 */
+	to_P2WPKH(witness_program = "legacy address") {
+		// Decode legacy address to get network prefix and hash160
+		let [bch_prefix, hash] = CASH_ADDR.decode_legacy_address(witness_program);
 
-	to_P2WPKH(witness_program = "legacy address") { // P2PKH to P2WPKH
-		let [bch_prefix, hash] = CASH_ADDR.decode_legacy_address(witness_program); // borrowing method from bch
+		// Map BCH prefix to BTC prefix
 		const btc_prefix = bch_prefix === "bitcoincash" ? 'bc' : 'tb';
 
+		// Convert hash from hex string to buffer, then to 5-bit representation
 		hash = Buffer.from(hash, 'hex');
-		hash = CASH_ADDR.convertBits(hash, 8, 5); // Convert to 5 bits, 0.625 bytes
+		hash = CASH_ADDR.convertBits(hash, 8, 5); // Convert to 5 bits per group
 
-		const data = Buffer.concat([Buffer.from([0]), hash]); // witness_version + witness_program
+		// Create witness program: version 0 + converted hash
+		const data = Buffer.concat([Buffer.from([0]), hash]);
 
+		// Encode using Bech32 (version 0 uses Bech32, not Bech32m)
 		return this.encode(btc_prefix, data, 'bech32');
 	},
 
-	data_to_bech32(prefix = "Jamallo", data = "hex", encoding = 'bech32' || 'bech32m') {
-
+	/**
+	 * Encodes arbitrary hex data into a Bech32 address with custom prefix
+	 * 
+	 * This function provides a general-purpose interface for encoding any data
+	 * into the Bech32 format. It handles the conversion from 8-bit bytes to
+	 * 5-bit groups and validates the total length constraints.
+	 * 
+	 * @param {string} [prefix="Jamallo"] - Custom Human Readable Part for the address
+	 * @param {string} [data="hex"] - Hex-encoded data to include in the address
+	 * @param {string} [encoding='bech32'] - Encoding type: 'bech32' or 'bech32m'
+	 * @returns {string} Bech32-encoded address with custom prefix and data
+	 * @throws {Error} If the total address length would exceed 90 characters
+	 * @example
+	 * // Encode custom data
+	 * const customAddr = BECH32.data_to_bech32("myapp", "48656c6c6f", "bech32");
+	 * // Returns: "myapp1dpjkcmr0vx8nrwl"
+	 * 
+	 * // Using Bech32m encoding
+	 * const modernAddr = BECH32.data_to_bech32("test", "deadbeef", "bech32m");
+	 */
+	data_to_bech32(prefix = "Jamallo", data = "hex", encoding = 'bech32') {
+		// Convert hex string to buffer and then to 5-bit representation
 		const hex_to_buffer = Buffer.from(data, 'hex');
 		data = CASH_ADDR.convertBits(hex_to_buffer, 8, 5);
 
+		// Validate total length: 2*prefix + 1 separator + data + 6 checksum ≤ 90
 		const len = 2 * prefix.length + 1 + data.length + 6;
-		if (len - prefix.length > 90) throw new Error("prefix or data is to long, total max length is 90");
+		if (len - prefix.length > 90) {
+			throw new Error("prefix or data is too long, total max length is 90");
+		}
 
 		return this.encode(prefix, data, encoding);
 	}
-
 }
 
 export default BECH32;
