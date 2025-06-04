@@ -121,7 +121,7 @@ console.log('SegWit:', segwitAddr);
 // Output: bc1qhkfq3zahaqkkzx5mjnamwjsfpw3tvke7v6aaph
 
 // Convert to CashAddr
-const cashAddr = CASH_ADDR.to_cashAddr(legacyAddress);
+const cashAddr = CASH_ADDR.to_cashAddr(legacyAddress, "p2pkh");
 console.log('CashAddr:', cashAddr);
 // Output: bitcoincash:qztxx64w20kmy5y9sskjwtgxp3j8dc20ksvef26ssu
 ```
@@ -138,7 +138,7 @@ console.log('SegWit:', segwitAddr);
 // Output: bc1qhkfq3zahaqkkzx5mjnamwjsfpw3tvke7v6aaph
 
 // Convert to CashAddr
-const cashAddr: string = CASH_ADDR.to_cashAddr(legacyAddress);
+const cashAddr: string = CASH_ADDR.to_cashAddr(legacyAddress, "p2pkh");
 console.log('CashAddr:', cashAddr);
 // Output: bitcoincash:qztxx64w20kmy5y9sskjwtgxp3j8dc20ksvef26ssu
 ```
@@ -411,9 +411,9 @@ restored.derive("m/44'/236'/0'/0/0"); // Bitcoin SV
 
 ```json
 {
-  "@noble/secp256k1": "^1.6.3",
+  "@noble/curves": "^1.9.1",
   "base58-js": "^1.0.4", 
-  "bigint-conversion": "^2.2.2",
+  "bigint-conversion": "^2.4.0",
   "bn.js": "^5.2.1"
 }
 ```
@@ -421,7 +421,14 @@ restored.derive("m/44'/236'/0'/0/0"); // Bitcoin SV
 ## 🧪 Testing
 
 ```bash
+# Run all tests
 npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run tests in watch mode
+npm run test:watch
 ```
 
 ## 📝 Documentation
@@ -457,6 +464,26 @@ View comprehensive documentation in `docs/index.html` with:
 - **Security best practices**
 - **Advanced usage patterns**
 
+## 🔒 Security Best Practices
+
+### Key Management
+- **Secure Backup**: Store mnemonic phrases in secure, offline locations
+- **Share Distribution**: Use encrypted channels for threshold share distribution
+- **Access Control**: Implement proper authentication for wallet operations
+- **Regular Rotation**: Consider periodic key rotation for long-term security
+
+### Development
+- **Input Validation**: Always validate addresses and amounts before operations
+- **Error Handling**: Implement comprehensive error handling for all operations
+- **Testing**: Test thoroughly on testnet before mainnet deployment
+- **Auditing**: Maintain audit trails for all cryptographic operations
+
+### Production Deployment
+- **Environment Separation**: Keep development and production environments isolated
+- **Monitoring**: Implement monitoring for wallet operations and security events
+- **Backup Procedures**: Establish reliable backup and recovery procedures
+- **Incident Response**: Have plans for handling security incidents
+
 ## 🤝 Contributing
 
 1. Fork the repository
@@ -464,6 +491,21 @@ View comprehensive documentation in `docs/index.html` with:
 3. Commit changes (`git commit -m 'Add amazing feature'`)
 4. Push to branch (`git push origin feature/amazing-feature`)
 5. Open Pull Request
+
+### Development Setup
+
+```bash
+# Clone and install dependencies
+git clone https://github.com/yfbsei/J-Bitcoin.git
+cd J-Bitcoin
+npm install
+
+# Run development commands
+npm run lint          # Check code style
+npm run format        # Format code
+npm run test          # Run tests
+npm run docs          # Generate documentation
+```
 
 ## 📜 License
 
@@ -484,14 +526,43 @@ ISC License - see [LICENSE](LICENSE) file for details.
 
 ## 🔮 Roadmap
 
+### Short Term (Q2 2025)
 - [ ] P2SH and P2WSH address support with TypeScript definitions
+- [ ] Enhanced error handling and validation
+- [ ] Performance optimizations for threshold operations
+- [ ] Additional test coverage for edge cases
+
+### Medium Term (Q3-Q4 2025)
 - [ ] Transaction building and broadcasting with type-safe interfaces
 - [ ] SPV wallet implementation with comprehensive types
 - [ ] Hardware wallet integration with device-specific types
-- [ ] Lightning Network support with protocol types
 - [ ] Advanced script templates with template types
+
+### Long Term (2026+)
+- [ ] Lightning Network support with protocol types
 - [ ] React/Vue component library with prop types
 - [ ] WebAssembly optimization with typed bindings
+- [ ] Cross-chain interoperability features
+
+## 🏆 Why Choose J-Bitcoin?
+
+### For Developers
+- **TypeScript First**: Built with TypeScript developers in mind
+- **Modern Architecture**: ES modules, tree shaking, and modern JavaScript
+- **Comprehensive Documentation**: Every function documented with examples
+- **Developer Experience**: IntelliSense, autocomplete, and type safety
+
+### For Enterprises
+- **Threshold Security**: Advanced multi-party control for corporate treasuries
+- **Compliance Ready**: Audit trails and multi-signature requirements
+- **Battle Tested**: Based on proven cryptographic standards
+- **Professional Support**: Enterprise-grade reliability and support
+
+### For Researchers
+- **Academic Standards**: Implements latest cryptographic research
+- **Extensible Design**: Easy to extend with new algorithms
+- **Reference Implementation**: Well-documented algorithms for study
+- **Open Source**: Transparent implementation for peer review
 
 ---
 
