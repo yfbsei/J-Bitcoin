@@ -2,7 +2,7 @@
 
 [![npm version](https://badge.fury.io/js/j-bitcoin.svg)](https://badge.fury.io/js/j-bitcoin)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
-[![Node.js](https://img.shields.io/badge/Node.js-18%2B-green.svg)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-16%2B-green.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
 [![JSDoc](https://img.shields.io/badge/JSDoc-Complete-brightgreen.svg)](https://jsdoc.app/)
 
@@ -33,6 +33,7 @@ A comprehensive JavaScript/TypeScript cryptocurrency wallet library focused excl
 - **Comprehensive JSDoc** - Rich inline documentation
 - **ES Modules** - Modern JavaScript module support
 - **Tree Shaking** - Import only what you need
+- **Bitcoin Constants** - Built-in BIP44 paths and network configurations
 
 ## 📚 Documentation
 
@@ -49,12 +50,20 @@ npm install j-bitcoin
 ### JavaScript
 
 ```javascript
-import { Custodial_Wallet } from 'j-bitcoin';
+import { Custodial_Wallet, BIP44_CONSTANTS } from 'j-bitcoin';
 
 // Generate new wallet
 const [mnemonic, wallet] = Custodial_Wallet.fromRandom('main');
 console.log('Mnemonic:', mnemonic);
 console.log('Address:', wallet.address);
+
+// Use built-in convenience methods for standard Bitcoin addresses
+wallet.deriveReceivingAddress(0);  // First receiving address
+wallet.deriveChangeAddress(0);     // First change address
+
+// Get wallet summary
+const summary = wallet.getSummary();
+console.log(`Generated ${summary.receivingAddresses} receiving addresses`);
 
 // Sign a message
 const [signature, recoveryId] = wallet.sign("Hello Bitcoin!");
@@ -64,14 +73,29 @@ console.log('Signature valid:', wallet.verify(signature, "Hello Bitcoin!"));
 ### TypeScript
 
 ```typescript
-import { Custodial_Wallet, ECDSASignatureResult } from 'j-bitcoin';
+import { 
+  Custodial_Wallet, 
+  ECDSASignatureResult, 
+  ChildKeyInfo,
+  NetworkType 
+} from 'j-bitcoin';
 
 // Generate new wallet with full type safety
-const [mnemonic, wallet]: [string, Custodial_Wallet] = Custodial_Wallet.fromRandom('main');
+const network: NetworkType = 'main';
+const [mnemonic, wallet]: [string, Custodial_Wallet] = 
+  Custodial_Wallet.fromRandom(network);
 
 // TypeScript knows the exact return types
 const [signature, recoveryId]: ECDSASignatureResult = wallet.sign("Hello Bitcoin!");
 const isValid: boolean = wallet.verify(signature, "Hello Bitcoin!");
+
+// Full type safety for child keys
+wallet.deriveReceivingAddress(0).deriveChangeAddress(0);
+const childKeys: ChildKeyInfo[] = wallet.getChildKeysByType('receiving');
+
+// IDE provides complete autocomplete and type information
+console.log(childKeys[0].address);        // ✅ TypeScript knows this is a string
+console.log(childKeys[0].derivationPath); // ✅ Full IntelliSense support
 ```
 
 ### Advanced Threshold Signatures
@@ -90,22 +114,144 @@ console.log('Distribute shares to participants:', shares);
 // Generate threshold signature
 const signature = wallet.sign("Multi-party transaction");
 console.log('Threshold signature:', signature.serialized_sig);
+
+// Get detailed wallet information
+const summary = wallet.getSummary();
+console.log(`${summary.thresholdScheme} threshold wallet - ${summary.securityLevel} security`);
 ```
 
 **TypeScript:**
 ```typescript
-import { Non_Custodial_Wallet, ThresholdSignatureResult } from 'j-bitcoin';
+import { 
+  Non_Custodial_Wallet, 
+  ThresholdSignatureResult,
+  ThresholdWalletSummary 
+} from 'j-bitcoin';
 
-// Create 2-of-3 threshold wallet
+// Create 2-of-3 threshold wallet with type safety
 const wallet: Non_Custodial_Wallet = Non_Custodial_Wallet.fromRandom("main", 3, 2);
 
-// Get shares for distribution
+// Get shares for distribution (fully typed)
 const shares: string[] = wallet._shares;
 console.log('Distribute shares to participants:', shares);
 
-// Generate threshold signature
+// Generate threshold signature (type-safe)
 const signature: ThresholdSignatureResult = wallet.sign("Multi-party transaction");
 console.log('Threshold signature:', signature.serialized_sig);
+
+// Get wallet summary with complete type information
+const summary: ThresholdWalletSummary = wallet.getSummary();
+console.log(`${summary.thresholdScheme} - ${summary.securityLevel} security level`);
+```
+
+## 🧭 Bitcoin Constants & Utilities
+
+### Built-in Bitcoin Standards
+
+**JavaScript:**
+```javascript
+import { 
+  BIP44_CONSTANTS, 
+  DERIVATION_PATHS, 
+  generateDerivationPath,
+  BITCOIN_NETWORKS 
+} from 'j-bitcoin';
+
+// Use built-in constants for standardized operations
+const wallet = Custodial_Wallet.fromRandom('main')[1];
+
+// Generate addresses using standard paths
+const receivingPath = generateDerivationPath({
+  purpose: BIP44_CONSTANTS.PURPOSE,           // 44
+  coinType: BIP44_CONSTANTS.COIN_TYPES.BITCOIN_MAINNET, // 0
+  account: BIP44_CONSTANTS.ACCOUNT,           // 0
+  change: BIP44_CONSTANTS.CHANGE.EXTERNAL,    // 0 (receiving)
+  addressIndex: 0
+});
+
+console.log(receivingPath); // "m/44'/0'/0'/0/0"
+wallet.derive(receivingPath, 'pri');
+
+// Use predefined paths
+console.log(DERIVATION_PATHS.BITCOIN_FIRST_ADDRESS); // "m/44'/0'/0'/0/0"
+console.log(DERIVATION_PATHS.BITCOIN_FIRST_CHANGE);  // "m/44'/0'/0'/1/0"
+
+// Access network configurations
+console.log(BITCOIN_NETWORKS.MAINNET.addressPrefix); // "bc"
+console.log(BITCOIN_NETWORKS.TESTNET.addressPrefix); // "tb"
+```
+
+**TypeScript:**
+```typescript
+import { 
+  BIP44_CONSTANTS, 
+  DERIVATION_PATHS, 
+  generateDerivationPath,
+  DerivationPathOptions,
+  ParsedDerivationPath,
+  isValidBitcoinPath 
+} from 'j-bitcoin';
+
+// Type-safe derivation path generation
+const pathOptions: DerivationPathOptions = {
+  purpose: 44,
+  coinType: 0,
+  account: 0,
+  change: 0,
+  addressIndex: 5
+};
+
+const derivationPath: string = generateDerivationPath(pathOptions);
+const isValid: boolean = isValidBitcoinPath(derivationPath);
+
+// Parse and validate paths with full type safety
+const parsedPath: ParsedDerivationPath = parseDerivationPath(derivationPath);
+console.log(parsedPath.coinType);    // number (0 or 1)
+console.log(parsedPath.purpose);     // number (44, 49, 84, etc.)
+```
+
+### Convenient Wallet Methods
+
+**JavaScript:**
+```javascript
+const wallet = Custodial_Wallet.fromRandom('main')[1];
+
+// Standard Bitcoin address generation
+wallet.deriveReceivingAddress(0)    // m/44'/0'/0'/0/0
+      .deriveReceivingAddress(1)    // m/44'/0'/0'/0/1
+      .deriveChangeAddress(0)       // m/44'/0'/0'/1/0
+      .deriveTestnetAddress(0);     // m/44'/1'/0'/0/0
+
+// Filter addresses by type
+const receiving = wallet.getChildKeysByType('receiving');
+const change = wallet.getChildKeysByType('change');
+const testnet = wallet.getChildKeysByType('testnet');
+
+console.log(`Generated ${receiving.length} receiving addresses`);
+console.log(`Generated ${change.length} change addresses`);
+```
+
+**TypeScript:**
+```typescript
+import { Custodial_Wallet, ChildKeyInfo, WalletSummary } from 'j-bitcoin';
+
+const wallet: Custodial_Wallet = Custodial_Wallet.fromRandom('main')[1];
+
+// Method chaining with full type safety
+wallet.deriveReceivingAddress(0)
+      .deriveReceivingAddress(1)
+      .deriveChangeAddress(0)
+      .deriveTestnetAddress(0);
+
+// Type-safe address filtering
+const receivingAddresses: ChildKeyInfo[] = wallet.getChildKeysByType('receiving');
+const changeAddresses: ChildKeyInfo[] = wallet.getChildKeysByType('change');
+
+// Complete wallet summary with types
+const summary: WalletSummary = wallet.getSummary();
+console.log(summary.network);            // string
+console.log(summary.derivedKeys);        // number
+console.log(summary.receivingAddresses); // number
 ```
 
 ### Address Conversion
@@ -120,18 +266,25 @@ const legacyAddress = "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2";
 const segwitAddr = BECH32.to_P2WPKH(legacyAddress);
 console.log('SegWit:', segwitAddr);
 // Output: bc1qhkfq3zahaqkkzx5mjnamwjsfpw3tvke7v6aaph
+
+// Custom data encoding
+const customAddr = BECH32.data_to_bech32("myapp", "48656c6c6f", "bech32");
+console.log('Custom address:', customAddr);
 ```
 
 **TypeScript:**
 ```typescript
-import { BECH32 } from 'j-bitcoin';
+import { BECH32, Bech32Encoding } from 'j-bitcoin';
 
 const legacyAddress: string = "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2";
 
-// Convert to SegWit
+// Convert to SegWit with type safety
 const segwitAddr: string = BECH32.to_P2WPKH(legacyAddress);
 console.log('SegWit:', segwitAddr);
-// Output: bc1qhkfq3zahaqkkzx5mjnamwjsfpw3tvke7v6aaph
+
+// Custom encoding with proper typing
+const encoding: Bech32Encoding = "bech32m";
+const customAddr: string = BECH32.data_to_bech32("myapp", "deadbeef", encoding);
 ```
 
 ### Schnorr Signatures
@@ -161,13 +314,13 @@ import { schnorr_sig } from 'j-bitcoin';
 const privateKey: string = "L1vHfV6GUbMJSvFaqjnButzwq5x4ThdFaotpUgsfScwMNKjdGVuS";
 const message: string = "Hello Schnorr!";
 
-// Sign with Schnorr
+// Sign with Schnorr (type-safe)
 const signature: Uint8Array = schnorr_sig.sign(privateKey, message);
 
-// Get public key
+// Get public key (32-byte x-only format)
 const publicKey: Uint8Array = schnorr_sig.retrieve_public_key(privateKey);
 
-// Verify signature
+// Verify signature with full type checking
 const isValid: boolean = schnorr_sig.verify(signature, message, publicKey);
 console.log('Schnorr signature valid:', isValid);
 ```
@@ -176,10 +329,10 @@ console.log('Schnorr signature valid:', isValid);
 
 ### TypeScript Support
 
-J-Bitcoin provides complete TypeScript definitions with:
+J-Bitcoin provides complete TypeScript definitions with IntelliSense support:
 
 ```typescript
-// Full IntelliSense support
+// Experience world-class developer productivity
 import type { 
   Custodial_Wallet, 
   Non_Custodial_Wallet,
@@ -187,16 +340,26 @@ import type {
   ThresholdSignatureResult,
   HDKeys,
   KeyPair,
-  NetworkType 
+  NetworkType,
+  ChildKeyInfo,
+  WalletSummary,
+  ThresholdWalletSummary
 } from 'j-bitcoin';
 
-// Type-safe network specification
-const network: NetworkType = 'main'; // 'main' | 'test'
+// VS Code, WebStorm, and other IDEs provide:
+// ✅ Complete autocomplete for all methods
+// ✅ Inline parameter documentation  
+// ✅ Return type information
+// ✅ Error detection at compile time
+// ✅ Hover documentation for all functions
 
-// Strongly typed wallet creation
-const wallet: Custodial_Wallet = Custodial_Wallet.fromRandom(network);
+const wallet = Custodial_Wallet.fromRandom('main');
+//    ^-- IDE shows: [string, Custodial_Wallet]
 
-// Comprehensive interface definitions
+wallet.derive("m/44'/0'/0'/0/0", 'pri');
+//     ^-- IDE shows available parameters and types
+
+// Full interface definitions
 interface ThresholdSignatureResult {
   sig: { r: bigint; s: bigint; };
   serialized_sig: string;
@@ -213,6 +376,11 @@ interface ThresholdSignatureResult {
 | `fromMnemonic(net, mnemonic, passphrase?)` | Import from mnemonic |
 | `fromSeed(net, seed)` | Create from hex seed |
 | `derive(path, keyType)` | Derive child keys |
+| `deriveReceivingAddress(index)` | **New:** Standard BIP44 receiving address |
+| `deriveChangeAddress(index)` | **New:** Standard BIP44 change address |
+| `deriveTestnetAddress(index)` | **New:** Generate testnet address |
+| `getChildKeysByType(type)` | **New:** Filter child keys by type |
+| `getSummary()` | **New:** Get wallet summary information |
 | `sign(message)` | Sign with ECDSA |
 | `verify(sig, message)` | Verify signature |
 
@@ -224,8 +392,21 @@ interface ThresholdSignatureResult {
 | `fromShares(net, shares, threshold)` | Reconstruct from shares |
 | `sign(message)` | Generate threshold signature |
 | `verify(sig, msgHash)` | Verify threshold signature |
+| `getSummary()` | **New:** Get threshold wallet summary |
 | `_shares` | Get secret shares |
 | `_privateKey` | Get reconstructed private key |
+
+### Bitcoin Constants & Utilities
+
+| Function | Description |
+|----------|-------------|
+| `generateDerivationPath(options)` | **New:** Generate BIP44 paths |
+| `parseDerivationPath(path)` | **New:** Parse derivation paths |
+| `isValidBitcoinPath(path)` | **New:** Validate Bitcoin paths |
+| `getNetworkByCoinType(coinType)` | **New:** Get network configuration |
+| `BIP44_CONSTANTS` | **New:** BIP44 constants |
+| `DERIVATION_PATHS` | **New:** Standard Bitcoin paths |
+| `BITCOIN_NETWORKS` | **New:** Network configurations |
 
 ### Address Utilities
 
@@ -236,30 +417,61 @@ interface ThresholdSignatureResult {
 
 ## 🔗 BIP32 Key Derivation
 
+### Standard Bitcoin Paths
+
 **JavaScript:**
 ```javascript
-// Standard BIP44 Bitcoin paths
-wallet.derive("m/44'/0'/0'/0/0");    // Bitcoin account 0, address 0
-wallet.derive("m/44'/0'/0'/1/0");    // Bitcoin account 0, change address 0
-wallet.derive("m/44'/1'/0'/0/0");    // Bitcoin testnet account 0, address 0
+import { DERIVATION_PATHS, generateDerivationPath } from 'j-bitcoin';
 
-// Custom derivation
-wallet.derive("m/0'/1'/2");          // Hardened path
-wallet.derive("m/0/1/2");            // Non-hardened path
+// Use predefined standard paths
+wallet.derive(DERIVATION_PATHS.BITCOIN_FIRST_ADDRESS);    // m/44'/0'/0'/0/0
+wallet.derive(DERIVATION_PATHS.BITCOIN_FIRST_CHANGE);     // m/44'/0'/0'/1/0
+wallet.derive(DERIVATION_PATHS.BITCOIN_TESTNET);          // m/44'/1'/0'
+
+// Or use convenience methods (recommended)
+wallet.deriveReceivingAddress(0);  // Same as above, more convenient
+wallet.deriveChangeAddress(0);     // Same as above, more convenient
+wallet.deriveTestnetAddress(0);    // Testnet address
+
+// Generate custom paths
+const customPath = generateDerivationPath({
+  purpose: 44,
+  coinType: 0,
+  account: 1,        // Account 1
+  change: 0,
+  addressIndex: 10
+}); // "m/44'/0'/1'/0/10"
 ```
 
 **TypeScript:**
 ```typescript
-import { Custodial_Wallet, KeyType } from 'j-bitcoin';
+import { 
+  Custodial_Wallet, 
+  KeyType, 
+  DERIVATION_PATHS,
+  generateDerivationPath,
+  DerivationPathOptions 
+} from 'j-bitcoin';
 
-// Standard BIP44 Bitcoin paths with type safety
-wallet.derive("m/44'/0'/0'/0/0", 'pri' as KeyType);    // Bitcoin mainnet receiving
-wallet.derive("m/44'/0'/0'/1/0", 'pri' as KeyType);    // Bitcoin mainnet change
-wallet.derive("m/44'/1'/0'/0/0", 'pri' as KeyType);    // Bitcoin testnet receiving
+// Type-safe derivation with IntelliSense
+wallet.derive(DERIVATION_PATHS.BITCOIN_FIRST_ADDRESS, 'pri' as KeyType);
 
-// Custom derivation with type checking
-wallet.derive("m/0'/1'/2", 'pri' as KeyType);          // Hardened path
-wallet.derive("m/0/1/2", 'pub' as KeyType);            // Non-hardened path (public key derivation)
+// Type-safe path generation
+const pathOptions: DerivationPathOptions = {
+  purpose: 44,
+  coinType: 0,
+  account: 0,
+  change: 1,        // Change addresses
+  addressIndex: 5
+};
+
+const changePath: string = generateDerivationPath(pathOptions);
+wallet.derive(changePath, 'pri' as KeyType);
+
+// Convenience methods with full type safety
+wallet.deriveReceivingAddress(0)  // Returns: Custodial_Wallet
+      .deriveChangeAddress(0)     // Method chaining supported
+      .deriveTestnetAddress(0);   // Full TypeScript support
 ```
 
 ## 🛡️ Security Features
@@ -269,6 +481,7 @@ wallet.derive("m/0/1/2", 'pub' as KeyType);            // Non-hardened path (pub
 - **Threshold Security** - Distributed key management
 - **Multiple Signature Schemes** - ECDSA, Schnorr, TSS
 - **Address Validation** - Built-in format checking
+- **Bitcoin Standards Compliance** - Full BIP32/BIP39/BIP44 support
 
 ## 🎛️ Advanced Examples
 
@@ -289,11 +502,13 @@ const release = Non_Custodial_Wallet.fromShares("main",
 // Disputes require arbiter
 const dispute = Non_Custodial_Wallet.fromShares("main",
   [buyerShare, arbiterShare], 2);
+
+console.log('Escrow summary:', escrow.getSummary());
 ```
 
 **TypeScript:**
 ```typescript
-import { Non_Custodial_Wallet } from 'j-bitcoin';
+import { Non_Custodial_Wallet, ThresholdWalletSummary } from 'j-bitcoin';
 
 // 2-of-3 escrow: buyer, seller, arbiter
 const escrow: Non_Custodial_Wallet = Non_Custodial_Wallet.fromRandom("main", 3, 2);
@@ -306,6 +521,9 @@ const release: Non_Custodial_Wallet = Non_Custodial_Wallet.fromShares("main",
 // Disputes require arbiter
 const dispute: Non_Custodial_Wallet = Non_Custodial_Wallet.fromShares("main",
   [buyerShare, arbiterShare], 2);
+
+const summary: ThresholdWalletSummary = escrow.getSummary();
+console.log(`${summary.thresholdScheme} escrow - ${summary.securityLevel} security`);
 ```
 
 ### Corporate Treasury
@@ -324,11 +542,18 @@ const authorization = Non_Custodial_Wallet.fromShares("main",
 
 // Generate authorization signature
 const authSignature = authorization.sign("Transfer $1M to operations");
+
+console.log('Treasury summary:', treasury.getSummary());
+console.log('Authorization signature:', authSignature.serialized_sig);
 ```
 
 **TypeScript:**
 ```typescript
-import { Non_Custodial_Wallet, ThresholdSignatureResult } from 'j-bitcoin';
+import { 
+  Non_Custodial_Wallet, 
+  ThresholdSignatureResult,
+  ThresholdWalletSummary 
+} from 'j-bitcoin';
 
 // 3-of-5 corporate signature
 const treasury: Non_Custodial_Wallet = Non_Custodial_Wallet.fromRandom("main", 5, 3);
@@ -340,29 +565,48 @@ const authorization: Non_Custodial_Wallet = Non_Custodial_Wallet.fromShares("mai
 
 // Type-safe signature generation
 const authSignature: ThresholdSignatureResult = authorization.sign("Transfer $1M to operations");
+
+const summary: ThresholdWalletSummary = treasury.getSummary();
+console.log(`${summary.thresholdScheme} treasury with ${summary.securityLevel} security`);
 ```
 
-### Cross-Platform Wallet
+### Cross-Platform Wallet with Standards
 
 **JavaScript:**
 ```javascript
-import { Custodial_Wallet } from 'j-bitcoin';
+import { 
+  Custodial_Wallet, 
+  BIP44_CONSTANTS, 
+  DERIVATION_PATHS 
+} from 'j-bitcoin';
 
-// Generate with passphrase
+// Generate with passphrase using built-in constants
 const [mnemonic, wallet] = Custodial_Wallet.fromRandom('main', 'secure-pass');
+
+// Use standard Bitcoin derivation paths
+wallet.deriveReceivingAddress(0)   // Standard: m/44'/0'/0'/0/0
+      .deriveReceivingAddress(1)   // Standard: m/44'/0'/0'/0/1
+      .deriveChangeAddress(0)      // Standard: m/44'/0'/0'/1/0
+      .deriveTestnetAddress(0);    // Testnet: m/44'/1'/0'/0/0
+
+// Get comprehensive summary
+const summary = wallet.getSummary();
+console.log(`Wallet on ${summary.network}`);
+console.log(`${summary.receivingAddresses} receiving, ${summary.changeAddresses} change`);
 
 // Reconstruct anywhere
 const restored = Custodial_Wallet.fromMnemonic('main', mnemonic, 'secure-pass');
-
-// Derive Bitcoin addresses
-restored.derive("m/44'/0'/0'/0/0");   // Bitcoin receiving
-restored.derive("m/44'/0'/0'/1/0");   // Bitcoin change
-restored.derive("m/44'/1'/0'/0/0");   // Bitcoin testnet
 ```
 
 **TypeScript:**
 ```typescript
-import { Custodial_Wallet, NetworkType } from 'j-bitcoin';
+import { 
+  Custodial_Wallet, 
+  NetworkType, 
+  WalletSummary,
+  BIP44_CONSTANTS,
+  ChildKeyInfo 
+} from 'j-bitcoin';
 
 // Type-safe network specification
 const network: NetworkType = 'main';
@@ -371,14 +615,21 @@ const network: NetworkType = 'main';
 const [mnemonic, wallet]: [string, Custodial_Wallet] = 
   Custodial_Wallet.fromRandom(network, 'secure-pass');
 
-// Reconstruct anywhere with type safety
+// Use convenience methods with type safety
+wallet.deriveReceivingAddress(0)
+      .deriveReceivingAddress(1)
+      .deriveChangeAddress(0)
+      .deriveTestnetAddress(0);
+
+// Type-safe summary and filtering
+const summary: WalletSummary = wallet.getSummary();
+const receivingAddresses: ChildKeyInfo[] = wallet.getChildKeysByType('receiving');
+
+console.log(`Generated ${receivingAddresses.length} receiving addresses`);
+
+// Reconstruct with full type safety
 const restored: Custodial_Wallet = 
   Custodial_Wallet.fromMnemonic(network, mnemonic, 'secure-pass');
-
-// Derive Bitcoin addresses
-restored.derive("m/44'/0'/0'/0/0");   // Bitcoin receiving
-restored.derive("m/44'/0'/0'/1/0");   // Bitcoin change
-restored.derive("m/44'/1'/0'/0/0");   // Bitcoin testnet
 ```
 
 ## 📊 Feature Matrix
@@ -391,6 +642,9 @@ restored.derive("m/44'/1'/0'/0/0");   // Bitcoin testnet
 | Schnorr Signatures | ✅ | ✅ BIP340 types |
 | Legacy P2PKH | ✅ | ✅ Network types |
 | SegWit P2WPKH | ✅ | ✅ Bech32 types |
+| **Bitcoin Constants** | ✅ | ✅ **Full integration** |
+| **Convenience Methods** | ✅ | ✅ **Method chaining** |
+| **Wallet Summaries** | ✅ | ✅ **Complete interfaces** |
 | P2SH Addresses | ❌ | 🔄 Planned |
 | P2WSH SegWit | ❌ | 🔄 Planned |
 | Transaction Building | ❌ | 🔄 Planned |
@@ -432,12 +686,18 @@ Experience world-class developer productivity:
 // ✅ Inline parameter documentation
 // ✅ Return type information
 // ✅ Error detection at compile time
+// ✅ Hover documentation for Bitcoin constants
 
 const wallet = Custodial_Wallet.fromRandom('main');
 //    ^-- IDE shows: [string, Custodial_Wallet]
 
-wallet.derive("m/44'/0'/0'/0/0", 'pri');
-//     ^-- IDE shows available parameters and types
+wallet.deriveReceivingAddress(0);
+//     ^-- IDE shows method description and parameter types
+
+// Built-in constants with IntelliSense
+import { BIP44_CONSTANTS } from 'j-bitcoin';
+BIP44_CONSTANTS.COIN_TYPES.
+//                        ^-- IDE shows BITCOIN_MAINNET, BITCOIN_TESTNET
 ```
 
 ### Generate API Documentation
@@ -450,6 +710,7 @@ npm run docs
 View comprehensive documentation in `docs/index.html` with:
 - **Complete API reference** with examples
 - **TypeScript integration guide**
+- **Bitcoin standards compliance**
 - **Security best practices**
 - **Advanced usage patterns**
 
@@ -540,6 +801,7 @@ ISC License - see [LICENSE](LICENSE) file for details.
 - **Modern Architecture**: ES modules, tree shaking, and modern JavaScript
 - **Comprehensive Documentation**: Every function documented with examples
 - **Developer Experience**: IntelliSense, autocomplete, and type safety
+- **Bitcoin Standards**: Built-in constants and utilities for Bitcoin development
 
 ### For Enterprises
 - **Threshold Security**: Advanced multi-party control for corporate treasuries
@@ -552,6 +814,7 @@ ISC License - see [LICENSE](LICENSE) file for details.
 - **Extensible Design**: Easy to extend with new algorithms
 - **Reference Implementation**: Well-documented algorithms for study
 - **Open Source**: Transparent implementation for peer review
+
 ---
 
 **⚠️ Security Notice**: This library handles private keys and should be used with appropriate security measures. Always verify implementations in test environments before production use.
