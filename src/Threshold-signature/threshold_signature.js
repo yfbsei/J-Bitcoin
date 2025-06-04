@@ -167,10 +167,10 @@ class ThresholdSignature {
 		shares = shares.map(val => val.umod(N));
 
 		// Compute aggregate public key from polynomial constant terms
-		let public_key = new Point(BigInt(0), BigInt(0));
+		let public_key = secp256k1.ProjectivePoint.ZERO;
 		for (let i = 0; i < this.group_size; i++) {
 			const key = polynomials[i].coefficients[0].toBuffer("be", 32);
-			public_key = Point.fromPrivateKey(key).add(public_key);
+			public_key = secp256k1.ProjectivePoint.fromPrivateKey(key).add(public_key);
 		}
 
 		return [shares, public_key];
@@ -259,7 +259,7 @@ class ThresholdSignature {
 
 		// Convert to bigint and compute modular inverse
 		const x = bufToBigint(pross.toBuffer('be', 32));
-		const mod_inv_u = new BN(utils.invert(x, CURVE.n));
+		const mod_inv_u = new BN(secp256k1.utils.invert(x, secp256k1.CURVE.n));
 
 		// Multiply b-shares by inverse to get shares of a^(-1)
 		const inverse_shares = b_shares.map(val => mod_inv_u.mul(val).umod(N));
@@ -385,17 +385,17 @@ class ThresholdSignature {
 		msgHash = new BN(msgHash);
 
 		// Compute modular inverse of s
-		const w = new BN(utils.invert(sig.s, CURVE.n));
+		const w = new BN(secp256k1.utils.invert(sig.s, secp256k1.CURVE.n));
 
 		// Compute verification scalars
 		const u1 = w.mul(msgHash).umod(N).toBuffer('be', 32);
 		const u2 = w.mul(new BN(sig.r)).umod(N).toBuffer('be', 32);
 
 		// Compute verification point: u1*G + u2*PublicKey
-		const x = Point.fromPrivateKey(u1).add(public_key.multiply(bufToBigint(u2))).x
+		const x = secp256k1.ProjectivePoint.fromPrivateKey(u1).add(public_key.multiply(bufToBigint(u2))).x
 
 		// Verify that x-coordinate matches r-component
-		return sig.r === x % CURVE.n;
+		return sig.r === x % secp256k1.CURVE.n;
 	}
 }
 

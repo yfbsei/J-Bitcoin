@@ -58,7 +58,7 @@
     "examples/"
   ],
   "dependencies": {
-    "@noble/secp256k1": "^1.7.1",
+    "@noble/curves": "^1.9.1",
     "base58-js": "^1.0.4",
     "bigint-conversion": "^2.4.0",
     "bn.js": "^5.2.1"

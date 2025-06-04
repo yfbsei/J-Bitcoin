@@ -11,15 +11,8 @@
  */
 
 import { createHmac } from 'node:crypto';
-import { sign as signSync, verify as verifySync, Signature } from '@noble/secp256k1';
+import { secp256k1 } from '@noble/curves/secp256k1';
 import { privateKey_decode } from '../utilities/decodeKeys.js';
-
-// Configure noble-secp256k1 to use Node.js crypto for HMAC-SHA256
-utils.hmacSha256Sync = (key, ...messages) => {
-    const hash = createHmac('sha256', key);
-    messages.forEach((m) => hash.update(m));
-    return Uint8Array.from(hash.digest());
-}
 
 /**
  * @typedef {Array} ECDSASignatureResult

@@ -16,7 +16,7 @@ import { createHmac, createHash } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 
 import rmd160 from '../utilities/rmd160.js';
-import { Point, getPublicKey } from '@noble/secp256k1';
+import { secp256k1 } from '@noble/curves/secp256k1';
 import { hdKey } from '../utilities/encodeKeys.js';
 import BN from 'bn.js';
 
@@ -201,7 +201,7 @@ const derive = (path, key = '', serialization_format) => {
             // Private key derivation: ki = (IL + kpar) mod n
             new BN(IL).add(new BN(privKey.key)).mod(N).toBuffer() :
             // Public key derivation: Ki = IL*G + Kpar
-            Point.fromPrivateKey(IL).add(pubKey.points);
+            secp256k1.ProjectivePoint.fromPrivateKey(IL).add(pubKey.points);
 
         // Update serialization format for child key
         serialization_format = {
@@ -222,8 +222,8 @@ const derive = (path, key = '', serialization_format) => {
             // Update public key information
             pubKey: keyType ? {
                 // Derive public key from new private key
-                key: Buffer.from(getPublicKey(ki, true)),  // Compressed format
-                points: Point.fromPrivateKey(ki)           // Point representation
+                key: Buffer.from(secp256k1.getPublicKey(ki, true)),  // Compressed format
+                points: secp256k1.ProjectivePoint.fromPrivateKey(ki)           // Point representation
             } : {
                 // Use derived public key point
                 key: Buffer.from(ki.toRawBytes(true)),     // Compressed format

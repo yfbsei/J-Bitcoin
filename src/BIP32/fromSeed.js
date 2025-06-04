@@ -1,5 +1,4 @@
-import { hdKey } from '../utilities/encodeKeys.js';
-import { secp256k1 } from '@noble/curves/secp256k1';/**
+/**
  * @fileoverview BIP32 master key generation from seed
  * 
  * This module implements the BIP32 specification for generating master private and public keys
@@ -16,7 +15,7 @@ import { createHmac } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 
 import { hdKey } from '../utilities/encodeKeys.js';
-import { Point, getPublicKey } from '@noble/secp256k1';
+import { secp256k1 } from '@noble/curves/secp256k1';
 
 /**
  * @typedef {Object} HDKeyPair
@@ -164,8 +163,8 @@ const fromSeed = (seed, net = 'main') => {
 
 		// Master public key information
 		pubKey: {
-			key: Buffer.from(getPublicKey(IL, true)),  // Compressed public key (33 bytes)
-			points: Point.fromPrivateKey(IL)           // Elliptic curve point for operations
+			key: Buffer.from(secp256k1.getPublicKey(IL, true)),  // Compressed public key (33 bytes)
+			points: secp256k1.ProjectivePoint.fromPrivateKey(IL)           // Elliptic curve point for operations
 		}
 	};
 

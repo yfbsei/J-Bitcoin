@@ -331,7 +331,7 @@ class Non_Custodial_Wallet extends ThresholdSignature {
 
 		// Convert shares into Big number and reconstruct keys
 		wallet.shares = shares.map(x => new BN(x, 'hex'));
-		wallet.public_key = Point.fromPrivateKey(wallet.privite_key().toBuffer());
+		wallet.public_key = secp256k1.ProjectivePoint.fromPrivateKey(wallet.privite_key().toBuffer());
 		[wallet.publicKey, wallet.address] = wallet.#wallet();
 
 		return wallet;
