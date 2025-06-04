@@ -12,7 +12,7 @@
  * escrow services, and high-security applications requiring multi-party authorization.
  * 
  * @author yfbsei
- * @version 1.0.0
+ * @version 2.0.0
  * @since 1.0.0
  * 
  * @requires fromSeed
@@ -42,6 +42,7 @@ import bip39 from './BIP39/bip39.js';
 import ecdsa from './ECDSA/ecdsa.js';
 
 import { standardKey, address } from './utilities/encodeKeys.js';
+import { BIP44_CONSTANTS, DERIVATION_PATHS } from './utilities/constants.js';
 import ThresholdSignature from './Threshold-signature/threshold_signature.js';
 import BN from 'bn.js';
 import { secp256k1 } from '@noble/curves/secp256k1';
@@ -174,7 +175,26 @@ import { secp256k1 } from '@noble/curves/secp256k1';
  * // BIP44 Bitcoin change addresses  
  * wallet.derive("m/44'/0'/0'/1/0", 'pri'); // First change address
  * 
+ * // BIP44 Bitcoin testnet addresses
+ * wallet.derive("m/44'/1'/0'/0/0", 'pri'); // Testnet receiving address
+ * 
  * console.log('Child keys:', Array.from(wallet.child_keys));
+ * 
+ * @example
+ * // Using Bitcoin constants for standardized paths
+ * import { BIP44_CONSTANTS, DERIVATION_PATHS } from './utilities/constants.js';
+ * 
+ * const wallet = Custodial_Wallet.fromRandom('main')[1];
+ * 
+ * // Standard Bitcoin derivation using constants
+ * wallet.derive(DERIVATION_PATHS.BITCOIN_FIRST_ADDRESS, 'pri');   // m/44'/0'/0'/0/0
+ * wallet.derive(DERIVATION_PATHS.BITCOIN_FIRST_CHANGE, 'pri');    // m/44'/0'/0'/1/0
+ * 
+ * // Generate paths programmatically
+ * for (let i = 0; i < 5; i++) {
+ *   const receivePath = `m/${BIP44_CONSTANTS.PURPOSE}'/${BIP44_CONSTANTS.COIN_TYPES.BITCOIN_MAINNET}'/${BIP44_CONSTANTS.ACCOUNT}'/${BIP44_CONSTANTS.CHANGE.EXTERNAL}/${i}`;
+ *   wallet.derive(receivePath, 'pri');
+ * }
  * 
  * @example
  * // Sign and verify messages
@@ -539,10 +559,12 @@ class Custodial_Wallet {
 	 * // Method chaining for multiple derivations
 	 * const wallet = Custodial_Wallet.fromRandom('main')[1];
 	 * 
+	 * // Derive Bitcoin addresses with proper network paths
 	 * wallet
-	 *   .derive("m/44'/0'/0'/0/0", 'pri')  // First receiving
-	 *   .derive("m/44'/0'/0'/0/1", 'pri')  // Second receiving
-	 *   .derive("m/44'/0'/0'/1/0", 'pri'); // First change
+	 *   .derive("m/44'/0'/0'/0/0", 'pri')  // Bitcoin mainnet receiving
+	 *   .derive("m/44'/0'/0'/0/1", 'pri')  // Bitcoin mainnet receiving #2
+	 *   .derive("m/44'/0'/0'/1/0", 'pri')  // Bitcoin mainnet change
+	 *   .derive("m/44'/1'/0'/0/0", 'pri'); // Bitcoin testnet receiving
 	 * 
 	 * // Access all derived addresses
 	 * for (const child of wallet.child_keys) {
@@ -566,22 +588,35 @@ class Custodial_Wallet {
 	 * @example
 	 * const wallet = Custodial_Wallet.fromRandom('main')[1];
 	 * 
-	 * // Bitcoin addresses
+	 * // Bitcoin mainnet addresses (coin type 0)
 	 * wallet.derive("m/44'/0'/0'/0/0", 'pri');   // BTC receiving
+	 * wallet.derive("m/44'/0'/0'/1/0", 'pri');   // BTC change
 	 * 
+	 * // Bitcoin testnet addresses (coin type 1)  
+	 * wallet.derive("m/44'/1'/0'/0/0", 'pri');   // BTC testnet receiving
+	 * wallet.derive("m/44'/1'/0'/1/0", 'pri');   // BTC testnet change
 	 * 
 	 * @example
-	 * // Generate multiple addresses for a service
+	 * // Generate multiple Bitcoin addresses for a service
 	 * const wallet = Custodial_Wallet.fromRandom('main')[1];
 	 * 
-	 * // Generate 10 unique receiving addresses
+	 * // Generate 10 unique mainnet receiving addresses
 	 * for (let i = 0; i < 10; i++) {
 	 *   wallet.derive(`m/44'/0'/0'/0/${i}`, 'pri');
 	 * }
 	 * 
-	 * // Each customer gets a unique address
-	 * const addresses = Array.from(wallet.child_keys).map(child => child.address);
-	 * console.log('Customer addresses:', addresses);
+	 * // Generate testnet addresses for development
+	 * for (let i = 0; i < 5; i++) {
+	 *   wallet.derive(`m/44'/1'/0'/0/${i}`, 'pri');
+	 * }
+	 * 
+	 * // Each customer gets a unique Bitcoin address
+	 * const addresses = Array.from(wallet.child_keys).map(child => ({
+	 *   address: child.address,
+	 *   network: child.address.startsWith('1') ? 'mainnet' : 'testnet',
+	 *   path: `index_${child.childIndex}`
+	 * }));
+	 * console.log('Generated addresses:', addresses);
 	 */
 	derive(path = "m/0'", keyType = 'pri') {
 		const key = this.hdKey[keyType === 'pri' ? 'HDpri' : 'HDpub'];
