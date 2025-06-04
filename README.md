@@ -37,6 +37,10 @@ A comprehensive JavaScript/TypeScript cryptocurrency wallet library supporting b
 - **ES Modules** - Modern JavaScript module support
 - **Tree Shaking** - Import only what you need
 
+## 📚 Documentation
+
+[JSDoc for J-Bitcoin](https://yfbsei.github.io/J-Bitcoin/j-bitcoin/1.0.0/)
+
 ## 📦 Installation
 
 ```bash
