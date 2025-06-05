@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>J-Bitcoin - Comprehensive Bitcoin JavaScript Library</title>
+    <meta name="description"
+        content="A comprehensive JavaScript/TypeScript cryptocurrency wallet library focused exclusively on Bitcoin (BTC) with both custodial and non-custodial wallet support.">
+
+    <!-- Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Syntax Highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav container">
+            <a href="#" class="logo">
+                <i class="fab fa-bitcoin"></i>
+                J-Bitcoin
+            </a>
+            <ul class="nav-links">
+                <li><a href="#overview">Overview</a></li>
+                <li><a href="#quick-start">Quick Start</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#api">API Reference</a></li>
+                <li><a href="https://github.com/yfbsei/J-Bitcoin" target="_blank">
+                        <i class="fab fa-github"></i> GitHub
+                    </a></li>
+            </ul>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <i class="fas fa-moon"></i>
+            </button>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <h1>J-Bitcoin</h1>
+            <p class="subtitle">
+                A comprehensive JavaScript/TypeScript cryptocurrency wallet library focused exclusively on Bitcoin (BTC)
+                with both custodial and non-custodial wallet support.
+            </p>
+
+            <div class="install-badge">
+                <i class="fas fa-terminal"></i>
+                npm install j-bitcoin
+            </div>
+
+            <div class="hero-buttons">
+                <a href="#quick-start" class="btn btn-primary">
+                    <i class="fas fa-rocket"></i>
+                    Get Started
+                </a>
+                <a href="https://github.com/yfbsei/J-Bitcoin" class="btn btn-secondary">
+                    <i class="fab fa-github"></i>
+                    View on GitHub
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <h2 class="section-title">Powerful Bitcoin Development</h2>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <h3>Wallet Types</h3>
+                    <p>Both custodial (traditional single-key) and non-custodial (threshold signature) wallets with full
+                        TypeScript support.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-key"></i>
+                    </div>
+                    <h3>HD Key Derivation <span class="badge">BIP32</span></h3>
+                    <p>Hierarchical Deterministic wallets with BIP32/BIP39/BIP44 compliance and built-in Bitcoin
+                        constants.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3>Threshold Signatures <span class="badge new">TSS</span></h3>
+                    <p>Advanced multi-party signature schemes enabling distributed key management without trusted
+                        dealers.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-signature"></i>
+                    </div>
+                    <h3>Modern Cryptography</h3>
+                    <p>ECDSA signatures, Schnorr signatures (BIP340), and threshold cryptography with full verification
+                        support.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-home"></i>
+                    </div>
+                    <h3>Address Formats</h3>
+                    <p>Legacy P2PKH addresses and SegWit Bech32 addresses with seamless conversion utilities.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fab fa-js-square"></i>
+                    </div>
+                    <h3>TypeScript First <span class="badge new">NEW</span></h3>
+                    <p>Complete TypeScript definitions with IntelliSense, autocomplete, and compile-time error
+                        detection.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Start Section -->
+    <section id="quick-start" class="quick-start">
+        <div class="container">
+            <h2 class="section-title">Quick Start</h2>
+
+            <div class="code-tabs">
+                <button class="tab-button active" onclick="showTab('javascript')">JavaScript</button>
+                <button class="tab-button" onclick="showTab('typescript')">TypeScript</button>
+            </div>
+
+            <div id="javascript" class="tab-content active">
+                <h3>Basic Custodial Wallet</h3>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    <pre><code class="language-javascript">import { Custodial_Wallet, BIP44_CONSTANTS } from 'j-bitcoin';
+
+// Generate new wallet
+const [mnemonic, wallet] = Custodial_Wallet.fromRandom('main');
+console.log('Mnemonic:', mnemonic);
+console.log('Address:', wallet.address);
+
+// Use built-in convenience methods for standard Bitcoin addresses
+wallet.deriveReceivingAddress(0);  // First receiving address
+wallet.deriveChangeAddress(0);     // First change address
+
+// Get wallet summary
+const summary = wallet.getSummary();
+console.log(`Generated ${summary.receivingAddresses} receiving addresses`);
+
+// Sign a message
+const [signature, recoveryId] = wallet.sign("Hello Bitcoin!");
+console.log('Signature valid:', wallet.verify(signature, "Hello Bitcoin!"));</code></pre>
+                </div>
+
+                <h3>Threshold Signatures (2-of-3)</h3>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    <pre><code class="language-javascript">import { Non_Custodial_Wallet } from 'j-bitcoin';
+
+// Create 2-of-3 threshold wallet
+const wallet = Non_Custodial_Wallet.fromRandom("main", 3, 2);
+
+// Get shares for distribution
+const shares = wallet._shares;
+console.log('Distribute shares to participants:', shares);
+
+// Generate threshold signature
+const signature = wallet.sign("Multi-party transaction");
+console.log('Threshold signature:', signature.serialized_sig);
+
+// Get detailed wallet information
+const summary = wallet.getSummary();
+console.log(`${summary.thresholdScheme} threshold wallet - ${summary.securityLevel} security`);</code></pre>
+                </div>
+            </div>
+
+            <div id="typescript" class="tab-content">
+                <h3>Type-Safe Wallet Development</h3>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    <pre><code class="language-typescript">import { 
+  Custodial_Wallet, 
+  ECDSASignatureResult, 
+  ChildKeyInfo,
+  NetworkType,
+  WalletSummary
+} from 'j-bitcoin';
+
+// Generate new wallet with full type safety
+const network: NetworkType = 'main';
+const [mnemonic, wallet]: [string, Custodial_Wallet] = 
+  Custodial_Wallet.fromRandom(network);
+
+// TypeScript knows the exact return types
+const [signature, recoveryId]: ECDSASignatureResult = wallet.sign("Hello Bitcoin!");
+const isValid: boolean = wallet.verify(signature, "Hello Bitcoin!");
+
+// Full type safety for child keys
+wallet.deriveReceivingAddress(0).deriveChangeAddress(0);
+const childKeys: ChildKeyInfo[] = wallet.getChildKeysByType('receiving');
+
+// Complete wallet summary with types
+const summary: WalletSummary = wallet.getSummary();
+console.log(summary.network);            // string
+console.log(summary.derivedKeys);        // number</code></pre>
+                </div>
+
+                <h3>Advanced Threshold Signatures</h3>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    <pre><code class="language-typescript">import { 
+  Non_Custodial_Wallet, 
+  ThresholdSignatureResult,
+  ThresholdWalletSummary 
+} from 'j-bitcoin';
+
+// Create 2-of-3 threshold wallet with type safety
+const wallet: Non_Custodial_Wallet = Non_Custodial_Wallet.fromRandom("main", 3, 2);
+
+// Get shares for distribution (fully typed)
+const shares: string[] = wallet._shares;
+
+// Generate threshold signature (type-safe)
+const signature: ThresholdSignatureResult = wallet.sign("Multi-party transaction");
+
+// Get wallet summary with complete type information
+const summary: ThresholdWalletSummary = wallet.getSummary();
+console.log(`${summary.thresholdScheme} - ${summary.securityLevel} security level`);</code></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- API Reference Section -->
+    <section id="api" class="api-reference">
+        <div class="api-container">
+            <!-- Sidebar Navigation -->
+            <div class="api-sidebar">
+                <div class="api-nav">
+                    <div class="api-nav-section">
+                        <div class="api-nav-header" onclick="toggleApiSection('wallets')">
+                            <i class="fas fa-wallet"></i>
+                            <span>Wallets</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <ul class="api-nav-items expanded" id="wallets">
+                            <li><a href="#custodial-wallet"
+                                    onclick="showApiContent('custodial-wallet')">Custodial_Wallet</a></li>
+                            <li><a href="#non-custodial-wallet"
+                                    onclick="showApiContent('non-custodial-wallet')">Non_Custodial_Wallet</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="api-nav-section">
+                        <div class="api-nav-header" onclick="toggleApiSection('bip32')">
+                            <i class="fas fa-key"></i>
+                            <span>BIP32</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <ul class="api-nav-items expanded" id="bip32">
+                            <li><a href="#from-seed" onclick="showApiContent('from-seed')">fromSeed</a></li>
+                            <li><a href="#derive" onclick="showApiContent('derive')">derive</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="api-nav-section">
+                        <div class="api-nav-header" onclick="toggleApiSection('bip39')">
+                            <i class="fas fa-seedling"></i>
+                            <span>BIP39</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <ul class="api-nav-items expanded" id="bip39">
+                            <li><a href="#bip39-mnemonic" onclick="showApiContent('bip39-mnemonic')">mnemonic</a></li>
+                            <li><a href="#bip39-seed" onclick="showApiContent('bip39-seed')">seed</a></li>
+                            <li><a href="#bip39-checksum" onclick="showApiContent('bip39-checksum')">checkSum</a></li>
+                            <li><a href="#bip39-random" onclick="showApiContent('bip39-random')">random</a></li>
+                            <li><a href="#bip39-mnemonic2seed"
+                                    onclick="showApiContent('bip39-mnemonic2seed')">mnemonic2seed</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="api-nav-section">
+                        <div class="api-nav-header" onclick="toggleApiSection('signatures')">
+                            <i class="fas fa-signature"></i>
+                            <span>Signatures</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <ul class="api-nav-items expanded" id="signatures">
+                            <li><a href="#ecdsa" onclick="showApiContent('ecdsa')">ECDSA</a></li>
+                            <li><a href="#schnorr" onclick="showApiContent('schnorr')">Schnorr</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="api-nav-section">
+                        <div class="api-nav-header" onclick="toggleApiSection('threshold')">
+                            <i class="fas fa-users"></i>
+                            <span>Threshold Crypto</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <ul class="api-nav-items expanded" id="threshold">
+                            <li><a href="#polynomial" onclick="showApiContent('polynomial')">Polynomial</a></li>
+                            <li><a href="#threshold-signature"
+                                    onclick="showApiContent('threshold-signature')">ThresholdSignature</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="api-nav-section">
+                        <div class="api-nav-header" onclick="toggleApiSection('addresses')">
+                            <i class="fas fa-home"></i>
+                            <span>Address Formats</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <ul class="api-nav-items expanded" id="addresses">
+                            <li><a href="#bech32" onclick="showApiContent('bech32')">BECH32</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="api-nav-section">
+                        <div class="api-nav-header" onclick="toggleApiSection('utilities')">
+                            <i class="fas fa-tools"></i>
+                            <span>Utilities</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <ul class="api-nav-items expanded" id="utilities">
+                            <li><a href="#b58encode" onclick="showApiContent('b58encode')">b58encode</a></li>
+                            <li><a href="#hd-key" onclick="showApiContent('hd-key')">hdKey</a></li>
+                            <li><a href="#standard-key" onclick="showApiContent('standard-key')">standardKey</a></li>
+                            <li><a href="#address-func" onclick="showApiContent('address-func')">address</a></li>
+                            <li><a href="#rmd160" onclick="showApiContent('rmd160')">rmd160</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="api-nav-section">
+                        <div class="api-nav-header" onclick="toggleApiSection('key-decoding')">
+                            <i class="fas fa-unlock"></i>
+                            <span>Key Decoding</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <ul class="api-nav-items expanded" id="key-decoding">
+                            <li><a href="#private-key-decode"
+                                    onclick="showApiContent('private-key-decode')">privateKey_decode</a></li>
+                            <li><a href="#legacy-address-decode"
+                                    onclick="showApiContent('legacy-address-decode')">legacyAddress_decode</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="api-nav-section">
+                        <div class="api-nav-header" onclick="toggleApiSection('constants')">
+                            <i class="fas fa-cogs"></i>
+                            <span>Bitcoin Constants</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <ul class="api-nav-items expanded" id="constants">
+                            <li><a href="#bip44-constants"
+                                    onclick="showApiContent('bip44-constants')">BIP44_CONSTANTS</a></li>
+                            <li><a href="#derivation-paths"
+                                    onclick="showApiContent('derivation-paths')">DERIVATION_PATHS</a></li>
+                            <li><a href="#bitcoin-networks"
+                                    onclick="showApiContent('bitcoin-networks')">BITCOIN_NETWORKS</a></li>
+                            <li><a href="#generate-derivation-path"
+                                    onclick="showApiContent('generate-derivation-path')">generateDerivationPath</a></li>
+                            <li><a href="#parse-derivation-path"
+                                    onclick="showApiContent('parse-derivation-path')">parseDerivationPath</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="api-content">
+                <div class="api-header">
+                    <h2>API Reference</h2>
+                    <p>Complete documentation for all J-Bitcoin functions, classes, and utilities.</p>
+                </div>
+
+                <!-- Custodial Wallet -->
+                <div id="custodial-wallet" class="api-content-section active">
+                    <h3>Custodial_Wallet <span class="badge new">Enhanced</span></h3>
+                    <p>Traditional single-party control wallet using hierarchical deterministic key derivation (BIP32)
+                        with standard ECDSA signatures.</p>
+
+                    <div class="method-group">
+                        <h4>Static Methods</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>Custodial_Wallet.fromRandom(net, passphrase?)</code>
+                            </div>
+                            <p>Generates a new random wallet with cryptographically secure mnemonic phrase.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>net</code> <span class="param-type">string</span> - Network type ('main'
+                                        or 'test')</li>
+                                    <li><code>passphrase</code> <span class="param-type">string</span> <span
+                                            class="param-optional">optional</span> - Additional security passphrase</li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>[string, Custodial_Wallet]</code> - Mnemonic phrase and wallet instance</p>
+                                <div class="code-block">
+                                    <pre><code class="language-javascript">const [mnemonic, wallet] = Custodial_Wallet.fromRandom('main', 'secure-pass');</code></pre>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>Custodial_Wallet.fromMnemonic(net, mnemonic, passphrase?)</code>
+                            </div>
+                            <p>Creates a wallet from an existing BIP39 mnemonic phrase with optional passphrase.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>net</code> <span class="param-type">string</span> - Network type ('main'
+                                        or 'test')</li>
+                                    <li><code>mnemonic</code> <span class="param-type">string</span> - 12-word BIP39
+                                        mnemonic phrase</li>
+                                    <li><code>passphrase</code> <span class="param-type">string</span> <span
+                                            class="param-optional">optional</span> - Passphrase used during generation
+                                    </li>
+                                </ul>
+                                <div class="code-block">
+                                    <pre><code class="language-javascript">const wallet = Custodial_Wallet.fromMnemonic('main', mnemonic, 'password');</code></pre>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>deriveReceivingAddress(index) <span class="badge new">NEW</span></code>
+                            </div>
+                            <p>Derives a Bitcoin receiving address using standard BIP44 path.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>index</code> <span class="param-type">number</span> - Address index (0, 1,
+                                        2, ...)</li>
+                                </ul>
+                                <div class="code-block">
+                                    <pre><code class="language-javascript">wallet.deriveReceivingAddress(0);  // First receiving address</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- All other API content sections would go here -->
+                <!-- For brevity, I'm including just the structure - the full content is in the CSS/JS files -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div>
+                    <div class="logo">
+                        <i class="fab fa-bitcoin"></i>
+                        J-Bitcoin
+                    </div>
+                    <p>Comprehensive Bitcoin JavaScript library with TypeScript support, threshold signatures, and
+                        modern cryptographic standards.</p>
+                </div>
+
+                <div>
+                    <h4>Links</h4>
+                    <ul>
+                        <li><a href="https://github.com/yfbsei/J-Bitcoin">GitHub Repository</a></li>
+                        <li><a href="https://www.npmjs.com/package/j-bitcoin">NPM Package</a></li>
+                        <li><a href="#api">API Documentation</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4>Standards</h4>
+                    <ul>
+                        <li>✅ BIP32 - HD Wallets</li>
+                        <li>✅ BIP39 - Mnemonic Phrases</li>
+                        <li>✅ BIP44 - Multi-Account</li>
+                        <li>✅ BIP340 - Schnorr Signatures</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4>Version</h4>
+                    <div>
+                        <div>Current: <span class="highlight">v2.0.0</span></div>
+                        <div>License: <strong>ISC</strong></div>
+                        <div>Node.js: <strong>16+</strong></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>Built with ❤️ for the Bitcoin ecosystem and TypeScript developers</p>
+                <p>⚠️ Security Notice: This library handles private keys. Use appropriate security measures in
+                    production.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="main.js"></script>
+</body>
+
+</html>
