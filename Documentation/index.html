@@ -402,7 +402,8 @@ console.log(`${summary.thresholdScheme} - ${summary.securityLevel} security leve
                 <div id="custodial-wallet" class="api-content-section active">
                     <h3>Custodial_Wallet <span class="badge new">Enhanced</span></h3>
                     <p>Traditional single-party control wallet using hierarchical deterministic key derivation (BIP32)
-                        with standard ECDSA signatures.</p>
+                        with standard ECDSA signatures. Enhanced in v2.0.0 with Bitcoin-specific utilities and
+                        convenience methods.</p>
 
                     <div class="method-group">
                         <h4>Static Methods</h4>
@@ -423,7 +424,10 @@ console.log(`${summary.thresholdScheme} - ${summary.securityLevel} security leve
                                 <h5>Returns</h5>
                                 <p><code>[string, Custodial_Wallet]</code> - Mnemonic phrase and wallet instance</p>
                                 <div class="code-block">
-                                    <pre><code class="language-javascript">const [mnemonic, wallet] = Custodial_Wallet.fromRandom('main', 'secure-pass');</code></pre>
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">const [mnemonic, wallet] = Custodial_Wallet.fromRandom('main', 'secure-pass');
+console.log('Mnemonic:', mnemonic);
+console.log('Address:', wallet.address);</code></pre>
                                 </div>
                             </div>
                         </div>
@@ -445,7 +449,9 @@ console.log(`${summary.thresholdScheme} - ${summary.securityLevel} security leve
                                     </li>
                                 </ul>
                                 <div class="code-block">
-                                    <pre><code class="language-javascript">const wallet = Custodial_Wallet.fromMnemonic('main', mnemonic, 'password');</code></pre>
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">const mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+const wallet = Custodial_Wallet.fromMnemonic('main', mnemonic, 'password');</code></pre>
                                 </div>
                             </div>
                         </div>
@@ -462,15 +468,1169 @@ console.log(`${summary.thresholdScheme} - ${summary.securityLevel} security leve
                                         2, ...)</li>
                                 </ul>
                                 <div class="code-block">
-                                    <pre><code class="language-javascript">wallet.deriveReceivingAddress(0);  // First receiving address</code></pre>
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">wallet.deriveReceivingAddress(0);  // First receiving address
+wallet.deriveReceivingAddress(1);  // Second receiving address</code></pre>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>deriveChangeAddress(index) <span class="badge new">NEW</span></code>
+                            </div>
+                            <p>Derives a Bitcoin change address using standard BIP44 path.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>index</code> <span class="param-type">number</span> - Address index (0, 1,
+                                        2, ...)</li>
+                                </ul>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">wallet.deriveChangeAddress(0);  // First change address</code></pre>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>getSummary() <span class="badge new">NEW</span></code>
+                            </div>
+                            <p>Gets wallet summary information including network details and key counts.</p>
+                            <div class="method-details">
+                                <h5>Returns</h5>
+                                <p><code>WalletSummary</code> - Object with network, address, and key count information
+                                </p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">const summary = wallet.getSummary();
+console.log(`Generated ${summary.receivingAddresses} receiving addresses`);</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="method-group">
+                        <h4>Instance Methods</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>sign(message)</code>
+                            </div>
+                            <p>Signs a message using ECDSA with the wallet's private key.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>message</code> <span class="param-type">string</span> - Message to sign
+                                    </li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>[Uint8Array, number]</code> - Signature bytes and recovery ID</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">const [signature, recoveryId] = wallet.sign("Hello Bitcoin!");
+console.log('Signature valid:', wallet.verify(signature, "Hello Bitcoin!"));</code></pre>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- All other API content sections would go here -->
-                <!-- For brevity, I'm including just the structure - the full content is in the CSS/JS files -->
+                <!-- Non-Custodial Wallet -->
+                <div id="non-custodial-wallet" class="api-content-section">
+                    <h3>Non_Custodial_Wallet <span class="badge">TSS</span></h3>
+                    <p>Non-custodial wallet implementation using Threshold Signature Scheme (TSS) for distributed key
+                        management.</p>
+
+                    <div class="method-group">
+                        <h4>Static Methods</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>Non_Custodial_Wallet.fromRandom(net, group_size, threshold)</code>
+                            </div>
+                            <p>Generates a new random threshold wallet with specified parameters.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>net</code> <span class="param-type">string</span> - Network type ('main'
+                                        or 'test')</li>
+                                    <li><code>group_size</code> <span class="param-type">number</span> - Total number of
+                                        participants</li>
+                                    <li><code>threshold</code> <span class="param-type">number</span> - Minimum
+                                        participants needed</li>
+                                </ul>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">// Create 2-of-3 threshold wallet
+const wallet = Non_Custodial_Wallet.fromRandom("main", 3, 2);
+console.log('Threshold scheme:', wallet.getSummary().thresholdScheme);</code></pre>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>sign(message)</code>
+                            </div>
+                            <p>Generates a threshold signature for a given message.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>message</code> <span class="param-type">string</span> - Message to sign
+                                    </li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>ThresholdSignatureResult</code> - Complete signature with metadata</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">const signature = wallet.sign("Multi-party transaction");
+console.log('Threshold signature:', signature.serialized_sig);</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BIP32 fromSeed -->
+                <div id="from-seed" class="api-content-section">
+                    <h3>fromSeed <span class="badge">BIP32</span></h3>
+                    <p>Generates BIP32 master keys from a cryptographic seed using HMAC-SHA512.</p>
+
+                    <div class="method-group">
+                        <h4>Function Signature</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>fromSeed(seed, net)</code>
+                            </div>
+                            <p>Creates master private and public keys from a hex-encoded seed.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>seed</code> <span class="param-type">string</span> - Hex-encoded
+                                        cryptographic seed</li>
+                                    <li><code>net</code> <span class="param-type">string</span> - Network type ('main'
+                                        or 'test')</li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>[HDKeys, SerializationFormat]</code> - HD key pair and internal format</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">import { fromSeed } from 'j-bitcoin';
+
+const seed = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
+const [hdKeys, format] = fromSeed(seed, "main");
+
+console.log('Master private key:', hdKeys.HDpri);
+console.log('Master public key:', hdKeys.HDpub);</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BIP32 derive -->
+                <div id="derive" class="api-content-section">
+                    <h3>derive <span class="badge">BIP32</span></h3>
+                    <p>Derives child keys from parent keys using BIP32 hierarchical deterministic algorithm.</p>
+
+                    <div class="method-group">
+                        <h4>Function Signature</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>derive(path, key, serialization_format)</code>
+                            </div>
+                            <p>Performs BIP32 child key derivation from a parent key.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>path</code> <span class="param-type">string</span> - BIP32 derivation path
+                                    </li>
+                                    <li><code>key</code> <span class="param-type">string</span> - Parent extended key
+                                    </li>
+                                    <li><code>serialization_format</code> <span class="param-type">Object</span> -
+                                        Parent key metadata</li>
+                                </ul>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">import { derive } from 'j-bitcoin';
+
+// Derive first receiving address
+const [childKeys, childFormat] = derive("m/44'/0'/0'/0/0", masterKeys.HDpri, masterFormat);
+console.log('Child address:', childKeys.HDpub);</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BIP39 mnemonic -->
+                <div id="bip39-mnemonic" class="api-content-section">
+                    <h3>bip39.mnemonic() <span class="badge">BIP39</span></h3>
+                    <p>Generates a random 12-word mnemonic phrase using cryptographically secure entropy.</p>
+
+                    <div class="method-group">
+                        <h4>Function Details</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>bip39.mnemonic()</code>
+                            </div>
+                            <p>Creates a cryptographically secure mnemonic with built-in checksum validation.</p>
+                            <div class="method-details">
+                                <h5>Returns</h5>
+                                <p><code>string</code> - Space-separated 12-word mnemonic phrase</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">import { bip39 } from 'j-bitcoin';
+
+const mnemonic = bip39.mnemonic();
+console.log(mnemonic);
+// "abandon ability able about above absent absorb abstract absurd abuse access accident"
+
+// Validate the generated mnemonic
+const isValid = bip39.checkSum(mnemonic);
+console.log('Valid mnemonic:', isValid); // true</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BIP39 seed -->
+                <div id="bip39-seed" class="api-content-section">
+                    <h3>bip39.seed() <span class="badge">BIP39</span></h3>
+                    <p>Derives a cryptographic seed from a mnemonic phrase using PBKDF2-HMAC-SHA512.</p>
+
+                    <div class="method-group">
+                        <h4>Function Details</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>bip39.seed(mnemonic, passphrase)</code>
+                            </div>
+                            <p>Converts mnemonic to seed using PBKDF2 with 2048 iterations.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>mnemonic</code> <span class="param-type">string</span> - Space-separated
+                                        mnemonic phrase</li>
+                                    <li><code>passphrase</code> <span class="param-type">string</span> - Optional
+                                        passphrase</li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>string</code> - Hex-encoded 64-byte seed</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">const mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+const seed = bip39.seed(mnemonic, "passphrase");
+console.log('Seed length:', seed.length); // 128 hex characters (64 bytes)</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BIP39 checkSum -->
+                <div id="bip39-checksum" class="api-content-section">
+                    <h3>bip39.checkSum() <span class="badge">BIP39</span></h3>
+                    <p>Validates the checksum of a BIP39 mnemonic phrase.</p>
+
+                    <div class="method-group">
+                        <h4>Function Details</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>bip39.checkSum(mnemonic)</code>
+                            </div>
+                            <p>Verifies that a mnemonic phrase has a valid BIP39 checksum.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>mnemonic</code> <span class="param-type">string</span> - Mnemonic phrase
+                                        to validate</li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>boolean</code> - True if checksum is valid</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">const validMnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+const isValid = bip39.checkSum(validMnemonic);
+console.log('Valid:', isValid); // true
+
+const invalidMnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon";
+const isInvalid = bip39.checkSum(invalidMnemonic);
+console.log('Invalid:', isInvalid); // false</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BIP39 random -->
+                <div id="bip39-random" class="api-content-section">
+                    <h3>bip39.random() <span class="badge">BIP39</span></h3>
+                    <p>Generates a random mnemonic with validated checksum and derives its seed.</p>
+
+                    <div class="method-group">
+                        <h4>Function Details</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>bip39.random(passphrase)</code>
+                            </div>
+                            <p>Combines mnemonic generation and seed derivation with validation.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>passphrase</code> <span class="param-type">string</span> - Optional
+                                        passphrase</li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>MnemonicResult</code> - Object containing mnemonic and seed</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">const { mnemonic, seed } = bip39.random('my-secure-passphrase');
+console.log('Mnemonic:', mnemonic);
+console.log('Seed:', seed);</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BIP39 mnemonic2seed -->
+                <div id="bip39-mnemonic2seed" class="api-content-section">
+                    <h3>bip39.mnemonic2seed() <span class="badge">BIP39</span></h3>
+                    <p>Converts a mnemonic phrase to a seed with checksum validation.</p>
+
+                    <div class="method-group">
+                        <h4>Function Details</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>bip39.mnemonic2seed(mnemonic, passphrase)</code>
+                            </div>
+                            <p>Validates mnemonic checksum before deriving seed.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>mnemonic</code> <span class="param-type">string</span> - Mnemonic phrase
+                                    </li>
+                                    <li><code>passphrase</code> <span class="param-type">string</span> - Optional
+                                        passphrase</li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>string</code> - Hex-encoded seed</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">try {
+  const seed = bip39.mnemonic2seed(mnemonic, "passphrase");
+  console.log('Valid seed derived:', seed);
+} catch (error) {
+  console.log('Invalid mnemonic:', error.message);
+}</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ECDSA -->
+                <div id="ecdsa" class="api-content-section">
+                    <h3>ECDSA <span class="badge">secp256k1</span></h3>
+                    <p>ECDSA signature operations using the secp256k1 elliptic curve.</p>
+
+                    <div class="method-group">
+                        <h4>Methods</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>ecdsa.sign(private_key, message)</code>
+                            </div>
+                            <p>Signs a message using ECDSA with deterministic k-value generation.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>private_key</code> <span class="param-type">string</span> - WIF-encoded
+                                        private key</li>
+                                    <li><code>message</code> <span class="param-type">string</span> - Message to sign
+                                    </li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>[Uint8Array, number]</code> - Signature bytes and recovery ID</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">import { ecdsa } from 'j-bitcoin';
+
+const privateKey = "L1vHfV6GUbMJSvFaqjnButzwq5x4ThdFaotpUgsfScwMNKjdGVuS";
+const [signature, recoveryId] = ecdsa.sign(privateKey, "Hello Bitcoin!");
+console.log('Signature created');</code></pre>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>ecdsa.verify(signature, message, public_key)</code>
+                            </div>
+                            <p>Verifies an ECDSA signature against a message.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>signature</code> <span class="param-type">Uint8Array</span> - Signature
+                                        bytes</li>
+                                    <li><code>message</code> <span class="param-type">string</span> - Original message
+                                    </li>
+                                    <li><code>public_key</code> <span class="param-type">Uint8Array</span> - Public key
+                                    </li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>boolean</code> - True if signature is valid</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">const isValid = ecdsa.verify(signature, "Hello Bitcoin!", publicKey);
+console.log('Signature valid:', isValid);</code></pre>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>ecdsa.retrieve_public_key(message, signature, recovery)</code>
+                            </div>
+                            <p>Recovers the public key from a signature and message.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>message</code> <span class="param-type">string</span> - Original message
+                                    </li>
+                                    <li><code>signature</code> <span class="param-type">Uint8Array</span> - Signature
+                                        bytes</li>
+                                    <li><code>recovery</code> <span class="param-type">number</span> - Recovery ID</li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>Uint8Array</code> - Compressed public key</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">const recoveredPubKey = ecdsa.retrieve_public_key("Hello Bitcoin!", signature, recoveryId);
+console.log('Public key recovered');</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Schnorr -->
+                <div id="schnorr" class="api-content-section">
+                    <h3>Schnorr <span class="badge">BIP340</span></h3>
+                    <p>Schnorr signature operations according to BIP340 specification.</p>
+
+                    <div class="method-group">
+                        <h4>Methods</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>schnorr_sig.sign(private_key, message, auxRand?)</code>
+                            </div>
+                            <p>Creates a Schnorr signature using BIP340 specification.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>private_key</code> <span class="param-type">string</span> - WIF-encoded
+                                        private key</li>
+                                    <li><code>message</code> <span class="param-type">string</span> - Message to sign
+                                    </li>
+                                    <li><code>auxRand</code> <span class="param-type">Uint8Array</span> <span
+                                            class="param-optional">optional</span> - Auxiliary randomness</li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>Uint8Array</code> - 64-byte Schnorr signature</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">import { schnorr_sig } from 'j-bitcoin';
+
+const signature = schnorr_sig.sign(privateKey, "Hello Schnorr!");
+console.log('Signature length:', signature.length); // 64 bytes</code></pre>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>schnorr_sig.verify(signature, message, public_key)</code>
+                            </div>
+                            <p>Verifies a Schnorr signature according to BIP340.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>signature</code> <span class="param-type">Uint8Array</span> - 64-byte
+                                        signature</li>
+                                    <li><code>message</code> <span class="param-type">string</span> - Original message
+                                    </li>
+                                    <li><code>public_key</code> <span class="param-type">Uint8Array</span> - 32-byte
+                                        x-only public key</li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>boolean</code> - True if signature is valid</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">const publicKey = schnorr_sig.retrieve_public_key(privateKey);
+const isValid = schnorr_sig.verify(signature, "Hello Schnorr!", publicKey);
+console.log('Schnorr signature valid:', isValid);</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Polynomial -->
+                <div id="polynomial" class="api-content-section">
+                    <h3>Polynomial <span class="badge">Crypto</span></h3>
+                    <p>Polynomial arithmetic for cryptographic secret sharing schemes.</p>
+
+                    <div class="method-group">
+                        <h4>Static Methods</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>Polynomial.fromRandom(order)</code>
+                            </div>
+                            <p>Generates a random polynomial of specified degree using secure randomness.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>order</code> <span class="param-type">number</span> - Degree of the
+                                        polynomial</li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>Polynomial</code> - New polynomial with random coefficients</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">import { Polynomial } from 'j-bitcoin';
+
+// Generate random polynomial for 2-of-3 threshold
+const poly = Polynomial.fromRandom(2);
+const share1 = poly.evaluate(1);
+const share2 = poly.evaluate(2);
+const share3 = poly.evaluate(3);</code></pre>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>Polynomial.interpolate_evaluate(points, x)</code>
+                            </div>
+                            <p>Reconstructs a secret using Lagrange interpolation.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>points</code> <span class="param-type">Array</span> - Array of [x, y]
+                                        coordinate pairs</li>
+                                    <li><code>x</code> <span class="param-type">number</span> - Point to evaluate</li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>BigNumber</code> - Interpolated value</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">// Reconstruct secret from shares
+const shares = [[1, share1], [2, share2], [3, share3]];
+const secret = Polynomial.interpolate_evaluate(shares, 0);</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ThresholdSignature -->
+                <div id="threshold-signature" class="api-content-section">
+                    <h3>ThresholdSignature <span class="badge">TSS</span></h3>
+                    <p>Threshold Signature Scheme implementation for distributed cryptography.</p>
+
+                    <div class="method-group">
+                        <h4>Constructor</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>new ThresholdSignature(group_size, threshold)</code>
+                            </div>
+                            <p>Creates a new threshold signature scheme instance.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>group_size</code> <span class="param-type">number</span> - Total number of
+                                        participants</li>
+                                    <li><code>threshold</code> <span class="param-type">number</span> - Minimum
+                                        participants needed</li>
+                                </ul>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">import { ThresholdSignature } from 'j-bitcoin';
+
+// Create 2-of-3 threshold scheme
+const tss = new ThresholdSignature(3, 2);
+console.log('Group size:', tss.group_size);
+console.log('Threshold:', tss.threshold);</code></pre>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>sign(message)</code>
+                            </div>
+                            <p>Generates a threshold signature for a given message.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>message</code> <span class="param-type">string</span> - Message to sign
+                                    </li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>ThresholdSignatureResult</code> - Complete signature with metadata</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">const signature = tss.sign("Multi-party transaction");
+console.log('Signature r:', signature.sig.r);
+console.log('Signature s:', signature.sig.s);</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BECH32 -->
+                <div id="bech32" class="api-content-section">
+                    <h3>BECH32 <span class="badge">SegWit</span></h3>
+                    <p>Bech32 and Bech32m address encoding for Bitcoin SegWit addresses.</p>
+
+                    <div class="method-group">
+                        <h4>Methods</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>BECH32.to_P2WPKH(legacy_address)</code>
+                            </div>
+                            <p>Converts a legacy Bitcoin address to P2WPKH Bech32 format.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>legacy_address</code> <span class="param-type">string</span> - Legacy
+                                        P2PKH address</li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>string</code> - Bech32-encoded P2WPKH address</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">import { BECH32 } from 'j-bitcoin';
+
+const legacyAddr = "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2";
+const segwitAddr = BECH32.to_P2WPKH(legacyAddr);
+console.log('SegWit address:', segwitAddr);
+// "bc1qhkfq3zahaqkkzx5mjnamwjsfpw3tvke7v6aaph"</code></pre>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>BECH32.data_to_bech32(prefix, data, encoding)</code>
+                            </div>
+                            <p>Encodes arbitrary hex data into a Bech32 address with custom prefix.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>prefix</code> <span class="param-type">string</span> - Custom Human
+                                        Readable Part</li>
+                                    <li><code>data</code> <span class="param-type">string</span> - Hex-encoded data</li>
+                                    <li><code>encoding</code> <span class="param-type">string</span> - 'bech32' or
+                                        'bech32m'</li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>string</code> - Bech32-encoded address</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">const customAddr = BECH32.data_to_bech32("myapp", "48656c6c6f", "bech32");
+console.log('Custom address:', customAddr);</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Utilities -->
+                <div id="b58encode" class="api-content-section">
+                    <h3>b58encode <span class="badge">Base58</span></h3>
+                    <p>Base58Check encoding for Bitcoin addresses and keys.</p>
+
+                    <div class="method-group">
+                        <h4>Function Details</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>b58encode(data)</code>
+                            </div>
+                            <p>Encodes binary data using Base58Check format with double SHA256 checksum.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>data</code> <span class="param-type">Buffer</span> - Binary data to encode
+                                    </li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>string</code> - Base58Check encoded string</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">import { b58encode } from 'j-bitcoin';
+
+const data = Buffer.from('Hello Bitcoin!', 'utf8');
+const encoded = b58encode(data);
+console.log('Encoded:', encoded);</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="hd-key" class="api-content-section">
+                    <h3>hdKey <span class="badge">BIP32</span></h3>
+                    <p>Encodes hierarchical deterministic keys according to BIP32 specification.</p>
+
+                    <div class="method-group">
+                        <h4>Function Details</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>hdKey(keyType, format)</code>
+                            </div>
+                            <p>Creates extended keys (xprv/xpub, tprv/tpub) with metadata.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>keyType</code> <span class="param-type">string</span> - 'pri' or 'pub'
+                                    </li>
+                                    <li><code>format</code> <span class="param-type">Object</span> - BIP32 serialization
+                                        format</li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>string</code> - Base58Check encoded extended key</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">import { hdKey } from 'j-bitcoin';
+
+const xprv = hdKey('pri', serializationFormat);
+const xpub = hdKey('pub', serializationFormat);
+console.log('Extended private key:', xprv);
+console.log('Extended public key:', xpub);</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="standard-key" class="api-content-section">
+                    <h3>standardKey <span class="badge">WIF</span></h3>
+                    <p>Encodes private and public keys in standard Bitcoin formats.</p>
+
+                    <div class="method-group">
+                        <h4>Function Details</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>standardKey(privKey, pubKey)</code>
+                            </div>
+                            <p>Creates standard key representations (WIF for private, hex for public).</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>privKey</code> <span class="param-type">Object|false</span> - Private key
+                                        info or false</li>
+                                    <li><code>pubKey</code> <span class="param-type">Object</span> - Public key
+                                        information</li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>Object</code> - {pri: string|null, pub: string}</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">import { standardKey } from 'j-bitcoin';
+
+const keyPair = standardKey(privKeyInfo, pubKeyInfo);
+console.log('WIF private key:', keyPair.pri);
+console.log('Hex public key:', keyPair.pub);</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="address-func" class="api-content-section">
+                    <h3>address <span class="badge">P2PKH</span></h3>
+                    <p>Generates a Bitcoin address from a public key using HASH160 and Base58Check.</p>
+
+                    <div class="method-group">
+                        <h4>Function Details</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>address(versionByte, pubKey)</code>
+                            </div>
+                            <p>Creates a Bitcoin address from a public key with network version.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>versionByte</code> <span class="param-type">number</span> - Network
+                                        version byte</li>
+                                    <li><code>pubKey</code> <span class="param-type">Buffer</span> - Compressed public
+                                        key</li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>string</code> - Base58Check-encoded Bitcoin address</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">import { address } from 'j-bitcoin';
+
+const pubKey = Buffer.from('0339a36013301597daef41fbe593a02cc513d0b55527ec2df1050e2e8ff49c85c2', 'hex');
+const bitcoinAddress = address(0x0488b21e, pubKey);
+console.log('Bitcoin address:', bitcoinAddress);</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="rmd160" class="api-content-section">
+                    <h3>rmd160 <span class="badge">Hash</span></h3>
+                    <p>RIPEMD160 cryptographic hash function implementation.</p>
+
+                    <div class="method-group">
+                        <h4>Function Details</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>rmd160(data)</code>
+                            </div>
+                            <p>Computes RIPEMD160 hash of input data (160-bit output).</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>data</code> <span class="param-type">Buffer|Uint8Array</span> - Input data
+                                        to hash</li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>Buffer</code> - 20-byte RIPEMD160 hash digest</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">import { rmd160 } from 'j-bitcoin';
+
+const message = Buffer.from('Hello Bitcoin!', 'utf8');
+const hash = rmd160(message);
+console.log('RIPEMD160:', hash.toString('hex'));</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Key Decoding -->
+                <div id="private-key-decode" class="api-content-section">
+                    <h3>privateKey_decode <span class="badge">WIF</span></h3>
+                    <p>Decodes a WIF (Wallet Import Format) private key to raw bytes.</p>
+
+                    <div class="method-group">
+                        <h4>Function Details</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>privateKey_decode(wifKey)</code>
+                            </div>
+                            <p>Extracts raw 32-byte private key material from WIF encoding.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>wifKey</code> <span class="param-type">string</span> - WIF-encoded private
+                                        key</li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>Uint8Array</code> - Raw 32-byte private key material</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">import { privateKey_decode } from 'j-bitcoin';
+
+const wifKey = "L1vHfV6GUbMJSvFaqjnButzwq5x4ThdFaotpUgsfScwMNKjdGVuS";
+const rawKey = privateKey_decode(wifKey);
+console.log('Private key length:', rawKey.length); // 32 bytes</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="legacy-address-decode" class="api-content-section">
+                    <h3>legacyAddress_decode <span class="badge">Address</span></h3>
+                    <p>Decodes a legacy Bitcoin address to extract the HASH160 value.</p>
+
+                    <div class="method-group">
+                        <h4>Function Details</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>legacyAddress_decode(address)</code>
+                            </div>
+                            <p>Extracts the 20-byte hash from P2PKH addresses.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>address</code> <span class="param-type">string</span> - Legacy Bitcoin
+                                        address</li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>Uint8Array</code> - Raw 20-byte HASH160 value</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">import { legacyAddress_decode } from 'j-bitcoin';
+
+const address = "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2";
+const hash160 = legacyAddress_decode(address);
+console.log('Hash160 length:', hash160.length); // 20 bytes</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bitcoin Constants -->
+                <div id="bip44-constants" class="api-content-section">
+                    <h3>BIP44_CONSTANTS <span class="badge new">NEW v2.0.0</span></h3>
+                    <p>Built-in constants for standardized Bitcoin derivation paths.</p>
+
+                    <div class="method-group">
+                        <h4>Constants Structure</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>BIP44_CONSTANTS</code>
+                            </div>
+                            <p>Collection of Bitcoin-specific BIP44 derivation constants.</p>
+                            <div class="method-details">
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">import { BIP44_CONSTANTS } from 'j-bitcoin';
+
+// Structure
+const constants = {
+  PURPOSE: 44,                    // BIP44 purpose field
+  COIN_TYPES: {
+    BITCOIN_MAINNET: 0,          // Bitcoin mainnet coin type
+    BITCOIN_TESTNET: 1           // Bitcoin testnet coin type
+  },
+  ACCOUNT: 0,                    // Default account index
+  CHANGE: {
+    EXTERNAL: 0,                 // External chain (receiving)
+    INTERNAL: 1                  // Internal chain (change)
+  }
+};
+
+// Usage
+wallet.derive(`m/${BIP44_CONSTANTS.PURPOSE}'/${BIP44_CONSTANTS.COIN_TYPES.BITCOIN_MAINNET}'/${BIP44_CONSTANTS.ACCOUNT}'/${BIP44_CONSTANTS.CHANGE.EXTERNAL}/0`, 'pri');</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="derivation-paths" class="api-content-section">
+                    <h3>DERIVATION_PATHS <span class="badge new">NEW v2.0.0</span></h3>
+                    <p>Standard Bitcoin derivation paths for common use cases.</p>
+
+                    <div class="method-group">
+                        <h4>Pre-defined Paths</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>DERIVATION_PATHS</code>
+                            </div>
+                            <p>Ready-to-use derivation paths for Bitcoin operations.</p>
+                            <div class="method-details">
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">import { DERIVATION_PATHS } from 'j-bitcoin';
+
+// Available paths
+console.log(DERIVATION_PATHS.BITCOIN_LEGACY);        // "m/44'/0'/0'"
+console.log(DERIVATION_PATHS.BITCOIN_TESTNET);       // "m/44'/1'/0'"
+console.log(DERIVATION_PATHS.BITCOIN_RECEIVING);     // "m/44'/0'/0'/0"
+console.log(DERIVATION_PATHS.BITCOIN_CHANGE);        // "m/44'/0'/0'/1"
+console.log(DERIVATION_PATHS.BITCOIN_FIRST_ADDRESS); // "m/44'/0'/0'/0/0"
+console.log(DERIVATION_PATHS.BITCOIN_FIRST_CHANGE);  // "m/44'/0'/0'/1/0"
+
+// Use with wallets
+wallet.derive(DERIVATION_PATHS.BITCOIN_FIRST_ADDRESS, 'pri');</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="bitcoin-networks" class="api-content-section">
+                    <h3>BITCOIN_NETWORKS <span class="badge new">NEW v2.0.0</span></h3>
+                    <p>Bitcoin network configuration details.</p>
+
+                    <div class="method-group">
+                        <h4>Network Configurations</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>BITCOIN_NETWORKS</code>
+                            </div>
+                            <p>Complete network configurations for Bitcoin mainnet and testnet.</p>
+                            <div class="method-details">
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">import { BITCOIN_NETWORKS } from 'j-bitcoin';
+
+// Mainnet configuration
+console.log(BITCOIN_NETWORKS.MAINNET);
+// {
+//   name: 'Bitcoin',
+//   symbol: 'BTC',
+//   coinType: 0,
+//   addressPrefix: 'bc',
+//   legacyPrefix: '1',
+//   p2shPrefix: '3',
+//   network: 'main'
+// }
+
+// Testnet configuration
+console.log(BITCOIN_NETWORKS.TESTNET);
+// {
+//   name: 'Bitcoin Testnet',
+//   symbol: 'BTC',
+//   coinType: 1,
+//   addressPrefix: 'tb',
+//   legacyPrefix: 'm',
+//   legacyPrefixAlt: 'n',
+//   p2shPrefix: '2',
+//   network: 'test'
+// }</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="generate-derivation-path" class="api-content-section">
+                    <h3>generateDerivationPath <span class="badge new">NEW v2.0.0</span></h3>
+                    <p>Generate a BIP44 derivation path for Bitcoin.</p>
+
+                    <div class="method-group">
+                        <h4>Function Details</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>generateDerivationPath(options)</code>
+                            </div>
+                            <p>Creates a complete BIP44 derivation path from options.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>options</code> <span class="param-type">Object</span> - Path generation
+                                        options</li>
+                                    <li><code>options.purpose</code> <span class="param-type">number</span> <span
+                                            class="param-optional">optional</span> - BIP purpose (default: 44)</li>
+                                    <li><code>options.coinType</code> <span class="param-type">number</span> <span
+                                            class="param-optional">optional</span> - Coin type (default: 0)</li>
+                                    <li><code>options.account</code> <span class="param-type">number</span> <span
+                                            class="param-optional">optional</span> - Account index (default: 0)</li>
+                                    <li><code>options.change</code> <span class="param-type">number</span> <span
+                                            class="param-optional">optional</span> - Change chain (default: 0)</li>
+                                    <li><code>options.addressIndex</code> <span class="param-type">number</span> <span
+                                            class="param-optional">optional</span> - Address index (default: 0)</li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>string</code> - Complete BIP44 derivation path</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">import { generateDerivationPath, BIP44_CONSTANTS } from 'j-bitcoin';
+
+// Generate standard Bitcoin receiving address path
+const receivingPath = generateDerivationPath({
+  purpose: 44,
+  coinType: 0,
+  account: 0,
+  change: 0,
+  addressIndex: 0
+});
+console.log(receivingPath); // "m/44'/0'/0'/0/0"
+
+// Generate change address path
+const changePath = generateDerivationPath({
+  change: 1,
+  addressIndex: 5
+});
+console.log(changePath); // "m/44'/0'/0'/1/5"
+
+// Generate testnet address path
+const testnetPath = generateDerivationPath({
+  coinType: BIP44_CONSTANTS.COIN_TYPES.BITCOIN_TESTNET,
+  addressIndex: 10
+});
+console.log(testnetPath); // "m/44'/1'/0'/0/10"</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="parse-derivation-path" class="api-content-section">
+                    <h3>parseDerivationPath <span class="badge new">NEW v2.0.0</span></h3>
+                    <p>Parse a derivation path into its components.</p>
+
+                    <div class="method-group">
+                        <h4>Function Details</h4>
+
+                        <div class="method-card">
+                            <div class="method-signature">
+                                <code>parseDerivationPath(path)</code>
+                            </div>
+                            <p>Breaks down a BIP44 derivation path into its component parts.</p>
+                            <div class="method-details">
+                                <h5>Parameters</h5>
+                                <ul>
+                                    <li><code>path</code> <span class="param-type">string</span> - BIP44 derivation path
+                                        to parse</li>
+                                </ul>
+                                <h5>Returns</h5>
+                                <p><code>Object</code> - Parsed path components</p>
+                                <div class="code-block">
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre><code class="language-javascript">import { parseDerivationPath } from 'j-bitcoin';
+
+const pathInfo = parseDerivationPath("m/44'/0'/0'/0/5");
+console.log(pathInfo);
+// {
+//   purpose: 44,
+//   coinType: 0,
+//   account: 0,
+//   change: 0,
+//   addressIndex: 5
+// }
+
+// Use parsed information
+if (pathInfo.coinType === 0) {
+  console.log('This is a Bitcoin mainnet path');
+} else if (pathInfo.coinType === 1) {
+  console.log('This is a Bitcoin testnet path');
+}</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </section>
