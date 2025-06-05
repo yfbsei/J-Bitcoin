@@ -18,23 +18,33 @@
     "destination": "./docs/",
     "recurse": true,
     "readme": "./README.md",
-    "package": "./package.json"
+    "package": "./package.json",
+    "template": "node_modules/docdash"
   },
   "plugins": [
     "plugins/markdown"
   ],
-  "templates": {
-    "cleverLinks": false,
-    "monospaceLinks": false,
-    "useLongnameInNav": false,
-    "showInheritedInNav": true
-  },
-  "markdown": {
-    "hardwrap": false,
-    "idInHeadings": true
-  },
-  "tags": {
-    "allowUnknownTags": true,
-    "dictionaries": ["jsdoc", "closure"]
+  "docdash": {
+    "static": true,
+    "sort": true,
+    "search": true,
+    "collapse": true,
+    "typedefs": true,
+    "removeQuotes": "none",
+    "scripts": [],
+    "menu": {
+      "GitHub": {
+        "href": "https://github.com/yfbsei/J-Bitcoin",
+        "target": "_blank",
+        "class": "menu-item",
+        "id": "github-link"
+      },
+      "NPM": {
+        "href": "https://www.npmjs.com/package/j-bitcoin",
+        "target": "_blank",
+        "class": "menu-item",
+        "id": "npm-link"
+      }
+    }
   }
 }

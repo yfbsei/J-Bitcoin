@@ -65,6 +65,7 @@
   },
   "devDependencies": {
     "c8": "^8.0.1",
+    "docdash": "^2.0.2",
     "eslint": "^8.50.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-jsdoc": "^46.8.2",
