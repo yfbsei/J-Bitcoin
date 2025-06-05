@@ -1,6422 +1,0 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <title>JSDoc: Class: Non_Custodial_Wallet</title>
-
-    <script src="scripts/prettify/prettify.js"> </script>
-    <script src="scripts/prettify/lang-css.js"> </script>
-    <!--[if lt IE 9]>
-      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
-    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
-</head>
-
-<body>
-
-<div id="main">
-
-    <h1 class="page-title">Class: Non_Custodial_Wallet</h1>
-
-    
-
-
-
-
-<section>
-
-<header>
-    
-        <h2><span class="attribs"><span class="type-signature"></span></span>Non_Custodial_Wallet<span class="signature">()</span><span class="type-signature"></span></h2>
-        
-    
-</header>
-
-<article>
-    <div class="container-overview">
-    
-        
-
-    
-
-    
-    <h4 class="name" id="Non_Custodial_Wallet"><span class="type-signature"></span>new Non_Custodial_Wallet<span class="signature">()</span><span class="type-signature"></span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Non-custodial wallet implementation using Threshold Signature Scheme (TSS)
-for distributed key management. Enables multi-party control without a trusted party.</p>
-<p>This class implements advanced threshold cryptography where any subset of participants
-meeting the threshold requirement can collaboratively generate valid signatures without
-ever reconstructing the private key. It's ideal for scenarios requiring distributed
-control, enhanced security, and elimination of single points of failure.</p>
-<p><strong>Key Features:</strong></p>
-<ul>
-<li>Distributed key generation using Joint Verifiable Random Secret Sharing (JVRSS)</li>
-<li>Threshold signature generation compatible with standard ECDSA verification</li>
-<li>No trusted dealer required for key setup</li>
-<li>Configurable t-of-n threshold schemes (e.g., 2-of-3, 3-of-5, 5-of-7)</li>
-<li>Secret shares can be distributed across different entities or devices</li>
-<li>Compatible with Bitcoin transaction signing and verification</li>
-</ul>
-<p><strong>Security Model:</strong></p>
-<ul>
-<li>Requires exactly t participants to generate signatures</li>
-<li>Information-theoretic security: &lt; t participants learn nothing about private key</li>
-<li>No single point of failure: up to n-t participants can be compromised safely</li>
-<li>Private key never exists in complete form anywhere</li>
-<li>Forward secrecy: compromising future shares doesn't reveal past signatures</li>
-</ul>
-<p><strong>Use Cases:</strong></p>
-<ul>
-<li>Corporate treasury management with executive approval</li>
-<li>Cryptocurrency exchanges with operator separation</li>
-<li>Escrow services with dispute resolution</li>
-<li>Multi-signature wallets for shared accounts</li>
-<li>Compliance requirements for multi-party authorization</li>
-<li>High-value asset protection with distributed control</li>
-</ul>
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-    <dt class="tag-since">Since:</dt>
-    <dd class="tag-since"><ul class="dummy"><li>1.0.0</li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line798">line 798</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>// Create a 2-of-3 escrow walletconst escrowWallet = Non_Custodial_Wallet.fromRandom("main", 3, 2);const [buyerShare, sellerShare, arbiterShare] = escrowWallet._shares;// Normal release: buyer + sellerconst releaseWallet = Non_Custodial_Wallet.fromShares("main", [buyerShare, sellerShare], 2);const releaseSignature = releaseWallet.sign("Release funds to seller");// Dispute resolution: buyer + arbiter or seller + arbiterconst disputeWallet = Non_Custodial_Wallet.fromShares("main", [buyerShare, arbiterShare], 2);const disputeSignature = disputeWallet.sign("Refund to buyer after dispute");</code></pre>
-
-    <pre class="prettyprint"><code>// Corporate treasury with 3-of-5 executive approvalconst corporateWallet = Non_Custodial_Wallet.fromRandom("main", 5, 3);const executiveShares = corporateWallet._shares;// Distribute shares to 5 executivesconst executives = [  { name: "CEO", share: executiveShares[0] },  { name: "CFO", share: executiveShares[1] },  { name: "COO", share: executiveShares[2] },  { name: "CTO", share: executiveShares[3] },  { name: "Board Rep", share: executiveShares[4] }];// Any 3 executives can authorize paymentsconst paymentAuth = Non_Custodial_Wallet.fromShares("main",   [executives[0].share, executives[1].share, executives[2].share], 3);const authSignature = paymentAuth.sign("Q4 dividend payment: $1M");</code></pre>
-
-    <pre class="prettyprint"><code>// Cryptocurrency exchange cold storageconst exchangeWallet = Non_Custodial_Wallet.fromRandom("main", 7, 4);const operatorShares = exchangeWallet._shares;// Distribute shares across geographic locations and rolesconst distribution = [  { location: "US-East", role: "Security Officer", share: operatorShares[0] },  { location: "US-West", role: "Operations Lead", share: operatorShares[1] },  { location: "EU", role: "Compliance Officer", share: operatorShares[2] },  { location: "Asia", role: "Technical Lead", share: operatorShares[3] },  { location: "Backup-1", role: "Emergency Access", share: operatorShares[4] },  { location: "Backup-2", role: "Emergency Access", share: operatorShares[5] },  { location: "Audit", role: "External Auditor", share: operatorShares[6] }];// Requires 4 of 7 operators to authorize large withdrawals// Provides redundancy and prevents single operator compromise</code></pre>
-
-
-
-    
-    </div>
-
-    
-        <h3 class="subsection-title">Extends</h3>
-
-        
-
-
-    <ul>
-        <li><a href="ThresholdSignature.html">ThresholdSignature</a></li>
-    </ul>
-
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-        <h3 class="subsection-title">Members</h3>
-
-        
-            
-<h4 class="name" id="_privateKey"><span class="type-signature"></span>_privateKey<span class="type-signature"></span></h4>
-
-
-
-
-<div class="description">
-    <p>Gets the reconstructed private key in WIF (Wallet Import Format).</p>
-<p>This getter reconstructs the complete private key from the distributed shares
-and returns it in standard WIF format. This operation defeats the purpose of
-the threshold scheme by centralizing the private key, so it should be used
-with extreme caution and only when absolutely necessary.</p>
-<p><strong>Security Warning:</strong></p>
-<ul>
-<li>Reconstructing the private key eliminates the security benefits of threshold signatures</li>
-<li>The complete private key provides full control over the wallet</li>
-<li>Should only be used for emergency recovery or migration scenarios</li>
-<li>Consider using threshold signatures instead of key reconstruction when possible</li>
-<li>Ensure secure deletion of the reconstructed key after use</li>
-</ul>
-<p><strong>Use Cases:</strong></p>
-<ul>
-<li>Emergency wallet recovery when threshold scheme is no longer viable</li>
-<li>Migration to different wallet software that doesn't support threshold signatures</li>
-<li>Compliance requirements that mandate private key export</li>
-<li>Integration with legacy systems that require WIF private keys</li>
-</ul>
-</div>
-
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line1316">line 1316</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>// Emergency private key extraction (use with caution!)const wallet = Non_Custodial_Wallet.fromRandom("main", 3, 2);// Only use in emergency situationsconsole.warn('Reconstructing private key - this defeats threshold security!');const privateKey = wallet._privateKey;console.log('WIF Private Key:', privateKey);// "L5HgWvFghocq1FmxSjKNaGhVN8f67p6xYg5pY7M8FE77HXwHtGGu"</code></pre>
-
-    <pre class="prettyprint"><code>// Secure private key extraction with cleanupfunction emergencyKeyExtraction(thresholdWallet) {  console.warn('SECURITY WARNING: Extracting private key from threshold wallet');    try {    // Extract private key    const privateKey = thresholdWallet._privateKey;        // Use private key for emergency operation    const emergencyOperation = performEmergencyTransfer(privateKey);        // Clear private key from memory (best effort)    privateKey.fill('\0'); // Overwrite string content        return emergencyOperation;  } catch (error) {    console.error('Private key extraction failed:', error);    throw error;  }}</code></pre>
-
-    <pre class="prettyprint"><code>// Migration to single-key walletconst thresholdWallet = Non_Custodial_Wallet.fromShares("main", shares, 2);// Extract private key for migrationconst migratedPrivateKey = thresholdWallet._privateKey;// Create equivalent single-key walletconst singleKeyWallet = Custodial_Wallet.fromSeed("main",   privateKeyToSeed(migratedPrivateKey));// Verify address consistencyconsole.log('Address match:',   thresholdWallet.address === singleKeyWallet.address); // true</code></pre>
-
-
-
-        
-            
-<h4 class="name" id="_shares"><span class="type-signature"></span>_shares<span class="type-signature"></span></h4>
-
-
-
-
-<div class="description">
-    <p>Gets the secret shares as hex-encoded strings for secure distribution to participants.</p>
-<p>This getter provides access to the distributed secret shares in a format suitable
-for secure transmission and storage. Each share is a hex-encoded string representing
-a point on the secret-sharing polynomial. These shares should be distributed to
-different participants and stored securely.</p>
-<p><strong>Share Properties:</strong></p>
-<ul>
-<li>Each share is cryptographically independent</li>
-<li>Shares are information-theoretically secure (&lt; threshold reveals nothing)</li>
-<li>Hex encoding ensures safe transmission over text-based channels</li>
-<li>Each share is typically 64 hex characters (32 bytes)</li>
-<li>Shares should be transmitted over secure, authenticated channels</li>
-</ul>
-<p><strong>Distribution Best Practices:</strong></p>
-<ul>
-<li>Use secure communication channels (encrypted email, secure messaging)</li>
-<li>Verify recipient identity before share distribution</li>
-<li>Consider using QR codes for offline share transfer</li>
-<li>Implement share backup and recovery procedures</li>
-<li>Document which participant holds which share index</li>
-</ul>
-</div>
-
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line1208">line 1208</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>// Basic share distributionconst wallet = Non_Custodial_Wallet.fromRandom("main", 3, 2);const shares = wallet._shares;console.log('Number of shares:', shares.length); // 3console.log('Share format:', shares[0]);          // "79479395a59a8e9d..."</code></pre>
-
-    <pre class="prettyprint"><code>// Secure share distribution to participantsconst corporateWallet = Non_Custodial_Wallet.fromRandom("main", 5, 3);const executiveShares = corporateWallet._shares;const executives = [  { name: "Alice Johnson", email: "alice@company.com", share: executiveShares[0] },  { name: "Bob Smith", email: "bob@company.com", share: executiveShares[1] },  { name: "Carol Davis", email: "carol@company.com", share: executiveShares[2] },  { name: "Dave Wilson", email: "dave@company.com", share: executiveShares[3] },  { name: "Eve Brown", email: "eve@company.com", share: executiveShares[4] }];// Distribute shares securelyexecutives.forEach(exec => {  sendSecureEmail(exec.email, `Your wallet share: ${exec.share}`);  console.log(`Share distributed to ${exec.name}`);});</code></pre>
-
-    <pre class="prettyprint"><code>// QR code generation for offline distributionconst wallet = Non_Custodial_Wallet.fromRandom("main", 3, 2);const shares = wallet._shares;shares.forEach((share, index) => {  const qrCode = generateQRCode(share);  saveQRCode(qrCode, `share_${index + 1}.png`);  console.log(`QR code generated for share ${index + 1}`);});</code></pre>
-
-    <pre class="prettyprint"><code>// Backup and recovery documentationconst wallet = Non_Custodial_Wallet.fromRandom("main", 5, 3);const shares = wallet._shares;const backupDocument = {  walletAddress: wallet.address,  threshold: wallet.threshold,  totalShares: wallet.group_size,  creationDate: new Date().toISOString(),  shares: shares.map((share, index) => ({    index: index + 1,    share: share,    holder: `Participant ${index + 1}`,    status: 'Active'  }))};// Store backup document securelystoreSecureBackup(JSON.stringify(backupDocument, null, 2));</code></pre>
-
-
-
-        
-            
-<h4 class="name" id="group_size"><span class="type-signature">(readonly) </span>group_size<span class="type-signature"> :number</span></h4>
-
-
-
-
-<div class="description">
-    <p>Total number of participants in the threshold scheme</p>
-</div>
-
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">number</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-    <dt class="inherited-from">Inherited From:</dt>
-    <dd class="inherited-from"><ul class="dummy"><li>
-        <a href="ThresholdSignature.html#group_size">ThresholdSignature#group_size</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_Threshold-signature_threshold_signature.js.html">src/Threshold-signature/threshold_signature.js</a>, <a href="src_Threshold-signature_threshold_signature.js.html#line161">line 161</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-        
-            
-<h4 class="name" id="polynomial_order"><span class="type-signature">(readonly) </span>polynomial_order<span class="type-signature"> :number</span></h4>
-
-
-
-
-<div class="description">
-    <p>Polynomial degree (threshold - 1) for secret sharing</p>
-</div>
-
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">number</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-    <dt class="inherited-from">Inherited From:</dt>
-    <dd class="inherited-from"><ul class="dummy"><li>
-        <a href="ThresholdSignature.html#polynomial_order">ThresholdSignature#polynomial_order</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_Threshold-signature_threshold_signature.js.html">src/Threshold-signature/threshold_signature.js</a>, <a href="src_Threshold-signature_threshold_signature.js.html#line168">line 168</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-        
-            
-<h4 class="name" id="threshold"><span class="type-signature">(readonly) </span>threshold<span class="type-signature"> :number</span></h4>
-
-
-
-
-<div class="description">
-    <p>Minimum number of participants needed for cryptographic operations</p>
-</div>
-
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">number</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-    <dt class="inherited-from">Inherited From:</dt>
-    <dd class="inherited-from"><ul class="dummy"><li>
-        <a href="ThresholdSignature.html#threshold">ThresholdSignature#threshold</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_Threshold-signature_threshold_signature.js.html">src/Threshold-signature/threshold_signature.js</a>, <a href="src_Threshold-signature_threshold_signature.js.html#line175">line 175</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-        
-            
-<h4 class="name" id=".this.net"><span class="type-signature">(static, readonly) </span>this.net<span class="type-signature"> :string</span></h4>
-
-
-
-
-<div class="description">
-    <p>Network type for this threshold wallet instance.
-Determines address formats, version bytes, and network-specific parameters.</p>
-</div>
-
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">string</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line950">line 950</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-    <h5>Example</h5>
-    
-    <pre class="prettyprint"><code>console.log(wallet.net); // "main" or "test"</code></pre>
-
-
-
-        
-    
-
-    
-        <h3 class="subsection-title">Methods</h3>
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id="addss"><span class="type-signature"></span>addss<span class="signature">(a_shares<span class="signature-attributes">opt</span>, b_shares<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {BN}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Additive Secret Sharing (ADDSS) - combines two sets of shares additively</p>
-<p>ADDSS enables secure addition of two shared secrets without revealing
-the individual secrets. Each participant adds their corresponding shares,
-and the result can be reconstructed to obtain the sum of the original secrets.</p>
-<p><strong>Mathematical Foundation:</strong></p>
-<ul>
-<li>If secret A is shared as (a₁, a₂, ..., aₙ)</li>
-<li>And secret B is shared as (b₁, b₂, ..., bₙ)</li>
-<li>Then A + B is shared as (a₁+b₁, a₂+b₂, ..., aₙ+bₙ)</li>
-</ul>
-<p><strong>Applications:</strong></p>
-<ul>
-<li>Combining multiple randomness sources</li>
-<li>Adding constants to shared secrets</li>
-<li>Building complex cryptographic protocols</li>
-<li>Secure multi-party computation primitives</li>
-</ul>
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-        <th>Attributes</th>
-        
-
-        
-        <th>Default</th>
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>a_shares</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Array.&lt;BN></span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    []
-                
-                </td>
-            
-
-            <td class="description last"><p>First set of secret shares</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>b_shares</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Array.&lt;BN></span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    []
-                
-                </td>
-            
-
-            <td class="description last"><p>Second set of secret shares</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-    <dt class="inherited-from">Inherited From:</dt>
-    <dd class="inherited-from"><ul class="dummy"><li>
-        <a href="ThresholdSignature.html#addss">ThresholdSignature#addss</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_Threshold-signature_threshold_signature.js.html">src/Threshold-signature/threshold_signature.js</a>, <a href="src_Threshold-signature_threshold_signature.js.html#line343">line 343</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Throws:</h5>
-
-        
-
-<dl>
-    <dt>
-        <div class="param-desc">
-        <p>If share arrays have different lengths</p>
-        </div>
-    </dt>
-    <dd></dd>
-    <dt>
-        <dl>
-            <dt>
-                Type
-            </dt>
-            <dd>
-                
-<span class="param-type">Error</span>
-
-
-            </dd>
-        </dl>
-    </dt>
-    <dd></dd>
-</dl>
-
-
-    
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    <p>The sum of the two original secrets</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">BN</span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>const tss = new ThresholdSignature(3, 2);// Generate two sets of sharesconst [shares1, _] = tss.jvrss();const [shares2, __] = tss.jvrss();// Add the shared secretsconst sum = tss.addss(shares1, shares2);// Verify: sum should equal individual secret sumconst secret1 = tss.privite_key(shares1);const secret2 = tss.privite_key(shares2);const expectedSum = secret1.add(secret2).umod(N);console.log(sum.eq(expectedSum)); // true</code></pre>
-
-    <pre class="prettyprint"><code>// Adding a constant to a shared secretconst constant = new BN(42);const constantShares = Array(tss.group_size).fill(new BN(0));constantShares[0] = constant; // Only first share gets the constantconst result = tss.addss(tss.shares, constantShares);// result = original_secret + 42</code></pre>
-
-
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id="invss"><span class="type-signature"></span>invss<span class="signature">(a_shares<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Array.&lt;BN>}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Inverse Secret Sharing (INVSS) - computes modular inverse of shared secret</p>
-<p>INVSS computes the modular inverse of a shared secret without revealing the secret.
-This is crucial for threshold ECDSA signatures where we need to compute k⁻¹
-(inverse of the nonce) as part of the signature generation process.</p>
-<p><strong>Algorithm:</strong></p>
-<ol>
-<li>Generate a fresh random secret b using JVRSS</li>
-<li>Compute c = a × b using PROSS (where a is the input secret)</li>
-<li>Reconstruct c (this reveals c but not a or b individually)</li>
-<li>Compute c⁻¹ using standard modular inverse</li>
-<li>Multiply b shares by c⁻¹ to get shares of a⁻¹</li>
-</ol>
-<p><strong>Security:</strong></p>
-<ul>
-<li>The intermediate value c is revealed but provides no information about a</li>
-<li>The randomness b masks the original secret a</li>
-<li>Final result is properly shared according to the threshold scheme</li>
-</ul>
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-        <th>Attributes</th>
-        
-
-        
-        <th>Default</th>
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>a_shares</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Array.&lt;BN></span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    []
-                
-                </td>
-            
-
-            <td class="description last"><p>Shares of the secret to invert</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-    <dt class="inherited-from">Inherited From:</dt>
-    <dd class="inherited-from"><ul class="dummy"><li>
-        <a href="ThresholdSignature.html#invss">ThresholdSignature#invss</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_Threshold-signature_threshold_signature.js.html">src/Threshold-signature/threshold_signature.js</a>, <a href="src_Threshold-signature_threshold_signature.js.html#line466">line 466</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    <p>Shares of the modular inverse of the original secret</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">Array.&lt;BN></span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>const tss = new ThresholdSignature(5, 3);// Compute inverse of shared secretconst inverseShares = tss.invss(tss.shares);// Verify: secret × inverse = 1 (mod N)const product = tss.pross(tss.shares, inverseShares);console.log(product.eq(new BN(1))); // true</code></pre>
-
-    <pre class="prettyprint"><code>// Use in threshold signature (simplified)const message = Buffer.from("Hello World!");const msgHash = new BN(createHash('sha256').update(message).digest());// Generate nonce sharesconst [kShares, kPubKey] = tss.jvrss();// Compute inverse of nonceconst kInvShares = tss.invss(kShares);// This would be used in signature computation// s = k⁻¹(hash + r × private_key)</code></pre>
-
-
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id="jvrss"><span class="type-signature"></span>jvrss<span class="signature">()</span><span class="type-signature"> &rarr; {Array|Array.&lt;BN>|Object}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Joint Verifiable Random Secret Sharing (JVRSS) protocol implementation</p>
-<p>JVRSS is the core protocol for distributed key generation without a trusted dealer.
-It combines multiple random polynomials from all participants to create a
-shared secret that no single party knows or can control.</p>
-<p><strong>Protocol Steps:</strong></p>
-<ol>
-<li><strong>Polynomial Generation</strong>: Each participant conceptually generates a random polynomial</li>
-<li><strong>Share Distribution</strong>: Each polynomial contributes to every participant's final share</li>
-<li><strong>Linear Combination</strong>: Shares are combined additively to create the final distribution</li>
-<li><strong>Public Key Derivation</strong>: The aggregate public key is computed from polynomial constants</li>
-</ol>
-<p><strong>Security Properties:</strong></p>
-<ul>
-<li>No single participant controls the final secret</li>
-<li>The secret is uniformly random over the field</li>
-<li>Shares are properly distributed according to Shamir's scheme</li>
-<li>Public key is verifiable and corresponds to the shared secret</li>
-</ul>
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-    <dt class="inherited-from">Inherited From:</dt>
-    <dd class="inherited-from"><ul class="dummy"><li>
-        <a href="ThresholdSignature.html#jvrss">ThresholdSignature#jvrss</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_Threshold-signature_threshold_signature.js.html">src/Threshold-signature/threshold_signature.js</a>, <a href="src_Threshold-signature_threshold_signature.js.html#line267">line 267</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-<ul>
-        <li>
-<div class="param-desc">
-    <p>Tuple containing shares array and aggregate public key</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">Array</span>
-
-
-    </dd>
-</dl>
-</li>
-    
-        <li>
-<div class="param-desc">
-    <p>returns.0 - Array of secret shares for each participant</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">Array.&lt;BN></span>
-
-
-    </dd>
-</dl>
-</li>
-    
-        <li>
-<div class="param-desc">
-    <p>returns.1 - Aggregate elliptic curve public key point</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">Object</span>
-
-
-    </dd>
-</dl>
-</li>
-    </ul>
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>const tss = new ThresholdSignature(5, 3);const [shares, publicKey] = tss.jvrss();console.log(shares.length);        // 5 sharesconsole.log(publicKey.constructor.name); // ProjectivePoint// Shares are properly distributedconst points = tss.shares_to_points(shares);const secret = Polynomial.interpolate_evaluate(points, 0);const derivedPubKey = secp256k1.ProjectivePoint.fromPrivateKey(secret.toBuffer());// Public keys should matchconsole.log(publicKey.equals(derivedPubKey)); // true</code></pre>
-
-    <pre class="prettyprint"><code>// Manual JVRSS execution for understandingconst groupSize = 3, threshold = 2;const polynomials = Array(groupSize).fill(null)  .map(() => Polynomial.fromRandom(threshold - 1));// Each participant's share is sum of evaluationslet manualShares = Array(groupSize).fill(new BN(0));for (let i = 0; i &lt; groupSize; i++) {  for (let j = 0; j &lt; groupSize; j++) {    manualShares[j] = manualShares[j].add(polynomials[i].evaluate(j + 1));  }}// This produces the same result as jvrss()</code></pre>
-
-
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id="privite_key"><span class="type-signature"></span>privite_key<span class="signature">(a_shares<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {BN}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Reconstructs the private key from secret shares using polynomial interpolation</p>
-<p>This method recovers the original private key from the distributed shares.
-It should be used with caution as it reconstructs the full private key,
-defeating the purpose of the threshold scheme. Typically used only for
-specific operations like computing WIF format or for emergency recovery.</p>
-<p><strong>Security Warning:</strong></p>
-<ul>
-<li>Reconstructing the private key centralizes control</li>
-<li>Should only be done when absolutely necessary</li>
-<li>Consider using threshold operations instead when possible</li>
-<li>Ensure secure deletion of reconstructed key after use</li>
-</ul>
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-        <th>Attributes</th>
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>a_shares</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Array.&lt;BN></span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-
-            <td class="description last"><p>Secret shares to reconstruct from (defaults to this.shares)</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-    <dt class="inherited-from">Inherited From:</dt>
-    <dd class="inherited-from"><ul class="dummy"><li>
-        <a href="ThresholdSignature.html#privite_key">ThresholdSignature#privite_key</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_Threshold-signature_threshold_signature.js.html">src/Threshold-signature/threshold_signature.js</a>, <a href="src_Threshold-signature_threshold_signature.js.html#line537">line 537</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    <p>The reconstructed private key as a BigNumber</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">BN</span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>const tss = new ThresholdSignature(3, 2);// Reconstruct private key (use with caution!)const privateKey = tss.privite_key();// Verify it corresponds to the public keyconst derivedPubKey = secp256k1.ProjectivePoint.fromPrivateKey(privateKey.toBuffer());console.log(derivedPubKey.equals(tss.public_key)); // true</code></pre>
-
-    <pre class="prettyprint"><code>// Partial reconstruction with threshold shares onlyconst thresholdShares = tss.shares.slice(0, tss.threshold);const partialKey = tss.privite_key(thresholdShares);// Should equal full reconstructionconst fullKey = tss.privite_key();console.log(partialKey.eq(fullKey)); // true</code></pre>
-
-    <pre class="prettyprint"><code>// Emergency recovery scenariofunction emergencyRecovery(shareHolders) {  if (shareHolders.length &lt; tss.threshold) {    throw new Error("Insufficient shares for recovery");  }    const recoveredKey = tss.privite_key(shareHolders.slice(0, tss.threshold));    // Use recovered key for emergency operations  // ... perform emergency actions ...    // Securely delete the key  recoveredKey.fill(0);}</code></pre>
-
-
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id="pross"><span class="type-signature"></span>pross<span class="signature">(a_shares<span class="signature-attributes">opt</span>, b_shares<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {BN}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Polynomial Reconstruction Secret Sharing (PROSS) - computes product of shared secrets</p>
-<p>PROSS enables secure multiplication of two shared secrets. This is more complex
-than addition because the product of two degree-t polynomials yields a degree-2t
-polynomial, requiring more shares for reconstruction.</p>
-<p><strong>Mathematical Foundation:</strong></p>
-<ul>
-<li>Product of degree-t polynomials has degree 2t</li>
-<li>Requires 2t+1 shares for reconstruction (vs t+1 for addition)</li>
-<li>Uses polynomial interpolation on the product values</li>
-<li>Result is the product of the original secrets</li>
-</ul>
-<p><strong>Security Note:</strong></p>
-<ul>
-<li>Requires more participants for security than addition</li>
-<li>Product shares reveal more information than additive shares</li>
-<li>Should be used carefully in cryptographic protocols</li>
-</ul>
-<p><strong>Applications:</strong></p>
-<ul>
-<li>Computing multiplicative inverses (used in INVSS)</li>
-<li>Secure polynomial evaluation</li>
-<li>Advanced threshold cryptographic protocols</li>
-<li>Zero-knowledge proof systems</li>
-</ul>
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-        <th>Attributes</th>
-        
-
-        
-        <th>Default</th>
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>a_shares</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Array.&lt;BN></span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    []
-                
-                </td>
-            
-
-            <td class="description last"><p>First set of secret shares</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>b_shares</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Array.&lt;BN></span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    []
-                
-                </td>
-            
-
-            <td class="description last"><p>Second set of secret shares</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-    <dt class="inherited-from">Inherited From:</dt>
-    <dd class="inherited-from"><ul class="dummy"><li>
-        <a href="ThresholdSignature.html#pross">ThresholdSignature#pross</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_Threshold-signature_threshold_signature.js.html">src/Threshold-signature/threshold_signature.js</a>, <a href="src_Threshold-signature_threshold_signature.js.html#line407">line 407</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    <p>The product of the two original secrets</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">BN</span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>const tss = new ThresholdSignature(5, 2); // Need larger group for PROSS// Generate two secretsconst [shares1, _] = tss.jvrss();const [shares2, __] = tss.jvrss();// Compute productconst product = tss.pross(shares1, shares2);// Verify resultconst secret1 = tss.privite_key(shares1);const secret2 = tss.privite_key(shares2);const expectedProduct = secret1.mul(secret2).umod(N);console.log(product.eq(expectedProduct)); // true</code></pre>
-
-    <pre class="prettyprint"><code>// Squaring a shared secretconst squared = tss.pross(tss.shares, tss.shares);const originalSecret = tss.privite_key();const expectedSquare = originalSecret.mul(originalSecret).umod(N);console.log(squared.eq(expectedSquare)); // true</code></pre>
-
-
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id="shares_to_points"><span class="type-signature"></span>shares_to_points<span class="signature">(shares<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {<a href="global.html#SharePoints">SharePoints</a>}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Converts share values to coordinate points for polynomial interpolation</p>
-<p>Transforms an array of share values into the coordinate format required
-for Lagrange interpolation. Each share at index i becomes a point (i+1, share)
-since polynomial evaluation uses 1-based indexing (x=0 is reserved for secrets).</p>
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-        <th>Attributes</th>
-        
-
-        
-        <th>Default</th>
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>shares</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Array.&lt;BN></span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    []
-                
-                </td>
-            
-
-            <td class="description last"><p>Array of BigNumber share values to convert</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-    <dt class="inherited-from">Inherited From:</dt>
-    <dd class="inherited-from"><ul class="dummy"><li>
-        <a href="ThresholdSignature.html#shares_to_points">ThresholdSignature#shares_to_points</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_Threshold-signature_threshold_signature.js.html">src/Threshold-signature/threshold_signature.js</a>, <a href="src_Threshold-signature_threshold_signature.js.html#line210">line 210</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    <p>Array of [x, y] coordinate pairs for interpolation</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type"><a href="global.html#SharePoints">SharePoints</a></span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>const tss = new ThresholdSignature(3, 2);const points = tss.shares_to_points(tss.shares);console.log(points);// [[1, share1_value], [2, share2_value], [3, share3_value]]// Use for secret reconstructionconst secret = Polynomial.interpolate_evaluate(points, 0);</code></pre>
-
-    <pre class="prettyprint"><code>// Partial reconstruction with threshold sharesconst partialShares = tss.shares.slice(0, tss.threshold);const thresholdPoints = tss.shares_to_points(partialShares);const reconstructed = Polynomial.interpolate_evaluate(thresholdPoints, 0);</code></pre>
-
-
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id="sign"><span class="type-signature"></span>sign<span class="signature">(message)</span><span class="type-signature"> &rarr; {<a href="global.html#ThresholdSignatureResult">ThresholdSignatureResult</a>}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Generates a threshold signature for a given message</p>
-<p>This is the core method that produces threshold ECDSA signatures. The signature
-is generated collaboratively using the threshold scheme without reconstructing
-the private key. The process follows the threshold ECDSA protocol:</p>
-<p><strong>Threshold ECDSA Algorithm:</strong></p>
-<ol>
-<li><strong>Nonce Generation</strong>: Create shared random nonce k using JVRSS</li>
-<li><strong>R Value Computation</strong>: Compute R = k×G and extract r = R.x mod n</li>
-<li><strong>Inverse Computation</strong>: Compute k⁻¹ using INVSS without revealing k</li>
-<li><strong>Signature Shares</strong>: Each party computes their share of s = k⁻¹(hash + r×private)</li>
-<li><strong>Reconstruction</strong>: Combine shares to get final signature (r, s)</li>
-<li><strong>Validation</strong>: Ensure signature is valid and non-zero</li>
-</ol>
-<p><strong>Security Properties:</strong></p>
-<ul>
-<li>Private key never reconstructed during signing</li>
-<li>Nonce is generated distributively and remains secret</li>
-<li>Resulting signature is indistinguishable from single-party ECDSA</li>
-<li>Compatible with standard ECDSA verification</li>
-</ul>
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>message</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>Message to sign (will be SHA256 hashed)</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-    <dt class="inherited-from">Inherited From:</dt>
-    <dd class="inherited-from"><ul class="dummy"><li>
-        <a href="ThresholdSignature.html#sign">ThresholdSignature#sign</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_Threshold-signature_threshold_signature.js.html">src/Threshold-signature/threshold_signature.js</a>, <a href="src_Threshold-signature_threshold_signature.js.html#line612">line 612</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    <p>Complete signature with metadata</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type"><a href="global.html#ThresholdSignatureResult">ThresholdSignatureResult</a></span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>const tss = new ThresholdSignature(3, 2);// Generate threshold signatureconst signature = tss.sign("Transfer $1000 to Alice");console.log(signature.sig.r);           // BigInt r valueconsole.log(signature.sig.s);           // BigInt s value  console.log(signature.serialized_sig);  // Base64 compact formatconsole.log(signature.recovery_id);     // 0-3 for public key recovery// Verify signatureconst isValid = ThresholdSignature.verify_threshold_signature(  tss.public_key,  signature.msgHash,  signature.sig);console.log(isValid); // true</code></pre>
-
-    <pre class="prettyprint"><code>// Corporate authorization workflowconst corporateTSS = new ThresholdSignature(5, 3);const authMessage = JSON.stringify({  action: "wire_transfer",  amount: 1000000,  recipient: "operations_account",  timestamp: Date.now()});const authorization = corporateTSS.sign(authMessage);console.log("Authorization signature:", authorization.serialized_sig);</code></pre>
-
-    <pre class="prettyprint"><code>// Escrow release with buyer + sellerconst escrowTSS = new ThresholdSignature(3, 2);const releaseMessage = "Release escrow funds to seller";const escrowSignature = escrowTSS.sign(releaseMessage);// This signature can be verified by anyoneconst verified = ThresholdSignature.verify_threshold_signature(  escrowTSS.public_key,  escrowSignature.msgHash,  escrowSignature.sig);</code></pre>
-
-
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id="verify"><span class="type-signature"></span>verify<span class="signature">(sig, msgHash)</span><span class="type-signature"> &rarr; {boolean}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Verifies a threshold signature against the original message hash.</p>
-<p>This method performs cryptographic verification of threshold signatures using
-standard ECDSA verification. Threshold signatures are mathematically equivalent
-to single-party ECDSA signatures, so they can be verified using standard
-verification algorithms without knowledge of the threshold scheme.</p>
-<p><strong>Verification Process:</strong></p>
-<ol>
-<li>Parse signature into r and s components</li>
-<li>Validate signature components are within valid ranges</li>
-<li>Compute verification equation using aggregate public key</li>
-<li>Check that computed point matches signature r value</li>
-<li>Return boolean result of verification</li>
-</ol>
-<p><strong>Compatibility:</strong></p>
-<ul>
-<li>Compatible with standard ECDSA verification</li>
-<li>Can be verified by any Bitcoin-compatible software</li>
-<li>Third parties don't need knowledge of threshold scheme</li>
-<li>Signatures are indistinguishable from single-party signatures</li>
-</ul>
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>sig</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Object</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>Signature object with r and s properties (BigInt values)</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>msgHash</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Buffer</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>SHA256 hash of the original message (32 bytes)</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line1431">line 1431</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Throws:</h5>
-<ul>
-        <li>
-
-<dl>
-    <dt>
-        <div class="param-desc">
-        <p>If signature format is invalid</p>
-        </div>
-    </dt>
-    <dd></dd>
-    <dt>
-        <dl>
-            <dt>
-                Type
-            </dt>
-            <dd>
-                
-<span class="param-type">Error</span>
-
-
-            </dd>
-        </dl>
-    </dt>
-    <dd></dd>
-</dl>
-
-</li>
-    
-        <li>
-
-<dl>
-    <dt>
-        <div class="param-desc">
-        <p>If message hash is not 32 bytes</p>
-        </div>
-    </dt>
-    <dd></dd>
-    <dt>
-        <dl>
-            <dt>
-                Type
-            </dt>
-            <dd>
-                
-<span class="param-type">Error</span>
-
-
-            </dd>
-        </dl>
-    </dt>
-    <dd></dd>
-</dl>
-
-</li>
-    </ul>
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    <p>True if signature is valid for this wallet's public key, false otherwise</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">boolean</span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>// Basic threshold signature verificationconst wallet = Non_Custodial_Wallet.fromRandom("main", 3, 2);const message = "Multi-party authorization required";// Generate threshold signatureconst signature = wallet.sign(message);// Verify signatureconst isValid = wallet.verify(signature.sig, signature.msgHash);console.log('Threshold signature valid:', isValid); // true</code></pre>
-
-    <pre class="prettyprint"><code>// Cross-verification with different wallet instancesconst originalWallet = Non_Custodial_Wallet.fromRandom("main", 5, 3);const shares = originalWallet._shares;// Create signing wallet with threshold sharesconst signingWallet = Non_Custodial_Wallet.fromShares("main", shares.slice(0, 3), 3);// Create verification wallet with different sharesconst verifyingWallet = Non_Custodial_Wallet.fromShares("main", shares.slice(2, 5), 3);const message = "Cross-wallet verification test";const signature = signingWallet.sign(message);// Both wallets should verify the same signatureconst valid1 = signingWallet.verify(signature.sig, signature.msgHash);const valid2 = verifyingWallet.verify(signature.sig, signature.msgHash);console.log('Both verify same:', valid1 === valid2 &amp;&amp; valid1 === true); // true</code></pre>
-
-    <pre class="prettyprint"><code>// Third-party verification without threshold knowledgefunction verifyPaymentAuthorization(publicKeyHex, messageHash, signature) {  // This function doesn't know about threshold signatures  // It just uses standard ECDSA verification    const publicKey = secp256k1.ProjectivePoint.fromHex(publicKeyHex);  return ThresholdSignature.verify_threshold_signature(publicKey, messageHash, signature);}const wallet = Non_Custodial_Wallet.fromRandom("main", 3, 2);const authorization = wallet.sign("Payment approved: $10,000");// Third party can verify without knowing about threshold schemeconst thirdPartyVerification = verifyPaymentAuthorization(  wallet.publicKey,  authorization.msgHash,  authorization.sig);console.log('Third party verification:', thirdPartyVerification); // true</code></pre>
-
-    <pre class="prettyprint"><code>// Batch verification for audit trailconst wallet = Non_Custodial_Wallet.fromRandom("main", 5, 3);const transactions = [  "Transfer $1000 to Account A",  "Transfer $2000 to Account B",   "Transfer $3000 to Account C"];// Generate signatures for all transactionsconst signedTransactions = transactions.map(tx => {  const signature = wallet.sign(tx);  return {    transaction: tx,    signature: signature.sig,    messageHash: signature.msgHash  };});// Verify all signaturesconst allValid = signedTransactions.every(item =>  wallet.verify(item.signature, item.messageHash));console.log('All transactions valid:', allValid); // true</code></pre>
-
-
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id=".fromRandom"><span class="type-signature">(static) </span>fromRandom<span class="signature">(net<span class="signature-attributes">opt</span>, group_size<span class="signature-attributes">opt</span>, threshold<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {<a href="Non_Custodial_Wallet.html">Non_Custodial_Wallet</a>}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Generates a new random threshold wallet with specified parameters.</p>
-<p>This static factory method creates a fresh threshold signature scheme using
-cryptographically secure randomness. It initializes the distributed key generation
-protocol and produces a complete threshold wallet ready for multi-party operations.</p>
-<p><strong>Generation Process:</strong></p>
-<ol>
-<li>Create new threshold signature instance with specified parameters</li>
-<li>Execute JVRSS for distributed key generation</li>
-<li>Generate secret shares for all participants</li>
-<li>Compute aggregate public key and Bitcoin address</li>
-<li>Return initialized wallet instance</li>
-</ol>
-<p><strong>Security Properties:</strong></p>
-<ul>
-<li>Uses cryptographically secure random number generation</li>
-<li>No participant has knowledge of the complete private key</li>
-<li>Secret shares are information-theoretically secure</li>
-<li>Aggregate public key is verifiable and deterministic</li>
-</ul>
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-        <th>Attributes</th>
-        
-
-        
-        <th>Default</th>
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>net</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    "main"
-                
-                </td>
-            
-
-            <td class="description last"><p>Network type ('main' for mainnet, 'test' for testnet)</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>group_size</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">number</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    3
-                
-                </td>
-            
-
-            <td class="description last"><p>Total number of participants in the scheme</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>threshold</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">number</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    2
-                
-                </td>
-            
-
-            <td class="description last"><p>Minimum participants needed for signature generation</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line1021">line 1021</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Throws:</h5>
-<ul>
-        <li>
-
-<dl>
-    <dt>
-        <div class="param-desc">
-        <p>&quot;Threshold is too high or low&quot; if constraints are violated</p>
-        </div>
-    </dt>
-    <dd></dd>
-    <dt>
-        <dl>
-            <dt>
-                Type
-            </dt>
-            <dd>
-                
-<span class="param-type">Error</span>
-
-
-            </dd>
-        </dl>
-    </dt>
-    <dd></dd>
-</dl>
-
-</li>
-    
-        <li>
-
-<dl>
-    <dt>
-        <div class="param-desc">
-        <p>If network parameter is invalid</p>
-        </div>
-    </dt>
-    <dd></dd>
-    <dt>
-        <dl>
-            <dt>
-                Type
-            </dt>
-            <dd>
-                
-<span class="param-type">Error</span>
-
-
-            </dd>
-        </dl>
-    </dt>
-    <dd></dd>
-</dl>
-
-</li>
-    </ul>
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    <p>New threshold wallet instance</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type"><a href="Non_Custodial_Wallet.html">Non_Custodial_Wallet</a></span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>// Standard 2-of-3 multi-signature walletconst multiSigWallet = Non_Custodial_Wallet.fromRandom("main", 3, 2);console.log('Multi-sig address:', multiSigWallet.address);// Get shares for distributionconst [share1, share2, share3] = multiSigWallet._shares;console.log('Share 1:', share1); // Hex-encoded secret share</code></pre>
-
-    <pre class="prettyprint"><code>// Corporate treasury wallet (3-of-5)const treasuryWallet = Non_Custodial_Wallet.fromRandom("main", 5, 3);const executiveShares = treasuryWallet._shares;// Distribute shares to executivesconst shareDistribution = [  { executive: "CEO", share: executiveShares[0] },  { executive: "CFO", share: executiveShares[1] },  { executive: "COO", share: executiveShares[2] },  { executive: "CTO", share: executiveShares[3] },  { executive: "Board Rep", share: executiveShares[4] }];</code></pre>
-
-    <pre class="prettyprint"><code>// High-security vault (5-of-9)const vaultWallet = Non_Custodial_Wallet.fromRandom("main", 9, 5);console.log(`Vault requires ${vaultWallet.threshold} of ${vaultWallet.group_size} participants`);// Example distribution across different security zonesconst vaultShares = vaultWallet._shares;const securityZones = [  { zone: "Primary Datacenter", shares: vaultShares.slice(0, 3) },  { zone: "Secondary Datacenter", shares: vaultShares.slice(3, 6) },  { zone: "Offline Storage", shares: vaultShares.slice(6, 9) }];</code></pre>
-
-
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id=".fromShares"><span class="type-signature">(static) </span>fromShares<span class="signature">(net<span class="signature-attributes">opt</span>, shares, threshold<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {<a href="Non_Custodial_Wallet.html">Non_Custodial_Wallet</a>}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Reconstructs a threshold wallet from existing secret shares.</p>
-<p>This static factory method rebuilds a threshold wallet from previously distributed
-secret shares. It's used when participants want to reconstruct the wallet for
-signature generation or when migrating shares between systems. The method validates
-share consistency and reconstructs the public key and address.</p>
-<p><strong>Reconstruction Process:</strong></p>
-<ol>
-<li>Create new threshold instance with matching parameters</li>
-<li>Convert hex-encoded shares to BigNumber format</li>
-<li>Reconstruct the aggregate public key from shares</li>
-<li>Derive Bitcoin address from reconstructed public key</li>
-<li>Validate share consistency and threshold requirements</li>
-</ol>
-<p><strong>Security Considerations:</strong></p>
-<ul>
-<li>Only provided shares are used; missing shares remain unknown</li>
-<li>Threshold requirement still applies for signature generation</li>
-<li>Share authenticity should be verified through secure channels</li>
-<li>Reconstructed wallet has same capabilities as original</li>
-</ul>
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-        <th>Attributes</th>
-        
-
-        
-        <th>Default</th>
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>net</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    "main"
-                
-                </td>
-            
-
-            <td class="description last"><p>Network type ('main' for mainnet, 'test' for testnet)</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>shares</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Array.&lt;string></span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                </td>
-            
-
-            <td class="description last"><p>Array of hex-encoded secret shares</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>threshold</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">number</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    2
-                
-                </td>
-            
-
-            <td class="description last"><p>Minimum participants required for operations</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line1110">line 1110</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Throws:</h5>
-<ul>
-        <li>
-
-<dl>
-    <dt>
-        <div class="param-desc">
-        <p>If threshold is greater than number of provided shares</p>
-        </div>
-    </dt>
-    <dd></dd>
-    <dt>
-        <dl>
-            <dt>
-                Type
-            </dt>
-            <dd>
-                
-<span class="param-type">Error</span>
-
-
-            </dd>
-        </dl>
-    </dt>
-    <dd></dd>
-</dl>
-
-</li>
-    
-        <li>
-
-<dl>
-    <dt>
-        <div class="param-desc">
-        <p>If reconstructed public key is invalid</p>
-        </div>
-    </dt>
-    <dd></dd>
-    <dt>
-        <dl>
-            <dt>
-                Type
-            </dt>
-            <dd>
-                
-<span class="param-type">Error</span>
-
-
-            </dd>
-        </dl>
-    </dt>
-    <dd></dd>
-</dl>
-
-</li>
-    </ul>
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    <p>Reconstructed threshold wallet instance</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type"><a href="Non_Custodial_Wallet.html">Non_Custodial_Wallet</a></span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>// Reconstruct 2-of-3 wallet from sharesconst originalShares = [  "79479395a59a8e9d930f2b10ccd5ac3671b0ff0bf8a66aaa1d74978c5353694b",  "98510126c920e18b148130ac1145686cb299d21f0e010b98ede44169a7bb1c13",  "b7428d37e5847f9a8b3d4c2f9a1e5c8d7b4f2a8e9c1d5b7a3f8e2c9d4b6a1f5"];const reconstructedWallet = Non_Custodial_Wallet.fromShares("main", originalShares, 2);console.log('Reconstructed address:', reconstructedWallet.address);</code></pre>
-
-    <pre class="prettyprint"><code>// Partial reconstruction for signing (only threshold shares needed)const originalWallet = Non_Custodial_Wallet.fromRandom("main", 5, 3);const allShares = originalWallet._shares;// Use only 3 shares (minimum threshold)const signingShares = [allShares[0], allShares[2], allShares[4]];const signingWallet = Non_Custodial_Wallet.fromShares("main", signingShares, 3);// Can generate signatures with just threshold sharesconst signature = signingWallet.sign("Authorized payment");</code></pre>
-
-    <pre class="prettyprint"><code>// Corporate recovery scenariofunction recoverCorporateWallet(executiveShares) {  if (executiveShares.length &lt; 3) {    throw new Error("Insufficient executives present for recovery");  }    // Reconstruct wallet from available executive shares  const recoveredWallet = Non_Custodial_Wallet.fromShares(    "main",     executiveShares.slice(0, 3), // Use first 3 available shares    3  );    return recoveredWallet;}</code></pre>
-
-    <pre class="prettyprint"><code>// Cross-platform wallet migration// Export shares from mobile appconst mobileShares = mobileWallet._shares;// Import to desktop applicationconst desktopWallet = Non_Custodial_Wallet.fromShares("main", mobileShares, 2);// Desktop wallet has identical functionalityconsole.log('Same address:', mobileWallet.address === desktopWallet.address); // true</code></pre>
-
-
-
-        
-    
-
-    
-
-    
-</article>
-
-</section>
-
-
-
-
-
-
-
-<section>
-
-<header>
-    
-        <h2><span class="attribs"><span class="type-signature"></span></span>Non_Custodial_Wallet<span class="signature">(net, group_size, threshold)</span><span class="type-signature"></span></h2>
-        
-    
-</header>
-
-<article>
-    <div class="container-overview">
-    
-        
-
-    
-
-    
-    <h4 class="name" id="Non_Custodial_Wallet"><span class="type-signature"></span>new Non_Custodial_Wallet<span class="signature">(net, group_size, threshold)</span><span class="type-signature"></span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Creates a new Non_Custodial_Wallet instance with specified threshold parameters.</p>
-<p>This constructor initializes a threshold signature scheme with the given group size
-and threshold requirements. It automatically generates the distributed key shares
-using JVRSS (Joint Verifiable Random Secret Sharing) and computes the corresponding
-Bitcoin address for receiving payments.</p>
-<p><strong>Initialization Process:</strong></p>
-<ol>
-<li>Validate threshold parameters (t ≤ n, t ≥ 2)</li>
-<li>Execute JVRSS protocol for distributed key generation</li>
-<li>Generate secret shares for each participant</li>
-<li>Compute aggregate public key from polynomial constants</li>
-<li>Derive Bitcoin address from public key</li>
-</ol>
-<p><strong>Parameter Constraints:</strong></p>
-<ul>
-<li>group_size ≥ 2 (minimum meaningful distribution)</li>
-<li>threshold ≥ 2 (minimum security requirement)</li>
-<li>threshold ≤ group_size (cannot exceed total participants)</li>
-<li>Recommended: threshold ≤ (group_size + 1) / 2 for practical usability</li>
-</ul>
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>net</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>Network type ('main' for mainnet, 'test' for testnet)</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>group_size</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">number</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>Total number of participants in the threshold scheme</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>threshold</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">number</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>Minimum number of participants required for operations</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line937">line 937</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Throws:</h5>
-<ul>
-        <li>
-
-<dl>
-    <dt>
-        <div class="param-desc">
-        <p>&quot;Threshold is too high or low&quot; if parameter constraints are violated</p>
-        </div>
-    </dt>
-    <dd></dd>
-    <dt>
-        <dl>
-            <dt>
-                Type
-            </dt>
-            <dd>
-                
-<span class="param-type">Error</span>
-
-
-            </dd>
-        </dl>
-    </dt>
-    <dd></dd>
-</dl>
-
-</li>
-    
-        <li>
-
-<dl>
-    <dt>
-        <div class="param-desc">
-        <p>If network type is not 'main' or 'test'</p>
-        </div>
-    </dt>
-    <dd></dd>
-    <dt>
-        <dl>
-            <dt>
-                Type
-            </dt>
-            <dd>
-                
-<span class="param-type">Error</span>
-
-
-            </dd>
-        </dl>
-    </dt>
-    <dd></dd>
-</dl>
-
-</li>
-    </ul>
-
-
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>// Create a 2-of-3 threshold walletconst wallet = new Non_Custodial_Wallet('main', 3, 2);console.log('Group size:', wallet.group_size);     // 3console.log('Threshold:', wallet.threshold);       // 2console.log('Address:', wallet.address);           // Bitcoin addressconsole.log('Shares:', wallet._shares.length);     // 3 hex-encoded shares</code></pre>
-
-    <pre class="prettyprint"><code>// Corporate wallet with higher securityconst corporateWallet = new Non_Custodial_Wallet('main', 7, 4);// Requires 4 of 7 executives to authorize transactions</code></pre>
-
-    <pre class="prettyprint"><code>// Error handling for invalid parameterstry {  const invalidWallet = new Non_Custodial_Wallet('main', 3, 5); // threshold > group_size} catch (error) {  console.error('Invalid parameters:', error.message);}</code></pre>
-
-
-
-    
-    </div>
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-        <h3 class="subsection-title">Members</h3>
-
-        
-            
-<h4 class="name" id="_privateKey"><span class="type-signature"></span>_privateKey<span class="type-signature"></span></h4>
-
-
-
-
-<div class="description">
-    <p>Gets the reconstructed private key in WIF (Wallet Import Format).</p>
-<p>This getter reconstructs the complete private key from the distributed shares
-and returns it in standard WIF format. This operation defeats the purpose of
-the threshold scheme by centralizing the private key, so it should be used
-with extreme caution and only when absolutely necessary.</p>
-<p><strong>Security Warning:</strong></p>
-<ul>
-<li>Reconstructing the private key eliminates the security benefits of threshold signatures</li>
-<li>The complete private key provides full control over the wallet</li>
-<li>Should only be used for emergency recovery or migration scenarios</li>
-<li>Consider using threshold signatures instead of key reconstruction when possible</li>
-<li>Ensure secure deletion of the reconstructed key after use</li>
-</ul>
-<p><strong>Use Cases:</strong></p>
-<ul>
-<li>Emergency wallet recovery when threshold scheme is no longer viable</li>
-<li>Migration to different wallet software that doesn't support threshold signatures</li>
-<li>Compliance requirements that mandate private key export</li>
-<li>Integration with legacy systems that require WIF private keys</li>
-</ul>
-</div>
-
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line1316">line 1316</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>// Emergency private key extraction (use with caution!)const wallet = Non_Custodial_Wallet.fromRandom("main", 3, 2);// Only use in emergency situationsconsole.warn('Reconstructing private key - this defeats threshold security!');const privateKey = wallet._privateKey;console.log('WIF Private Key:', privateKey);// "L5HgWvFghocq1FmxSjKNaGhVN8f67p6xYg5pY7M8FE77HXwHtGGu"</code></pre>
-
-    <pre class="prettyprint"><code>// Secure private key extraction with cleanupfunction emergencyKeyExtraction(thresholdWallet) {  console.warn('SECURITY WARNING: Extracting private key from threshold wallet');    try {    // Extract private key    const privateKey = thresholdWallet._privateKey;        // Use private key for emergency operation    const emergencyOperation = performEmergencyTransfer(privateKey);        // Clear private key from memory (best effort)    privateKey.fill('\0'); // Overwrite string content        return emergencyOperation;  } catch (error) {    console.error('Private key extraction failed:', error);    throw error;  }}</code></pre>
-
-    <pre class="prettyprint"><code>// Migration to single-key walletconst thresholdWallet = Non_Custodial_Wallet.fromShares("main", shares, 2);// Extract private key for migrationconst migratedPrivateKey = thresholdWallet._privateKey;// Create equivalent single-key walletconst singleKeyWallet = Custodial_Wallet.fromSeed("main",   privateKeyToSeed(migratedPrivateKey));// Verify address consistencyconsole.log('Address match:',   thresholdWallet.address === singleKeyWallet.address); // true</code></pre>
-
-
-
-        
-            
-<h4 class="name" id="_shares"><span class="type-signature"></span>_shares<span class="type-signature"></span></h4>
-
-
-
-
-<div class="description">
-    <p>Gets the secret shares as hex-encoded strings for secure distribution to participants.</p>
-<p>This getter provides access to the distributed secret shares in a format suitable
-for secure transmission and storage. Each share is a hex-encoded string representing
-a point on the secret-sharing polynomial. These shares should be distributed to
-different participants and stored securely.</p>
-<p><strong>Share Properties:</strong></p>
-<ul>
-<li>Each share is cryptographically independent</li>
-<li>Shares are information-theoretically secure (&lt; threshold reveals nothing)</li>
-<li>Hex encoding ensures safe transmission over text-based channels</li>
-<li>Each share is typically 64 hex characters (32 bytes)</li>
-<li>Shares should be transmitted over secure, authenticated channels</li>
-</ul>
-<p><strong>Distribution Best Practices:</strong></p>
-<ul>
-<li>Use secure communication channels (encrypted email, secure messaging)</li>
-<li>Verify recipient identity before share distribution</li>
-<li>Consider using QR codes for offline share transfer</li>
-<li>Implement share backup and recovery procedures</li>
-<li>Document which participant holds which share index</li>
-</ul>
-</div>
-
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line1208">line 1208</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>// Basic share distributionconst wallet = Non_Custodial_Wallet.fromRandom("main", 3, 2);const shares = wallet._shares;console.log('Number of shares:', shares.length); // 3console.log('Share format:', shares[0]);          // "79479395a59a8e9d..."</code></pre>
-
-    <pre class="prettyprint"><code>// Secure share distribution to participantsconst corporateWallet = Non_Custodial_Wallet.fromRandom("main", 5, 3);const executiveShares = corporateWallet._shares;const executives = [  { name: "Alice Johnson", email: "alice@company.com", share: executiveShares[0] },  { name: "Bob Smith", email: "bob@company.com", share: executiveShares[1] },  { name: "Carol Davis", email: "carol@company.com", share: executiveShares[2] },  { name: "Dave Wilson", email: "dave@company.com", share: executiveShares[3] },  { name: "Eve Brown", email: "eve@company.com", share: executiveShares[4] }];// Distribute shares securelyexecutives.forEach(exec => {  sendSecureEmail(exec.email, `Your wallet share: ${exec.share}`);  console.log(`Share distributed to ${exec.name}`);});</code></pre>
-
-    <pre class="prettyprint"><code>// QR code generation for offline distributionconst wallet = Non_Custodial_Wallet.fromRandom("main", 3, 2);const shares = wallet._shares;shares.forEach((share, index) => {  const qrCode = generateQRCode(share);  saveQRCode(qrCode, `share_${index + 1}.png`);  console.log(`QR code generated for share ${index + 1}`);});</code></pre>
-
-    <pre class="prettyprint"><code>// Backup and recovery documentationconst wallet = Non_Custodial_Wallet.fromRandom("main", 5, 3);const shares = wallet._shares;const backupDocument = {  walletAddress: wallet.address,  threshold: wallet.threshold,  totalShares: wallet.group_size,  creationDate: new Date().toISOString(),  shares: shares.map((share, index) => ({    index: index + 1,    share: share,    holder: `Participant ${index + 1}`,    status: 'Active'  }))};// Store backup document securelystoreSecureBackup(JSON.stringify(backupDocument, null, 2));</code></pre>
-
-
-
-        
-            
-<h4 class="name" id="group_size"><span class="type-signature">(readonly) </span>group_size<span class="type-signature"> :number</span></h4>
-
-
-
-
-<div class="description">
-    <p>Total number of participants in the threshold scheme</p>
-</div>
-
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">number</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-    <dt class="inherited-from">Inherited From:</dt>
-    <dd class="inherited-from"><ul class="dummy"><li>
-        <a href="ThresholdSignature.html#group_size">ThresholdSignature#group_size</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_Threshold-signature_threshold_signature.js.html">src/Threshold-signature/threshold_signature.js</a>, <a href="src_Threshold-signature_threshold_signature.js.html#line161">line 161</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-        
-            
-<h4 class="name" id="polynomial_order"><span class="type-signature">(readonly) </span>polynomial_order<span class="type-signature"> :number</span></h4>
-
-
-
-
-<div class="description">
-    <p>Polynomial degree (threshold - 1) for secret sharing</p>
-</div>
-
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">number</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-    <dt class="inherited-from">Inherited From:</dt>
-    <dd class="inherited-from"><ul class="dummy"><li>
-        <a href="ThresholdSignature.html#polynomial_order">ThresholdSignature#polynomial_order</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_Threshold-signature_threshold_signature.js.html">src/Threshold-signature/threshold_signature.js</a>, <a href="src_Threshold-signature_threshold_signature.js.html#line168">line 168</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-        
-            
-<h4 class="name" id="threshold"><span class="type-signature">(readonly) </span>threshold<span class="type-signature"> :number</span></h4>
-
-
-
-
-<div class="description">
-    <p>Minimum number of participants needed for cryptographic operations</p>
-</div>
-
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">number</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-    <dt class="inherited-from">Inherited From:</dt>
-    <dd class="inherited-from"><ul class="dummy"><li>
-        <a href="ThresholdSignature.html#threshold">ThresholdSignature#threshold</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_Threshold-signature_threshold_signature.js.html">src/Threshold-signature/threshold_signature.js</a>, <a href="src_Threshold-signature_threshold_signature.js.html#line175">line 175</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-        
-            
-<h4 class="name" id=".this.net"><span class="type-signature">(static, readonly) </span>this.net<span class="type-signature"> :string</span></h4>
-
-
-
-
-<div class="description">
-    <p>Network type for this threshold wallet instance.
-Determines address formats, version bytes, and network-specific parameters.</p>
-</div>
-
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">string</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line950">line 950</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-    <h5>Example</h5>
-    
-    <pre class="prettyprint"><code>console.log(wallet.net); // "main" or "test"</code></pre>
-
-
-
-        
-    
-
-    
-        <h3 class="subsection-title">Methods</h3>
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id="addss"><span class="type-signature"></span>addss<span class="signature">(a_shares<span class="signature-attributes">opt</span>, b_shares<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {BN}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Additive Secret Sharing (ADDSS) - combines two sets of shares additively</p>
-<p>ADDSS enables secure addition of two shared secrets without revealing
-the individual secrets. Each participant adds their corresponding shares,
-and the result can be reconstructed to obtain the sum of the original secrets.</p>
-<p><strong>Mathematical Foundation:</strong></p>
-<ul>
-<li>If secret A is shared as (a₁, a₂, ..., aₙ)</li>
-<li>And secret B is shared as (b₁, b₂, ..., bₙ)</li>
-<li>Then A + B is shared as (a₁+b₁, a₂+b₂, ..., aₙ+bₙ)</li>
-</ul>
-<p><strong>Applications:</strong></p>
-<ul>
-<li>Combining multiple randomness sources</li>
-<li>Adding constants to shared secrets</li>
-<li>Building complex cryptographic protocols</li>
-<li>Secure multi-party computation primitives</li>
-</ul>
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-        <th>Attributes</th>
-        
-
-        
-        <th>Default</th>
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>a_shares</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Array.&lt;BN></span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    []
-                
-                </td>
-            
-
-            <td class="description last"><p>First set of secret shares</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>b_shares</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Array.&lt;BN></span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    []
-                
-                </td>
-            
-
-            <td class="description last"><p>Second set of secret shares</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-    <dt class="inherited-from">Inherited From:</dt>
-    <dd class="inherited-from"><ul class="dummy"><li>
-        <a href="ThresholdSignature.html#addss">ThresholdSignature#addss</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_Threshold-signature_threshold_signature.js.html">src/Threshold-signature/threshold_signature.js</a>, <a href="src_Threshold-signature_threshold_signature.js.html#line343">line 343</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Throws:</h5>
-
-        
-
-<dl>
-    <dt>
-        <div class="param-desc">
-        <p>If share arrays have different lengths</p>
-        </div>
-    </dt>
-    <dd></dd>
-    <dt>
-        <dl>
-            <dt>
-                Type
-            </dt>
-            <dd>
-                
-<span class="param-type">Error</span>
-
-
-            </dd>
-        </dl>
-    </dt>
-    <dd></dd>
-</dl>
-
-
-    
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    <p>The sum of the two original secrets</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">BN</span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>const tss = new ThresholdSignature(3, 2);// Generate two sets of sharesconst [shares1, _] = tss.jvrss();const [shares2, __] = tss.jvrss();// Add the shared secretsconst sum = tss.addss(shares1, shares2);// Verify: sum should equal individual secret sumconst secret1 = tss.privite_key(shares1);const secret2 = tss.privite_key(shares2);const expectedSum = secret1.add(secret2).umod(N);console.log(sum.eq(expectedSum)); // true</code></pre>
-
-    <pre class="prettyprint"><code>// Adding a constant to a shared secretconst constant = new BN(42);const constantShares = Array(tss.group_size).fill(new BN(0));constantShares[0] = constant; // Only first share gets the constantconst result = tss.addss(tss.shares, constantShares);// result = original_secret + 42</code></pre>
-
-
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id="invss"><span class="type-signature"></span>invss<span class="signature">(a_shares<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Array.&lt;BN>}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Inverse Secret Sharing (INVSS) - computes modular inverse of shared secret</p>
-<p>INVSS computes the modular inverse of a shared secret without revealing the secret.
-This is crucial for threshold ECDSA signatures where we need to compute k⁻¹
-(inverse of the nonce) as part of the signature generation process.</p>
-<p><strong>Algorithm:</strong></p>
-<ol>
-<li>Generate a fresh random secret b using JVRSS</li>
-<li>Compute c = a × b using PROSS (where a is the input secret)</li>
-<li>Reconstruct c (this reveals c but not a or b individually)</li>
-<li>Compute c⁻¹ using standard modular inverse</li>
-<li>Multiply b shares by c⁻¹ to get shares of a⁻¹</li>
-</ol>
-<p><strong>Security:</strong></p>
-<ul>
-<li>The intermediate value c is revealed but provides no information about a</li>
-<li>The randomness b masks the original secret a</li>
-<li>Final result is properly shared according to the threshold scheme</li>
-</ul>
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-        <th>Attributes</th>
-        
-
-        
-        <th>Default</th>
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>a_shares</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Array.&lt;BN></span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    []
-                
-                </td>
-            
-
-            <td class="description last"><p>Shares of the secret to invert</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-    <dt class="inherited-from">Inherited From:</dt>
-    <dd class="inherited-from"><ul class="dummy"><li>
-        <a href="ThresholdSignature.html#invss">ThresholdSignature#invss</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_Threshold-signature_threshold_signature.js.html">src/Threshold-signature/threshold_signature.js</a>, <a href="src_Threshold-signature_threshold_signature.js.html#line466">line 466</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    <p>Shares of the modular inverse of the original secret</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">Array.&lt;BN></span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>const tss = new ThresholdSignature(5, 3);// Compute inverse of shared secretconst inverseShares = tss.invss(tss.shares);// Verify: secret × inverse = 1 (mod N)const product = tss.pross(tss.shares, inverseShares);console.log(product.eq(new BN(1))); // true</code></pre>
-
-    <pre class="prettyprint"><code>// Use in threshold signature (simplified)const message = Buffer.from("Hello World!");const msgHash = new BN(createHash('sha256').update(message).digest());// Generate nonce sharesconst [kShares, kPubKey] = tss.jvrss();// Compute inverse of nonceconst kInvShares = tss.invss(kShares);// This would be used in signature computation// s = k⁻¹(hash + r × private_key)</code></pre>
-
-
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id="jvrss"><span class="type-signature"></span>jvrss<span class="signature">()</span><span class="type-signature"> &rarr; {Array|Array.&lt;BN>|Object}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Joint Verifiable Random Secret Sharing (JVRSS) protocol implementation</p>
-<p>JVRSS is the core protocol for distributed key generation without a trusted dealer.
-It combines multiple random polynomials from all participants to create a
-shared secret that no single party knows or can control.</p>
-<p><strong>Protocol Steps:</strong></p>
-<ol>
-<li><strong>Polynomial Generation</strong>: Each participant conceptually generates a random polynomial</li>
-<li><strong>Share Distribution</strong>: Each polynomial contributes to every participant's final share</li>
-<li><strong>Linear Combination</strong>: Shares are combined additively to create the final distribution</li>
-<li><strong>Public Key Derivation</strong>: The aggregate public key is computed from polynomial constants</li>
-</ol>
-<p><strong>Security Properties:</strong></p>
-<ul>
-<li>No single participant controls the final secret</li>
-<li>The secret is uniformly random over the field</li>
-<li>Shares are properly distributed according to Shamir's scheme</li>
-<li>Public key is verifiable and corresponds to the shared secret</li>
-</ul>
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-    <dt class="inherited-from">Inherited From:</dt>
-    <dd class="inherited-from"><ul class="dummy"><li>
-        <a href="ThresholdSignature.html#jvrss">ThresholdSignature#jvrss</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_Threshold-signature_threshold_signature.js.html">src/Threshold-signature/threshold_signature.js</a>, <a href="src_Threshold-signature_threshold_signature.js.html#line267">line 267</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-<ul>
-        <li>
-<div class="param-desc">
-    <p>Tuple containing shares array and aggregate public key</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">Array</span>
-
-
-    </dd>
-</dl>
-</li>
-    
-        <li>
-<div class="param-desc">
-    <p>returns.0 - Array of secret shares for each participant</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">Array.&lt;BN></span>
-
-
-    </dd>
-</dl>
-</li>
-    
-        <li>
-<div class="param-desc">
-    <p>returns.1 - Aggregate elliptic curve public key point</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">Object</span>
-
-
-    </dd>
-</dl>
-</li>
-    </ul>
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>const tss = new ThresholdSignature(5, 3);const [shares, publicKey] = tss.jvrss();console.log(shares.length);        // 5 sharesconsole.log(publicKey.constructor.name); // ProjectivePoint// Shares are properly distributedconst points = tss.shares_to_points(shares);const secret = Polynomial.interpolate_evaluate(points, 0);const derivedPubKey = secp256k1.ProjectivePoint.fromPrivateKey(secret.toBuffer());// Public keys should matchconsole.log(publicKey.equals(derivedPubKey)); // true</code></pre>
-
-    <pre class="prettyprint"><code>// Manual JVRSS execution for understandingconst groupSize = 3, threshold = 2;const polynomials = Array(groupSize).fill(null)  .map(() => Polynomial.fromRandom(threshold - 1));// Each participant's share is sum of evaluationslet manualShares = Array(groupSize).fill(new BN(0));for (let i = 0; i &lt; groupSize; i++) {  for (let j = 0; j &lt; groupSize; j++) {    manualShares[j] = manualShares[j].add(polynomials[i].evaluate(j + 1));  }}// This produces the same result as jvrss()</code></pre>
-
-
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id="privite_key"><span class="type-signature"></span>privite_key<span class="signature">(a_shares<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {BN}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Reconstructs the private key from secret shares using polynomial interpolation</p>
-<p>This method recovers the original private key from the distributed shares.
-It should be used with caution as it reconstructs the full private key,
-defeating the purpose of the threshold scheme. Typically used only for
-specific operations like computing WIF format or for emergency recovery.</p>
-<p><strong>Security Warning:</strong></p>
-<ul>
-<li>Reconstructing the private key centralizes control</li>
-<li>Should only be done when absolutely necessary</li>
-<li>Consider using threshold operations instead when possible</li>
-<li>Ensure secure deletion of reconstructed key after use</li>
-</ul>
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-        <th>Attributes</th>
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>a_shares</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Array.&lt;BN></span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-
-            <td class="description last"><p>Secret shares to reconstruct from (defaults to this.shares)</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-    <dt class="inherited-from">Inherited From:</dt>
-    <dd class="inherited-from"><ul class="dummy"><li>
-        <a href="ThresholdSignature.html#privite_key">ThresholdSignature#privite_key</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_Threshold-signature_threshold_signature.js.html">src/Threshold-signature/threshold_signature.js</a>, <a href="src_Threshold-signature_threshold_signature.js.html#line537">line 537</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    <p>The reconstructed private key as a BigNumber</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">BN</span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>const tss = new ThresholdSignature(3, 2);// Reconstruct private key (use with caution!)const privateKey = tss.privite_key();// Verify it corresponds to the public keyconst derivedPubKey = secp256k1.ProjectivePoint.fromPrivateKey(privateKey.toBuffer());console.log(derivedPubKey.equals(tss.public_key)); // true</code></pre>
-
-    <pre class="prettyprint"><code>// Partial reconstruction with threshold shares onlyconst thresholdShares = tss.shares.slice(0, tss.threshold);const partialKey = tss.privite_key(thresholdShares);// Should equal full reconstructionconst fullKey = tss.privite_key();console.log(partialKey.eq(fullKey)); // true</code></pre>
-
-    <pre class="prettyprint"><code>// Emergency recovery scenariofunction emergencyRecovery(shareHolders) {  if (shareHolders.length &lt; tss.threshold) {    throw new Error("Insufficient shares for recovery");  }    const recoveredKey = tss.privite_key(shareHolders.slice(0, tss.threshold));    // Use recovered key for emergency operations  // ... perform emergency actions ...    // Securely delete the key  recoveredKey.fill(0);}</code></pre>
-
-
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id="pross"><span class="type-signature"></span>pross<span class="signature">(a_shares<span class="signature-attributes">opt</span>, b_shares<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {BN}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Polynomial Reconstruction Secret Sharing (PROSS) - computes product of shared secrets</p>
-<p>PROSS enables secure multiplication of two shared secrets. This is more complex
-than addition because the product of two degree-t polynomials yields a degree-2t
-polynomial, requiring more shares for reconstruction.</p>
-<p><strong>Mathematical Foundation:</strong></p>
-<ul>
-<li>Product of degree-t polynomials has degree 2t</li>
-<li>Requires 2t+1 shares for reconstruction (vs t+1 for addition)</li>
-<li>Uses polynomial interpolation on the product values</li>
-<li>Result is the product of the original secrets</li>
-</ul>
-<p><strong>Security Note:</strong></p>
-<ul>
-<li>Requires more participants for security than addition</li>
-<li>Product shares reveal more information than additive shares</li>
-<li>Should be used carefully in cryptographic protocols</li>
-</ul>
-<p><strong>Applications:</strong></p>
-<ul>
-<li>Computing multiplicative inverses (used in INVSS)</li>
-<li>Secure polynomial evaluation</li>
-<li>Advanced threshold cryptographic protocols</li>
-<li>Zero-knowledge proof systems</li>
-</ul>
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-        <th>Attributes</th>
-        
-
-        
-        <th>Default</th>
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>a_shares</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Array.&lt;BN></span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    []
-                
-                </td>
-            
-
-            <td class="description last"><p>First set of secret shares</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>b_shares</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Array.&lt;BN></span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    []
-                
-                </td>
-            
-
-            <td class="description last"><p>Second set of secret shares</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-    <dt class="inherited-from">Inherited From:</dt>
-    <dd class="inherited-from"><ul class="dummy"><li>
-        <a href="ThresholdSignature.html#pross">ThresholdSignature#pross</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_Threshold-signature_threshold_signature.js.html">src/Threshold-signature/threshold_signature.js</a>, <a href="src_Threshold-signature_threshold_signature.js.html#line407">line 407</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    <p>The product of the two original secrets</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">BN</span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>const tss = new ThresholdSignature(5, 2); // Need larger group for PROSS// Generate two secretsconst [shares1, _] = tss.jvrss();const [shares2, __] = tss.jvrss();// Compute productconst product = tss.pross(shares1, shares2);// Verify resultconst secret1 = tss.privite_key(shares1);const secret2 = tss.privite_key(shares2);const expectedProduct = secret1.mul(secret2).umod(N);console.log(product.eq(expectedProduct)); // true</code></pre>
-
-    <pre class="prettyprint"><code>// Squaring a shared secretconst squared = tss.pross(tss.shares, tss.shares);const originalSecret = tss.privite_key();const expectedSquare = originalSecret.mul(originalSecret).umod(N);console.log(squared.eq(expectedSquare)); // true</code></pre>
-
-
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id="shares_to_points"><span class="type-signature"></span>shares_to_points<span class="signature">(shares<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {<a href="global.html#SharePoints">SharePoints</a>}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Converts share values to coordinate points for polynomial interpolation</p>
-<p>Transforms an array of share values into the coordinate format required
-for Lagrange interpolation. Each share at index i becomes a point (i+1, share)
-since polynomial evaluation uses 1-based indexing (x=0 is reserved for secrets).</p>
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-        <th>Attributes</th>
-        
-
-        
-        <th>Default</th>
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>shares</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Array.&lt;BN></span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    []
-                
-                </td>
-            
-
-            <td class="description last"><p>Array of BigNumber share values to convert</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-    <dt class="inherited-from">Inherited From:</dt>
-    <dd class="inherited-from"><ul class="dummy"><li>
-        <a href="ThresholdSignature.html#shares_to_points">ThresholdSignature#shares_to_points</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_Threshold-signature_threshold_signature.js.html">src/Threshold-signature/threshold_signature.js</a>, <a href="src_Threshold-signature_threshold_signature.js.html#line210">line 210</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    <p>Array of [x, y] coordinate pairs for interpolation</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type"><a href="global.html#SharePoints">SharePoints</a></span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>const tss = new ThresholdSignature(3, 2);const points = tss.shares_to_points(tss.shares);console.log(points);// [[1, share1_value], [2, share2_value], [3, share3_value]]// Use for secret reconstructionconst secret = Polynomial.interpolate_evaluate(points, 0);</code></pre>
-
-    <pre class="prettyprint"><code>// Partial reconstruction with threshold sharesconst partialShares = tss.shares.slice(0, tss.threshold);const thresholdPoints = tss.shares_to_points(partialShares);const reconstructed = Polynomial.interpolate_evaluate(thresholdPoints, 0);</code></pre>
-
-
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id="sign"><span class="type-signature"></span>sign<span class="signature">(message)</span><span class="type-signature"> &rarr; {<a href="global.html#ThresholdSignatureResult">ThresholdSignatureResult</a>}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Generates a threshold signature for a given message</p>
-<p>This is the core method that produces threshold ECDSA signatures. The signature
-is generated collaboratively using the threshold scheme without reconstructing
-the private key. The process follows the threshold ECDSA protocol:</p>
-<p><strong>Threshold ECDSA Algorithm:</strong></p>
-<ol>
-<li><strong>Nonce Generation</strong>: Create shared random nonce k using JVRSS</li>
-<li><strong>R Value Computation</strong>: Compute R = k×G and extract r = R.x mod n</li>
-<li><strong>Inverse Computation</strong>: Compute k⁻¹ using INVSS without revealing k</li>
-<li><strong>Signature Shares</strong>: Each party computes their share of s = k⁻¹(hash + r×private)</li>
-<li><strong>Reconstruction</strong>: Combine shares to get final signature (r, s)</li>
-<li><strong>Validation</strong>: Ensure signature is valid and non-zero</li>
-</ol>
-<p><strong>Security Properties:</strong></p>
-<ul>
-<li>Private key never reconstructed during signing</li>
-<li>Nonce is generated distributively and remains secret</li>
-<li>Resulting signature is indistinguishable from single-party ECDSA</li>
-<li>Compatible with standard ECDSA verification</li>
-</ul>
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>message</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>Message to sign (will be SHA256 hashed)</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-    <dt class="inherited-from">Inherited From:</dt>
-    <dd class="inherited-from"><ul class="dummy"><li>
-        <a href="ThresholdSignature.html#sign">ThresholdSignature#sign</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_Threshold-signature_threshold_signature.js.html">src/Threshold-signature/threshold_signature.js</a>, <a href="src_Threshold-signature_threshold_signature.js.html#line612">line 612</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    <p>Complete signature with metadata</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type"><a href="global.html#ThresholdSignatureResult">ThresholdSignatureResult</a></span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>const tss = new ThresholdSignature(3, 2);// Generate threshold signatureconst signature = tss.sign("Transfer $1000 to Alice");console.log(signature.sig.r);           // BigInt r valueconsole.log(signature.sig.s);           // BigInt s value  console.log(signature.serialized_sig);  // Base64 compact formatconsole.log(signature.recovery_id);     // 0-3 for public key recovery// Verify signatureconst isValid = ThresholdSignature.verify_threshold_signature(  tss.public_key,  signature.msgHash,  signature.sig);console.log(isValid); // true</code></pre>
-
-    <pre class="prettyprint"><code>// Corporate authorization workflowconst corporateTSS = new ThresholdSignature(5, 3);const authMessage = JSON.stringify({  action: "wire_transfer",  amount: 1000000,  recipient: "operations_account",  timestamp: Date.now()});const authorization = corporateTSS.sign(authMessage);console.log("Authorization signature:", authorization.serialized_sig);</code></pre>
-
-    <pre class="prettyprint"><code>// Escrow release with buyer + sellerconst escrowTSS = new ThresholdSignature(3, 2);const releaseMessage = "Release escrow funds to seller";const escrowSignature = escrowTSS.sign(releaseMessage);// This signature can be verified by anyoneconst verified = ThresholdSignature.verify_threshold_signature(  escrowTSS.public_key,  escrowSignature.msgHash,  escrowSignature.sig);</code></pre>
-
-
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id="verify"><span class="type-signature"></span>verify<span class="signature">(sig, msgHash)</span><span class="type-signature"> &rarr; {boolean}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Verifies a threshold signature against the original message hash.</p>
-<p>This method performs cryptographic verification of threshold signatures using
-standard ECDSA verification. Threshold signatures are mathematically equivalent
-to single-party ECDSA signatures, so they can be verified using standard
-verification algorithms without knowledge of the threshold scheme.</p>
-<p><strong>Verification Process:</strong></p>
-<ol>
-<li>Parse signature into r and s components</li>
-<li>Validate signature components are within valid ranges</li>
-<li>Compute verification equation using aggregate public key</li>
-<li>Check that computed point matches signature r value</li>
-<li>Return boolean result of verification</li>
-</ol>
-<p><strong>Compatibility:</strong></p>
-<ul>
-<li>Compatible with standard ECDSA verification</li>
-<li>Can be verified by any Bitcoin-compatible software</li>
-<li>Third parties don't need knowledge of threshold scheme</li>
-<li>Signatures are indistinguishable from single-party signatures</li>
-</ul>
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>sig</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Object</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>Signature object with r and s properties (BigInt values)</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>msgHash</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Buffer</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>SHA256 hash of the original message (32 bytes)</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line1431">line 1431</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Throws:</h5>
-<ul>
-        <li>
-
-<dl>
-    <dt>
-        <div class="param-desc">
-        <p>If signature format is invalid</p>
-        </div>
-    </dt>
-    <dd></dd>
-    <dt>
-        <dl>
-            <dt>
-                Type
-            </dt>
-            <dd>
-                
-<span class="param-type">Error</span>
-
-
-            </dd>
-        </dl>
-    </dt>
-    <dd></dd>
-</dl>
-
-</li>
-    
-        <li>
-
-<dl>
-    <dt>
-        <div class="param-desc">
-        <p>If message hash is not 32 bytes</p>
-        </div>
-    </dt>
-    <dd></dd>
-    <dt>
-        <dl>
-            <dt>
-                Type
-            </dt>
-            <dd>
-                
-<span class="param-type">Error</span>
-
-
-            </dd>
-        </dl>
-    </dt>
-    <dd></dd>
-</dl>
-
-</li>
-    </ul>
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    <p>True if signature is valid for this wallet's public key, false otherwise</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">boolean</span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>// Basic threshold signature verificationconst wallet = Non_Custodial_Wallet.fromRandom("main", 3, 2);const message = "Multi-party authorization required";// Generate threshold signatureconst signature = wallet.sign(message);// Verify signatureconst isValid = wallet.verify(signature.sig, signature.msgHash);console.log('Threshold signature valid:', isValid); // true</code></pre>
-
-    <pre class="prettyprint"><code>// Cross-verification with different wallet instancesconst originalWallet = Non_Custodial_Wallet.fromRandom("main", 5, 3);const shares = originalWallet._shares;// Create signing wallet with threshold sharesconst signingWallet = Non_Custodial_Wallet.fromShares("main", shares.slice(0, 3), 3);// Create verification wallet with different sharesconst verifyingWallet = Non_Custodial_Wallet.fromShares("main", shares.slice(2, 5), 3);const message = "Cross-wallet verification test";const signature = signingWallet.sign(message);// Both wallets should verify the same signatureconst valid1 = signingWallet.verify(signature.sig, signature.msgHash);const valid2 = verifyingWallet.verify(signature.sig, signature.msgHash);console.log('Both verify same:', valid1 === valid2 &amp;&amp; valid1 === true); // true</code></pre>
-
-    <pre class="prettyprint"><code>// Third-party verification without threshold knowledgefunction verifyPaymentAuthorization(publicKeyHex, messageHash, signature) {  // This function doesn't know about threshold signatures  // It just uses standard ECDSA verification    const publicKey = secp256k1.ProjectivePoint.fromHex(publicKeyHex);  return ThresholdSignature.verify_threshold_signature(publicKey, messageHash, signature);}const wallet = Non_Custodial_Wallet.fromRandom("main", 3, 2);const authorization = wallet.sign("Payment approved: $10,000");// Third party can verify without knowing about threshold schemeconst thirdPartyVerification = verifyPaymentAuthorization(  wallet.publicKey,  authorization.msgHash,  authorization.sig);console.log('Third party verification:', thirdPartyVerification); // true</code></pre>
-
-    <pre class="prettyprint"><code>// Batch verification for audit trailconst wallet = Non_Custodial_Wallet.fromRandom("main", 5, 3);const transactions = [  "Transfer $1000 to Account A",  "Transfer $2000 to Account B",   "Transfer $3000 to Account C"];// Generate signatures for all transactionsconst signedTransactions = transactions.map(tx => {  const signature = wallet.sign(tx);  return {    transaction: tx,    signature: signature.sig,    messageHash: signature.msgHash  };});// Verify all signaturesconst allValid = signedTransactions.every(item =>  wallet.verify(item.signature, item.messageHash));console.log('All transactions valid:', allValid); // true</code></pre>
-
-
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id=".fromRandom"><span class="type-signature">(static) </span>fromRandom<span class="signature">(net<span class="signature-attributes">opt</span>, group_size<span class="signature-attributes">opt</span>, threshold<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {<a href="Non_Custodial_Wallet.html">Non_Custodial_Wallet</a>}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Generates a new random threshold wallet with specified parameters.</p>
-<p>This static factory method creates a fresh threshold signature scheme using
-cryptographically secure randomness. It initializes the distributed key generation
-protocol and produces a complete threshold wallet ready for multi-party operations.</p>
-<p><strong>Generation Process:</strong></p>
-<ol>
-<li>Create new threshold signature instance with specified parameters</li>
-<li>Execute JVRSS for distributed key generation</li>
-<li>Generate secret shares for all participants</li>
-<li>Compute aggregate public key and Bitcoin address</li>
-<li>Return initialized wallet instance</li>
-</ol>
-<p><strong>Security Properties:</strong></p>
-<ul>
-<li>Uses cryptographically secure random number generation</li>
-<li>No participant has knowledge of the complete private key</li>
-<li>Secret shares are information-theoretically secure</li>
-<li>Aggregate public key is verifiable and deterministic</li>
-</ul>
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-        <th>Attributes</th>
-        
-
-        
-        <th>Default</th>
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>net</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    "main"
-                
-                </td>
-            
-
-            <td class="description last"><p>Network type ('main' for mainnet, 'test' for testnet)</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>group_size</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">number</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    3
-                
-                </td>
-            
-
-            <td class="description last"><p>Total number of participants in the scheme</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>threshold</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">number</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    2
-                
-                </td>
-            
-
-            <td class="description last"><p>Minimum participants needed for signature generation</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line1021">line 1021</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Throws:</h5>
-<ul>
-        <li>
-
-<dl>
-    <dt>
-        <div class="param-desc">
-        <p>&quot;Threshold is too high or low&quot; if constraints are violated</p>
-        </div>
-    </dt>
-    <dd></dd>
-    <dt>
-        <dl>
-            <dt>
-                Type
-            </dt>
-            <dd>
-                
-<span class="param-type">Error</span>
-
-
-            </dd>
-        </dl>
-    </dt>
-    <dd></dd>
-</dl>
-
-</li>
-    
-        <li>
-
-<dl>
-    <dt>
-        <div class="param-desc">
-        <p>If network parameter is invalid</p>
-        </div>
-    </dt>
-    <dd></dd>
-    <dt>
-        <dl>
-            <dt>
-                Type
-            </dt>
-            <dd>
-                
-<span class="param-type">Error</span>
-
-
-            </dd>
-        </dl>
-    </dt>
-    <dd></dd>
-</dl>
-
-</li>
-    </ul>
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    <p>New threshold wallet instance</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type"><a href="Non_Custodial_Wallet.html">Non_Custodial_Wallet</a></span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>// Standard 2-of-3 multi-signature walletconst multiSigWallet = Non_Custodial_Wallet.fromRandom("main", 3, 2);console.log('Multi-sig address:', multiSigWallet.address);// Get shares for distributionconst [share1, share2, share3] = multiSigWallet._shares;console.log('Share 1:', share1); // Hex-encoded secret share</code></pre>
-
-    <pre class="prettyprint"><code>// Corporate treasury wallet (3-of-5)const treasuryWallet = Non_Custodial_Wallet.fromRandom("main", 5, 3);const executiveShares = treasuryWallet._shares;// Distribute shares to executivesconst shareDistribution = [  { executive: "CEO", share: executiveShares[0] },  { executive: "CFO", share: executiveShares[1] },  { executive: "COO", share: executiveShares[2] },  { executive: "CTO", share: executiveShares[3] },  { executive: "Board Rep", share: executiveShares[4] }];</code></pre>
-
-    <pre class="prettyprint"><code>// High-security vault (5-of-9)const vaultWallet = Non_Custodial_Wallet.fromRandom("main", 9, 5);console.log(`Vault requires ${vaultWallet.threshold} of ${vaultWallet.group_size} participants`);// Example distribution across different security zonesconst vaultShares = vaultWallet._shares;const securityZones = [  { zone: "Primary Datacenter", shares: vaultShares.slice(0, 3) },  { zone: "Secondary Datacenter", shares: vaultShares.slice(3, 6) },  { zone: "Offline Storage", shares: vaultShares.slice(6, 9) }];</code></pre>
-
-
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id=".fromShares"><span class="type-signature">(static) </span>fromShares<span class="signature">(net<span class="signature-attributes">opt</span>, shares, threshold<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {<a href="Non_Custodial_Wallet.html">Non_Custodial_Wallet</a>}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Reconstructs a threshold wallet from existing secret shares.</p>
-<p>This static factory method rebuilds a threshold wallet from previously distributed
-secret shares. It's used when participants want to reconstruct the wallet for
-signature generation or when migrating shares between systems. The method validates
-share consistency and reconstructs the public key and address.</p>
-<p><strong>Reconstruction Process:</strong></p>
-<ol>
-<li>Create new threshold instance with matching parameters</li>
-<li>Convert hex-encoded shares to BigNumber format</li>
-<li>Reconstruct the aggregate public key from shares</li>
-<li>Derive Bitcoin address from reconstructed public key</li>
-<li>Validate share consistency and threshold requirements</li>
-</ol>
-<p><strong>Security Considerations:</strong></p>
-<ul>
-<li>Only provided shares are used; missing shares remain unknown</li>
-<li>Threshold requirement still applies for signature generation</li>
-<li>Share authenticity should be verified through secure channels</li>
-<li>Reconstructed wallet has same capabilities as original</li>
-</ul>
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-        <th>Attributes</th>
-        
-
-        
-        <th>Default</th>
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>net</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    "main"
-                
-                </td>
-            
-
-            <td class="description last"><p>Network type ('main' for mainnet, 'test' for testnet)</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>shares</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Array.&lt;string></span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                </td>
-            
-
-            <td class="description last"><p>Array of hex-encoded secret shares</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>threshold</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">number</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-                <td class="default">
-                
-                    2
-                
-                </td>
-            
-
-            <td class="description last"><p>Minimum participants required for operations</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="src_wallet.js.html">src/wallet.js</a>, <a href="src_wallet.js.html#line1110">line 1110</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Throws:</h5>
-<ul>
-        <li>
-
-<dl>
-    <dt>
-        <div class="param-desc">
-        <p>If threshold is greater than number of provided shares</p>
-        </div>
-    </dt>
-    <dd></dd>
-    <dt>
-        <dl>
-            <dt>
-                Type
-            </dt>
-            <dd>
-                
-<span class="param-type">Error</span>
-
-
-            </dd>
-        </dl>
-    </dt>
-    <dd></dd>
-</dl>
-
-</li>
-    
-        <li>
-
-<dl>
-    <dt>
-        <div class="param-desc">
-        <p>If reconstructed public key is invalid</p>
-        </div>
-    </dt>
-    <dd></dd>
-    <dt>
-        <dl>
-            <dt>
-                Type
-            </dt>
-            <dd>
-                
-<span class="param-type">Error</span>
-
-
-            </dd>
-        </dl>
-    </dt>
-    <dd></dd>
-</dl>
-
-</li>
-    </ul>
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    <p>Reconstructed threshold wallet instance</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type"><a href="Non_Custodial_Wallet.html">Non_Custodial_Wallet</a></span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-    <h5>Examples</h5>
-    
-    <pre class="prettyprint"><code>// Reconstruct 2-of-3 wallet from sharesconst originalShares = [  "79479395a59a8e9d930f2b10ccd5ac3671b0ff0bf8a66aaa1d74978c5353694b",  "98510126c920e18b148130ac1145686cb299d21f0e010b98ede44169a7bb1c13",  "b7428d37e5847f9a8b3d4c2f9a1e5c8d7b4f2a8e9c1d5b7a3f8e2c9d4b6a1f5"];const reconstructedWallet = Non_Custodial_Wallet.fromShares("main", originalShares, 2);console.log('Reconstructed address:', reconstructedWallet.address);</code></pre>
-
-    <pre class="prettyprint"><code>// Partial reconstruction for signing (only threshold shares needed)const originalWallet = Non_Custodial_Wallet.fromRandom("main", 5, 3);const allShares = originalWallet._shares;// Use only 3 shares (minimum threshold)const signingShares = [allShares[0], allShares[2], allShares[4]];const signingWallet = Non_Custodial_Wallet.fromShares("main", signingShares, 3);// Can generate signatures with just threshold sharesconst signature = signingWallet.sign("Authorized payment");</code></pre>
-
-    <pre class="prettyprint"><code>// Corporate recovery scenariofunction recoverCorporateWallet(executiveShares) {  if (executiveShares.length &lt; 3) {    throw new Error("Insufficient executives present for recovery");  }    // Reconstruct wallet from available executive shares  const recoveredWallet = Non_Custodial_Wallet.fromShares(    "main",     executiveShares.slice(0, 3), // Use first 3 available shares    3  );    return recoveredWallet;}</code></pre>
-
-    <pre class="prettyprint"><code>// Cross-platform wallet migration// Export shares from mobile appconst mobileShares = mobileWallet._shares;// Import to desktop applicationconst desktopWallet = Non_Custodial_Wallet.fromShares("main", mobileShares, 2);// Desktop wallet has identical functionalityconsole.log('Same address:', mobileWallet.address === desktopWallet.address); // true</code></pre>
-
-
-
-        
-    
-
-    
-
-    
-</article>
-
-</section>
-
-
-
-
-</div>
-
-<nav>
-    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="AddressFormats.html">AddressFormats</a></li><li><a href="BECH32.html">BECH32</a></li><li><a href="BIP32.html">BIP32</a></li><li><a href="BIP39.html">BIP39</a></li><li><a href="CASH_ADDR.html">CASH_ADDR</a></li><li><a href="ECDSA.html">ECDSA</a></li><li><a href="KeyDecoding.html">KeyDecoding</a></li><li><a href="Signatures.html">Signatures</a></li><li><a href="ThresholdCrypto.html">ThresholdCrypto</a></li><li><a href="Utilities.html">Utilities</a></li><li><a href="Wallets.html">Wallets</a></li><li><a href="schnorr_sig.html">schnorr_sig</a></li></ul><h3>Classes</h3><ul><li><a href="Custodial_Wallet.html">Custodial_Wallet</a></li><li><a href="Non_Custodial_Wallet.html">Non_Custodial_Wallet</a></li><li><a href="Polynomial.html">Polynomial</a></li><li><a href="ThresholdSignature.html">ThresholdSignature</a></li></ul><h3>Global</h3><ul><li><a href="global.html#CHARSET">CHARSET</a></li><li><a href="global.html#FEATURES">FEATURES</a></li><li><a href="global.html#NETWORKS">NETWORKS</a></li><li><a href="global.html#address">address</a></li><li><a href="global.html#b58encode">b58encode</a></li><li><a href="global.html#base32_encode">base32_encode</a></li><li><a href="global.html#derive">derive</a></li><li><a href="global.html#fromSeed">fromSeed</a></li><li><a href="global.html#hdKey">hdKey</a></li><li><a href="global.html#legacyAddress_decode">legacyAddress_decode</a></li><li><a href="global.html#privateKey_decode">privateKey_decode</a></li><li><a href="global.html#rmd160">rmd160</a></li><li><a href="global.html#standardKey">standardKey</a></li><li><a href="global.html#table">table</a></li></ul>
-</nav>
-
-<br class="clear">
-
-<footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Wed Jun 04 2025 02:28:50 GMT-0400 (Eastern Daylight Time)
-</footer>
-
-<script> prettyPrint(); </script>
-<script src="scripts/linenumber.js"> </script>
-</body>
-</html>
