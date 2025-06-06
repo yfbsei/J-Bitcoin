@@ -192,3 +192,4 @@ certificates/
 # Local testing
 test-wallet-*
 local-test-*
+/tests
