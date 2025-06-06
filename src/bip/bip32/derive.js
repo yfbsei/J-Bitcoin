@@ -15,10 +15,11 @@
 import { createHmac, createHash } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 
-import rmd160 from '../core/crypto/hash/ripemd160.js';
 import { secp256k1 } from '@noble/curves/secp256k1';
-import { hdKey } from '../Encoding utilities/Encode Keys.js';
 import BN from 'bn.js';
+
+import rmd160 from '../../core/crypto/hash/ripemd160.js';
+import { encodeExtendedKey } from '../../encoding/address/encode.js';
 
 /**
  * @typedef {Object} DerivedKeyPair
@@ -236,9 +237,9 @@ const derive = (path, key = '', serialization_format) => {
     return [
         {
             // Extended private key (null if derived from public key only)
-            HDpri: keyType ? hdKey('pri', serialization_format) : null,
+            HDpri: keyType ? encodeExtendedKey('pri', serialization_format) : null,
             // Extended public key (always available)
-            HDpub: hdKey('pub', serialization_format),
+            HDpub: encodeExtendedKey('pub', serialization_format),
         },
         serialization_format  // Updated format for further derivations
     ];

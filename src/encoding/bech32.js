@@ -13,8 +13,9 @@
  * @version 2.0.0
  */
 
-import { decode_legacy_address, convertBits, checksum_5bit } from '../Decoding utilities/Address decode.js';
-import base32_encode from '../Encoding utilities/Base32.js';
+import { decodeLegacyAddress } from '../encoding/address/decode.js';
+import { convertBitGroups, convertChecksumTo5Bit } from '../utils/address-helpers.js'
+import base32_encode from '../encoding/base32.js';
 
 /**
  * Bech32 and Bech32m address encoding utilities for Bitcoin SegWit addresses
@@ -70,7 +71,7 @@ const BECH32 = {
 		// Combine data with checksum (excluding first 2 bytes from template)
 		const payload = Buffer.concat([
 			data, // Original data
-			checksum_5bit(checksum).subarray(2) // 6-byte checksum
+			convertChecksumTo5Bit(checksum).subarray(2) // 6-byte checksum
 		]);
 
 		// Return complete address: HRP + "1" + Base32(data+checksum)
@@ -159,11 +160,11 @@ const BECH32 = {
 	 */
 	to_P2WPKH(witness_program = "legacy address") {
 		// Decode legacy address to get network prefix and hash160
-		let [btc_prefix, hash] = decode_legacy_address(witness_program);
+		let [btc_prefix, hash] = decodeLegacyAddress(witness_program);
 
 		// Convert hash from hex string to buffer, then to 5-bit representation
 		hash = Buffer.from(hash, 'hex');
-		hash = convertBits(hash, 8, 5); // Convert to 5 bits per group
+		hash = convertBitGroups(hash, 8, 5); // Convert to 5 bits per group
 
 		// Create witness program: version 0 + converted hash
 		const data = Buffer.concat([Buffer.from([0]), hash]);
@@ -195,7 +196,7 @@ const BECH32 = {
 	data_to_bech32(prefix = "Jamallo", data = "hex", encoding = 'bech32') {
 		// Convert hex string to buffer and then to 5-bit representation
 		const hex_to_buffer = Buffer.from(data, 'hex');
-		data = convertBits(hex_to_buffer, 8, 5);
+		data = convertBitGroups(hex_to_buffer, 8, 5);
 
 		// Validate total length: 2*prefix + 1 separator + data + 6 checksum ≤ 90
 		const len = 2 * prefix.length + 1 + data.length + 6;

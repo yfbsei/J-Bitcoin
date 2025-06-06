@@ -17,6 +17,8 @@ import { base58_to_binary } from 'base58-js';
 import {
     decodeLegacyAddress,
     validateAndDecodeLegacyAddress,
+    decodeWIFPrivateKey,
+    decodeLegacyAddressHash,
     detectAddressFormat
 } from '../../utils/address-helpers.js';
 import {
@@ -91,7 +93,7 @@ import {
  * console.log('Is compressed:', decoded.isCompressed); // false
  * console.log('Format:', decoded.format); // "wif"
  */
-export function decodeWIFPrivateKey(wifPrivateKey) {
+function decodeWIFPrivateKey(wifPrivateKey) {
     // Validate input
     if (!wifPrivateKey || typeof wifPrivateKey !== 'string') {
         throw new Error('WIF private key must be a non-empty string');
@@ -161,7 +163,7 @@ export function decodeWIFPrivateKey(wifPrivateKey) {
  * const decoded = decodeHexPrivateKey(hexKey);
  * console.log('Key material:', decoded.keyMaterial);
  */
-export function decodeHexPrivateKey(hexPrivateKey) {
+function decodeHexPrivateKey(hexPrivateKey) {
     // Validate input
     if (!hexPrivateKey || typeof hexPrivateKey !== 'string') {
         throw new Error('Hex private key must be a non-empty string');
@@ -219,7 +221,7 @@ export function decodeHexPrivateKey(hexPrivateKey) {
  * console.log('Address type:', decoded.addressType); // "P2SH"
  * console.log('Network:', decoded.network); // "testnet"
  */
-export function decodeLegacyAddressComplete(legacyAddress) {
+function decodeLegacyAddressComplete(legacyAddress) {
     // Validate input
     if (!legacyAddress || typeof legacyAddress !== 'string') {
         throw new Error('Legacy address must be a non-empty string');
@@ -265,7 +267,7 @@ export function decodeLegacyAddressComplete(legacyAddress) {
  * const hexDecoded = decodePrivateKeyAuto("e8f32e723decf4051aefac8e2c93c9c5b214313817cdb01a1494b917c8436b35");
  * console.log('Detected format:', hexDecoded.format); // "hex"
  */
-export function decodePrivateKeyAuto(privateKey) {
+function decodePrivateKeyAuto(privateKey) {
     // Handle Buffer input
     if (Buffer.isBuffer(privateKey)) {
         if (privateKey.length !== CRYPTO_CONSTANTS.PRIVATE_KEY_LENGTH) {
@@ -315,7 +317,7 @@ export function decodePrivateKeyAuto(privateKey) {
  * console.log('Detected format:', decoded.format); // "legacy"
  * console.log('Address type:', decoded.addressType); // "P2PKH"
  */
-export function decodeAddressAuto(address) {
+function decodeAddressAuto(address) {
     // Validate input
     if (!address || typeof address !== 'string') {
         throw new Error('Address must be a non-empty string');
@@ -339,18 +341,13 @@ export function decodeAddressAuto(address) {
     }
 }
 
-/**
- * Legacy function aliases for backwards compatibility
- */
-export const privateKey_decode = decodeWIFPrivateKey;
-export const legacyAddress_decode = function (legacyAddress) {
-    const decoded = decodeLegacyAddressComplete(legacyAddress);
-    return decoded.hash160;
-};
+// privateKey_decode, legacyAddress_decode
+export { decodeWIFPrivateKey, decodeLegacyAddressComplete, decodeAddressAuto, decodePrivateKeyAuto }
 
 // Re-export helper functions for convenience
 export {
     decodeLegacyAddress,
     validateAndDecodeLegacyAddress,
-    detectAddressFormat
+    decodeWIFPrivateKey,
+    decodeLegacyAddressHash,
 } from '../../utils/address-helpers.js';

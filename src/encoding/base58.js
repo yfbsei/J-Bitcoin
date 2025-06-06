@@ -12,8 +12,8 @@
  * @version 1.0.0
  */
 
-import { binary_to_base58 } from 'base58-js';
 import { createHash } from 'node:crypto';
+import { binary_to_base58 } from 'base58-js';
 
 /**
  * Base58 alphabet used by Bitcoin (excludes confusing characters 0, O, I, l)

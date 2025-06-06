@@ -11,7 +11,7 @@
  */
 
 import { secp256k1 } from '@noble/curves/secp256k1';
-import { privateKey_decode } from '../../../encoding/address/Decode keys.js';
+import { decodeWIFPrivateKey } from '../../../encoding/address/decode.js';
 
 /**
  * @typedef {Array} ECDSASignatureResult
@@ -64,7 +64,7 @@ const ECDSA = {
      */
     sign(private_key = "L1vHfV6GUbMJSvFaqjnButzwq5x4ThdFaotpUgsfScwMNKjdGVuS", msg = "Hello world") {
         msg = Buffer.from(msg);
-        private_key = privateKey_decode(private_key);
+        private_key = decodeWIFPrivateKey(private_key);
         const signature = secp256k1.sign(msg, private_key);
         return [signature.toCompactRawBytes(), signature.recovery || 0];
     },
@@ -112,7 +112,7 @@ const ECDSA = {
      * const recoveredPubKey = ECDSA.retrieve_public_key(message, signature, recoveryId);
      * 
      * // The recovered public key should match the original
-     * const originalPubKey = getPublicKey(privateKey_decode(privateKey), true);
+     * const originalPubKey = getPublicKey(decodeWIFPrivateKey(privateKey), true);
      * console.log(Buffer.from(recoveredPubKey).equals(Buffer.from(originalPubKey))); // true
      */
     retrieve_public_key(msg = "Hello world", sig, recovery = 0) {

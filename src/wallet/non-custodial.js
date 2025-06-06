@@ -10,8 +10,8 @@
  * @since 1.0.0
  * 
  * @requires ThresholdSignature
- * @requires standardKey
- * @requires address
+ * @requires encodeStandardKeys
+ * @requires generateAddressFromExtendedVersion
  * @requires bn.js
  * @requires @noble/curves/secp256k1
  * 
@@ -23,7 +23,9 @@
  * const thresholdWallet = Non_Custodial_Wallet.fromRandom('main', 3, 2);
  */
 
-import { standardKey, address } from '../encoding/address/encode Keys.js';
+import { secp256k1 } from '@noble/curves/secp256k1';
+import BN from 'bn.js';
+
 import {
     BIP44_CONSTANTS,
     DERIVATION_PATHS,
@@ -35,9 +37,9 @@ import {
     isValidBitcoinPath,
     getNetworkByCoinType
 } from '../Constants.js';
+
+import { encodeStandardKeys, generateAddressFromExtendedVersion } from '../encoding/address/encode.js';
 import ThresholdSignature from "../core/crypto/signatures/threshold/threshold-signature.js";
-import BN from 'bn.js';
-import { secp256k1 } from '@noble/curves/secp256k1';
 
 /**
  * @typedef {Object} ThresholdSignatureResult
@@ -333,7 +335,7 @@ class Non_Custodial_Wallet extends ThresholdSignature {
 
         return [
             this.public_key.toHex(true),
-            address(versionByte, pubKeyToBuff)
+            generateAddressFromExtendedVersion(versionByte, pubKeyToBuff)
         ];
     }
 
@@ -379,7 +381,7 @@ class Non_Custodial_Wallet extends ThresholdSignature {
             key: this.privite_key().toBuffer(),
             versionByteNum: this.net === 'main' ? 0x80 : 0xef
         }
-        return standardKey(privKey, undefined).pri;
+        return encodeStandardKeys(privKey, undefined).pri;
     }
 
     /**

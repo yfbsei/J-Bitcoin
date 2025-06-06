@@ -14,8 +14,9 @@
 import { createHmac } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 
-import { encodeExtendedKey } from '../encoding/address/encode.js';
 import { secp256k1 } from '@noble/curves/secp256k1';
+
+import { encodeExtendedKey } from '../../encoding/address/encode.js';
 import {
 	BIP32_CONSTANTS,
 	NETWORK_VERSIONS,
@@ -131,7 +132,7 @@ import {
  * - Total function execution: ~2-3ms typically
  * - Results should be cached for applications requiring frequent access
  */
-export function generateMasterKey(seedHex, network = 'main') {
+function generateMasterKey(seedHex, network = 'main') {
 	// Validate inputs
 	if (!seedHex || typeof seedHex !== 'string') {
 		throw new Error('Seed is required and must be a hex string');
@@ -222,27 +223,6 @@ export function generateMasterKey(seedHex, network = 'main') {
 		},
 		masterKeyContext  // Internal context for child key derivation
 	];
-}
-
-/**
- * Generate master key directly from BIP39 mnemonic phrase
- * 
- * Convenience function that combines BIP39 seed derivation with BIP32 master key generation.
- * 
- * @param {string} mnemonicPhrase - BIP39 mnemonic phrase
- * @param {string} [passphrase=''] - Optional passphrase for seed derivation
- * @param {string} [network='main'] - Network type
- * @returns {MasterKeyResult} Master key result
- * 
- * @example
- * const mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
- * const [keys, context] = generateMasterKeyFromMnemonic(mnemonic, "", "main");
- */
-export function generateMasterKeyFromMnemonic(mnemonicPhrase, passphrase = '', network = 'main') {
-	// Import BIP39 dynamically to avoid circular dependencies
-	const BIP39 = require('../bip/bip39/mnemonic.js').default;
-	const seedHex = BIP39.mnemonicToSeed(mnemonicPhrase, passphrase);
-	return generateMasterKey(seedHex, network);
 }
 
 export default generateMasterKey;

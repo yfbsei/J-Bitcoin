@@ -61,7 +61,7 @@ import {
  * console.log(testnetDecoded.network); // "testnet"
  * console.log(testnetDecoded.prefix);  // "tb"
  */
-export function decodeLegacyAddress(legacyAddress) {
+function decodeLegacyAddress(legacyAddress) {
     if (!legacyAddress || typeof legacyAddress !== 'string') {
         throw new Error('Legacy address must be a non-empty string');
     }
@@ -158,7 +158,7 @@ export function decodeLegacyAddress(legacyAddress) {
  * const backToBytes = convertBitGroups(fiveBit, 5, 8, false);
  * console.log(Array.from(backToBytes)); // [255, 128]
  */
-export function convertBitGroups(inputData, fromBits, toBits, addPadding = true) {
+function convertBitGroups(inputData, fromBits, toBits, addPadding = true) {
     // Validate input parameters
     if (!inputData || inputData.length === 0) {
         throw new Error('Input data cannot be empty');
@@ -254,7 +254,7 @@ export function convertBitGroups(inputData, fromBits, toBits, addPadding = true)
  * const fiveBitGroups = convertChecksumTo5Bit(checksumValue, 6);
  * const base32String = fiveBitGroups.map(val => 'qpzry9x8gf2tvdw0s3jn54khce6mua7l'[val]).join('');
  */
-export function convertChecksumTo5Bit(checksum, outputLength = 8) {
+function convertChecksumTo5Bit(checksum, outputLength = 8) {
     if (typeof checksum !== 'number' && typeof checksum !== 'bigint') {
         throw new Error(`Checksum must be number or bigint, got ${typeof checksum}`);
     }
@@ -298,7 +298,7 @@ export function convertChecksumTo5Bit(checksum, outputLength = 8) {
  *   console.error('Invalid address:', error.message);
  * }
  */
-export function validateAndDecodeLegacyAddress(address) {
+function validateAndDecodeLegacyAddress(address) {
     // Basic string validation
     if (!address || typeof address !== 'string') {
         throw new Error('Address must be a non-empty string');
@@ -337,7 +337,7 @@ export function validateAndDecodeLegacyAddress(address) {
  * console.log(segwitInfo);
  * // { format: 'segwit', network: 'mainnet', type: 'P2WPKH' }
  */
-export function detectAddressFormat(address) {
+function detectAddressFormat(address) {
     if (!address || typeof address !== 'string') {
         return { format: 'unknown', network: 'unknown', type: 'unknown' };
     }
@@ -392,7 +392,7 @@ export function detectAddressFormat(address) {
  * const normalized = normalizeAddress("  1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2  ");
  * console.log(normalized); // "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2"
  */
-export function normalizeAddress(address) {
+function normalizeAddress(address) {
     if (!address || typeof address !== 'string') {
         throw new Error('Address must be a non-empty string');
     }
@@ -423,7 +423,7 @@ export function normalizeAddress(address) {
  * const addr2 = "  1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2  ";
  * console.log(compareAddresses(addr1, addr2)); // true
  */
-export function compareAddresses(address1, address2) {
+function compareAddresses(address1, address2) {
     try {
         const normalized1 = normalizeAddress(address1);
         const normalized2 = normalizeAddress(address2);
@@ -443,7 +443,7 @@ export function compareAddresses(address1, address2) {
  * console.log(getNetworkFromAddress("1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2")); // "mainnet"
  * console.log(getNetworkFromAddress("tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx")); // "testnet"
  */
-export function getNetworkFromAddress(address) {
+function getNetworkFromAddress(address) {
     const formatInfo = detectAddressFormat(address);
     return formatInfo.network;
 }
@@ -459,7 +459,7 @@ export function getNetworkFromAddress(address) {
  * const isMainnet = isAddressForNetwork("1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2", "mainnet");
  * console.log(isMainnet); // true
  */
-export function isAddressForNetwork(address, expectedNetwork) {
+function isAddressForNetwork(address, expectedNetwork) {
     const actualNetwork = getNetworkFromAddress(address);
     return actualNetwork === expectedNetwork;
 }
@@ -470,7 +470,7 @@ export function isAddressForNetwork(address, expectedNetwork) {
  * @param {string} wifPrivateKey - WIF private key
  * @returns {Uint8Array} Raw private key bytes
  */
-export function decodeWIFPrivateKey(wifPrivateKey) {
+function decodeWIFPrivateKey(wifPrivateKey) {
     try {
         const decoded = base58_to_binary(wifPrivateKey);
         // Extract private key bytes (skip version byte and suffix)
@@ -486,7 +486,7 @@ export function decodeWIFPrivateKey(wifPrivateKey) {
  * @param {string} legacyAddress - Legacy address
  * @returns {Uint8Array} Hash160 bytes
  */
-export function decodeLegacyAddressHash(legacyAddress) {
+function decodeLegacyAddressHash(legacyAddress) {
     try {
         const decoded = base58_to_binary(legacyAddress);
         // Extract hash160 (skip version byte and checksum)
@@ -496,12 +496,16 @@ export function decodeLegacyAddressHash(legacyAddress) {
     }
 }
 
-/**
- * Legacy function aliases for backwards compatibility
- * Maps old function names to new function names
- */
-export const decode_legacy_address = decodeLegacyAddress;
-export const convertBits = convertBitGroups;
-export const checksum_5bit = convertChecksumTo5Bit;
-export const privateKey_decode = decodeWIFPrivateKey;
-export const legacyAddress_decode = decodeLegacyAddressHash;
+export {
+    decodeLegacyAddress, // decode_legacy_address
+    convertBitGroups, // convertBits
+    convertChecksumTo5Bit, // checksum_5bit
+    validateAndDecodeLegacyAddress,
+    detectAddressFormat,
+    normalizeAddress,
+    compareAddresses,
+    getNetworkFromAddress,
+    isAddressForNetwork,
+    decodeWIFPrivateKey, // privateKey_decode
+    decodeLegacyAddressHash // legacyAddress_decode
+};

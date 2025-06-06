@@ -13,8 +13,10 @@
  */
 
 import { randomBytes } from 'node:crypto';
+
 import { schnorr } from '@noble/curves/secp256k1';
-import { privateKey_decode } from '../../../encoding/address/Decode keys.js';
+
+import { decodeWIFPrivateKey } from '../../../encoding/address/decode.js';
 
 /**
  * Schnorr signature operations for Bitcoin according to BIP340
@@ -82,7 +84,7 @@ const schnorr_sig = {
      */
     sign(private_key = "L1vHfV6GUbMJSvFaqjnButzwq5x4ThdFaotpUgsfScwMNKjdGVuS", msg = "Hello world", auxRand = randomBytes(32)) {
         msg = Buffer.from(msg);
-        private_key = privateKey_decode(private_key);
+        private_key = decodeWIFPrivateKey(private_key);
         return schnorr.sign(msg, private_key, auxRand)
     },
 
@@ -156,7 +158,7 @@ const schnorr_sig = {
      * console.log(Buffer.from(publicKey).equals(Buffer.from(otherPubKey))); // false
      */
     retrieve_public_key(private_key = "L1vHfV6GUbMJSvFaqjnButzwq5x4ThdFaotpUgsfScwMNKjdGVuS") {
-        private_key = privateKey_decode(private_key);
+        private_key = decodeWIFPrivateKey(private_key);
         return schnorr.getPublicKey(private_key)
     }
 }

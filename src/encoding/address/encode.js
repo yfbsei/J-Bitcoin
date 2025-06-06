@@ -96,7 +96,7 @@ import {
  * console.log(extendedPublicKey);
  * // "xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8"
  */
-export function encodeExtendedKey(keyType, keyContext) {
+function encodeExtendedKey(keyType, keyContext) {
 	// Validate input parameters
 	if (keyType !== 'private' && keyType !== 'public') {
 		throw new Error(`Invalid keyType: ${keyType}. Must be 'private' or 'public'`);
@@ -218,7 +218,7 @@ export function encodeExtendedKey(keyType, keyContext) {
  * console.log(keyPair.publicKeyHex);
  * // "0339a36013301597daef41fbe593a02cc513d0b55527ec2df1050e2e8ff49c85c2"
  */
-export function encodeStandardKeys(privateKeyData = false, publicKeyData = null) {
+function encodeStandardKeys(privateKeyData = false, publicKeyData = null) {
 	let privateKeyWIF = null;
 
 	// Encode private key in WIF format if provided
@@ -295,7 +295,7 @@ export function encodeStandardKeys(privateKeyData = false, publicKeyData = null)
  * console.log(testnetAddress);
  * // "mhiH7BQkmD7LoosHhAAH5nE9YKGUcPz4hV" (testnet address starting with "m")
  */
-export function generateAddress(networkVersionByte, publicKeyBuffer) {
+function generateAddress(networkVersionByte, publicKeyBuffer) {
 	// Validate inputs
 	if (!publicKeyBuffer || !Buffer.isBuffer(publicKeyBuffer)) {
 		throw new Error('Public key must be a valid Buffer');
@@ -337,7 +337,7 @@ export function generateAddress(networkVersionByte, publicKeyBuffer) {
  *   publicKeyBuffer
  * );
  */
-export function generateAddressFromExtendedVersion(extendedKeyVersion, publicKeyBuffer) {
+function generateAddressFromExtendedVersion(extendedKeyVersion, publicKeyBuffer) {
 	let addressVersionByte;
 
 	// Map extended key version to address version
@@ -364,14 +364,15 @@ export function generateAddressFromExtendedVersion(extendedKeyVersion, publicKey
  * const fingerprint = createPublicKeyFingerprint(publicKeyBuffer);
  * console.log(fingerprint.toString('hex')); // "5c1bd648"
  */
-export function createPublicKeyFingerprint(publicKeyBuffer) {
+function createPublicKeyFingerprint(publicKeyBuffer) {
 	const hash160Buffer = hash160(createHash('sha256').update(publicKeyBuffer).digest());
 	return hash160Buffer.slice(0, 4);
 }
 
-// Export legacy aliases for backwards compatibility
 export {
-	encodeExtendedKey as hdKey,
-	encodeStandardKeys as standardKey,
-	generateAddressFromExtendedVersion as address
+	encodeExtendedKey, //hd key
+	encodeStandardKeys, // standardKey
+	generateAddress,
+	generateAddressFromExtendedVersion, // address
+	createPublicKeyFingerprint
 };

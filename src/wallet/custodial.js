@@ -9,12 +9,12 @@
  * @version 2.0.0
  * @since 1.0.0
  * 
- * @requires fromSeed
+ * @requires generateMasterKey
  * @requires derive
  * @requires bip39
  * @requires ecdsa
- * @requires standardKey
- * @requires address
+ * @requires encodeStandardKeys
+ * @requires generateAddressFromExtendedVersion
  * 
  * @example
  * // Import custodial wallet
@@ -24,12 +24,6 @@
  * const [mnemonic, custodialWallet] = Custodial_Wallet.fromRandom('main');
  */
 
-import fromSeed from '../BIP32/From Seed.js';
-import derive from '../BIP32/Derive.js';
-import bip39 from '../bip/bip39/mnemonic.js';
-import ecdsa from '../core/crypto/signatures/ecdsa.js';
-
-import { standardKey, address } from '../encoding/address/encode Keys.js';
 import {
     BIP44_CONSTANTS,
     DERIVATION_PATHS,
@@ -41,6 +35,13 @@ import {
     isValidBitcoinPath,
     getNetworkByCoinType
 } from '../Constants.js';
+
+import generateMasterKey from '../bip/bip32/master-key.js';
+import derive from '../bip/bip32/derive.js';
+import bip39 from '../bip/bip39/mnemonic.js';
+import ecdsa from '../core/crypto/signatures/ecdsa.js';
+
+import { encodeStandardKeys, generateAddressFromExtendedVersion } from '../encoding/address/encode.js';
 
 /**
  * @typedef {Object} HDKeys
@@ -339,7 +340,7 @@ class Custodial_Wallet {
      */
     static fromRandom(net = 'main', passphrase = '') {
         const { mnemonic, seed } = bip39.random(passphrase);
-        return [mnemonic, this.fromSeed(net, seed)];
+        return [mnemonic, this.generateMasterKey(net, seed)];
     }
 
     /**
@@ -387,7 +388,7 @@ class Custodial_Wallet {
      */
     static fromMnemonic(net = 'main', mnemonic = '', passphrase = '') {
         const seed = bip39.mnemonic2seed(mnemonic, passphrase);
-        return this.fromSeed(net, seed);
+        return this.generateMasterKey(net, seed);
     }
 
     /**
@@ -427,13 +428,13 @@ class Custodial_Wallet {
      * console.log('Seed-derived address:', wallet.address);
      */
     static fromSeed(net = 'main', seed = "000102030405060708090a0b0c0d0e0f") {
-        const [hdKey, serialization_format] = fromSeed(seed, net);
+        const [hdKey, serialization_format] = generateMasterKey(seed, net);
         return new this(
             net,
             {
                 hdKey,
-                keypair: standardKey(serialization_format.privKey, serialization_format.pubKey),
-                address: address(serialization_format.versionByte.pubKey, serialization_format.pubKey.key)
+                keypair: encodeStandardKeys(serialization_format.privKey, serialization_format.pubKey),
+                address: generateAddressFromExtendedVersion(serialization_format.versionByte.pubKey, serialization_format.pubKey.key)
             },
             serialization_format
         );
@@ -505,8 +506,8 @@ class Custodial_Wallet {
             depth: serialization_format.depth,
             childIndex: serialization_format.childIndex,
             hdKey,
-            keypair: standardKey(keyType !== 'pub' ? serialization_format.privKey : false, serialization_format.pubKey),
-            address: address(serialization_format.versionByte.pubKey, serialization_format.pubKey.key),
+            keypair: encodeStandardKeys(keyType !== 'pub' ? serialization_format.privKey : false, serialization_format.pubKey),
+            address: generateAddressFromExtendedVersion(serialization_format.versionByte.pubKey, serialization_format.pubKey.key),
             derivationPath: path,
             pathInfo
         });

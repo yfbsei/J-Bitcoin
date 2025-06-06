@@ -13,7 +13,7 @@
  * Bitcoin network version bytes for different key and address formats
  * @constant {Object}
  */
-export const NETWORK_VERSIONS = {
+const NETWORK_VERSIONS = {
     MAINNET: {
         EXTENDED_PRIVATE_KEY: 0x0488ade4,
         EXTENDED_PUBLIC_KEY: 0x0488b21e,
@@ -34,7 +34,7 @@ export const NETWORK_VERSIONS = {
  * BIP44 hierarchical deterministic wallet constants
  * @namespace BIP44_CONSTANTS
  */
-export const BIP44_CONSTANTS = {
+const BIP44_CONSTANTS = {
     /**
      * BIP44 purpose field - indicates BIP44 compliance
      * @constant {number}
@@ -74,7 +74,7 @@ export const BIP44_CONSTANTS = {
  * Standard Bitcoin derivation paths for common use cases
  * @namespace DERIVATION_PATHS
  */
-export const DERIVATION_PATHS = {
+const DERIVATION_PATHS = {
     /** Root path for Bitcoin mainnet accounts */
     BITCOIN_LEGACY_ROOT: "m/44'/0'/0'",
     /** Root path for Bitcoin testnet accounts */
@@ -97,7 +97,7 @@ export const DERIVATION_PATHS = {
  * Comprehensive Bitcoin network configuration details
  * @namespace BITCOIN_NETWORKS
  */
-export const BITCOIN_NETWORKS = {
+const BITCOIN_NETWORKS = {
     /**
      * Bitcoin mainnet configuration
      * @namespace MAINNET
@@ -151,7 +151,7 @@ export const BITCOIN_NETWORKS = {
  * Cryptographic constants for secp256k1 and Bitcoin operations
  * @namespace CRYPTO_CONSTANTS
  */
-export const CRYPTO_CONSTANTS = {
+const CRYPTO_CONSTANTS = {
     /** secp256k1 curve order as hex string */
     SECP256K1_ORDER: "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141",
     /** Private key length in bytes */
@@ -176,7 +176,7 @@ export const CRYPTO_CONSTANTS = {
  * BIP32 hierarchical deterministic wallet constants
  * @namespace BIP32_CONSTANTS
  */
-export const BIP32_CONSTANTS = {
+const BIP32_CONSTANTS = {
     /** Master key depth in derivation tree */
     MASTER_KEY_DEPTH: 0,
     /** Parent fingerprint for master keys (all zeros) */
@@ -195,7 +195,7 @@ export const BIP32_CONSTANTS = {
  * BIP39 mnemonic phrase constants
  * @namespace BIP39_CONSTANTS
  */
-export const BIP39_CONSTANTS = {
+const BIP39_CONSTANTS = {
     /** Entropy bits for 12-word mnemonic */
     ENTROPY_BITS: 128,
     /** Checksum bits for validation */
@@ -216,7 +216,7 @@ export const BIP39_CONSTANTS = {
  * Address format identifiers
  * @namespace ADDRESS_FORMATS
  */
-export const ADDRESS_FORMATS = {
+const ADDRESS_FORMATS = {
     /** Legacy P2PKH format */
     LEGACY: 'legacy',
     /** SegWit Bech32 format */
@@ -231,7 +231,7 @@ export const ADDRESS_FORMATS = {
  * Standard BIP purposes for different address types
  * @namespace BIP_PURPOSES
  */
-export const BIP_PURPOSES = {
+const BIP_PURPOSES = {
     /** BIP44 - Legacy P2PKH addresses */
     LEGACY: 44,
     /** BIP49 - P2WPKH-nested-in-P2SH addresses */
@@ -246,7 +246,7 @@ export const BIP_PURPOSES = {
  * Base58 and Base32 encoding constants
  * @namespace ENCODING_CONSTANTS
  */
-export const ENCODING_CONSTANTS = {
+const ENCODING_CONSTANTS = {
     /** Base58 alphabet used by Bitcoin (excludes 0, O, I, l) */
     BASE58_ALPHABET: "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz",
     /** Base32 alphabet for Bech32 encoding */
@@ -262,7 +262,7 @@ export const ENCODING_CONSTANTS = {
  * Threshold signature scheme constants
  * @namespace THRESHOLD_CONSTANTS
  */
-export const THRESHOLD_CONSTANTS = {
+const THRESHOLD_CONSTANTS = {
     /** Minimum participants for meaningful threshold scheme */
     MIN_PARTICIPANTS: 2,
     /** Minimum threshold for security */
@@ -294,7 +294,7 @@ export const THRESHOLD_CONSTANTS = {
  * });
  * // Returns: "m/44'/0'/0'/0/0"
  */
-export function generateDerivationPath({
+function generateDerivationPath({
     purpose = BIP_PURPOSES.LEGACY,
     coinType = BIP44_CONSTANTS.COIN_TYPES.BITCOIN_MAINNET,
     account = BIP44_CONSTANTS.DEFAULT_ACCOUNT,
@@ -327,7 +327,7 @@ export function generateDerivationPath({
  * //   addressIndex: 5
  * // }
  */
-export function parseDerivationPath(derivationPath) {
+function parseDerivationPath(derivationPath) {
     const BIP44_PATH_REGEX = /^m\/(\d+)'\/(\d+)'\/(\d+)'\/(\d+)\/(\d+)$/;
     const match = derivationPath.match(BIP44_PATH_REGEX);
 
@@ -353,7 +353,7 @@ export function parseDerivationPath(derivationPath) {
  * console.log(isValidBitcoinPath("m/44'/0'/0'/0/0")); // true
  * console.log(isValidBitcoinPath("m/44'/145'/0'/0/0")); // false (BCH coin type)
  */
-export function isValidBitcoinPath(derivationPath) {
+function isValidBitcoinPath(derivationPath) {
     try {
         const pathComponents = parseDerivationPath(derivationPath);
         const validCoinTypes = [
@@ -376,7 +376,7 @@ export function isValidBitcoinPath(derivationPath) {
  * const mainnetConfig = getNetworkConfiguration(0);
  * console.log(mainnetConfig.name); // "Bitcoin"
  */
-export function getNetworkConfiguration(coinType) {
+function getNetworkConfiguration(coinType) {
     switch (coinType) {
         case BIP44_CONSTANTS.COIN_TYPES.BITCOIN_MAINNET:
             return BITCOIN_NETWORKS.MAINNET;
@@ -401,7 +401,7 @@ export function getNetworkConfiguration(coinType) {
  * const config = validateAndGetNetwork('main');
  * console.log(config.name); // "Bitcoin"
  */
-export function validateAndGetNetwork(network) {
+function validateAndGetNetwork(network) {
     switch (network) {
         case 'main':
             return BITCOIN_NETWORKS.MAINNET;
@@ -413,3 +413,22 @@ export function validateAndGetNetwork(network) {
             );
     }
 }
+
+export {
+    NETWORK_VERSIONS,
+    BIP44_CONSTANTS,
+    DERIVATION_PATHS,
+    BITCOIN_NETWORKS,
+    CRYPTO_CONSTANTS,
+    BIP32_CONSTANTS,
+    BIP39_CONSTANTS,
+    ADDRESS_FORMATS,
+    BIP_PURPOSES,
+    ENCODING_CONSTANTS,
+    THRESHOLD_CONSTANTS,
+    generateDerivationPath,
+    parseDerivationPath,
+    isValidBitcoinPath,
+    getNetworkConfiguration,
+    validateAndGetNetwork
+};

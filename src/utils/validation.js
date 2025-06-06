@@ -40,7 +40,7 @@ import {
  *   console.error('Invalid network:', result.error);
  * }
  */
-export function validateNetwork(network) {
+function validateNetwork(network) {
     if (typeof network !== 'string') {
         return {
             isValid: false,
@@ -76,7 +76,7 @@ export function validateNetwork(network) {
  *   console.log('Valid hex:', result.data.buffer);
  * }
  */
-export function validateHexString(hexString, expectedLength, fieldName = 'hex string') {
+function validateHexString(hexString, expectedLength, fieldName = 'hex string') {
     if (typeof hexString !== 'string') {
         return {
             isValid: false,
@@ -135,7 +135,7 @@ export function validateHexString(hexString, expectedLength, fieldName = 'hex st
  *   console.log('Raw bytes:', result.data.buffer);
  * }
  */
-export function validatePrivateKey(privateKey, format = 'auto') {
+function validatePrivateKey(privateKey, format = 'auto') {
     if (Buffer.isBuffer(privateKey)) {
         if (privateKey.length !== CRYPTO_CONSTANTS.PRIVATE_KEY_LENGTH) {
             return {
@@ -230,7 +230,7 @@ export function validatePrivateKey(privateKey, format = 'auto') {
  *   console.log('Is Bitcoin path:', result.data.isBitcoinPath);
  * }
  */
-export function validateDerivationPath(derivationPath, bitcoinOnly = true) {
+function validateDerivationPath(derivationPath, bitcoinOnly = true) {
     if (typeof derivationPath !== 'string') {
         return {
             isValid: false,
@@ -278,7 +278,7 @@ export function validateDerivationPath(derivationPath, bitcoinOnly = true) {
  *   console.log('Valid 2-of-3 threshold scheme');
  * }
  */
-export function validateThresholdParams(participantCount, requiredSigners) {
+function validateThresholdParams(participantCount, requiredSigners) {
     if (!Number.isInteger(participantCount) || participantCount < 0) {
         return {
             isValid: false,
@@ -344,7 +344,7 @@ export function validateThresholdParams(participantCount, requiredSigners) {
  *   console.log('Valid mnemonic with', result.data.wordCount, 'words');
  * }
  */
-export function validateMnemonic(mnemonic, wordlist) {
+function validateMnemonic(mnemonic, wordlist) {
     if (typeof mnemonic !== 'string') {
         return {
             isValid: false,
@@ -393,7 +393,7 @@ export function validateMnemonic(mnemonic, wordlist) {
  *   console.log('Network:', result.data.network);
  * }
  */
-export function validateAddress(address) {
+function validateAddress(address) {
     if (typeof address !== 'string') {
         return {
             isValid: false,
@@ -462,7 +462,7 @@ export function validateAddress(address) {
  * @param {string} fieldName - Field name for error messages
  * @returns {ValidationResult} Validation result
  */
-export function validateBufferLength(buffer, expectedLength, fieldName) {
+function validateBufferLength(buffer, expectedLength, fieldName) {
     if (!Buffer.isBuffer(buffer)) {
         return {
             isValid: false,
@@ -492,7 +492,7 @@ export function validateBufferLength(buffer, expectedLength, fieldName) {
  * @param {string} fieldName - Field name for error messages
  * @returns {ValidationResult} Validation result
  */
-export function validateNumberRange(value, min, max, fieldName) {
+function validateNumberRange(value, min, max, fieldName) {
     if (typeof value !== 'number' || !Number.isFinite(value)) {
         return {
             isValid: false,
@@ -523,8 +523,21 @@ export function validateNumberRange(value, min, max, fieldName) {
  * const result = validateNetwork('invalid');
  * assertValid(result); // Throws error with descriptive message
  */
-export function assertValid(result) {
+function assertValid(result) {
     if (!result.isValid) {
         throw new Error(result.error);
     }
 }
+
+export {
+    validateNetwork,
+    validateHexString,
+    validatePrivateKey,
+    validateDerivationPath,
+    validateThresholdParams,
+    validateMnemonic,
+    validateAddress,
+    validateBufferLength,
+    validateNumberRange,
+    assertValid
+};

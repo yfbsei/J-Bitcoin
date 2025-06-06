@@ -22,19 +22,15 @@
  * @version 2.0.0
  */
 
-import Polynomial from './polynomial.js';
-import { secp256k1 } from '@noble/curves/secp256k1';
-import BN from 'bn.js';
 import { createHash } from 'node:crypto';
+
+import { secp256k1 } from '@noble/curves/secp256k1';
 import { bufToBigint } from 'bigint-conversion';
-import {
-	CRYPTO_CONSTANTS,
-	THRESHOLD_CONSTANTS
-} from '../../../constants.js';
-import {
-	validateThresholdParams,
-	assertValid
-} from '../../../../utils/validation.js';
+import BN from 'bn.js';
+
+import Polynomial from './polynomial.js';
+import { CRYPTO_CONSTANTS, THRESHOLD_CONSTANTS } from '../../../constants.js';
+import { validateThresholdParams, assertValid } from '../../../../utils/validation.js';
 
 /**
  * secp256k1 curve order for modular arithmetic
