@@ -11,7 +11,7 @@
  */
 
 import { secp256k1 } from '@noble/curves/secp256k1';
-import { privateKey_decode } from '../utilities/decodeKeys.js';
+import { privateKey_decode } from '../Decoding utilities/Decode keys.js';
 
 /**
  * @typedef {Array} ECDSASignatureResult

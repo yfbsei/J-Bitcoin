@@ -14,8 +14,8 @@
  */
 
 import { createHash } from 'node:crypto';
-import b58encode from './base58.js';
-import rmd160 from './rmd160.js';
+import b58encode from './Base58.js';
+import rmd160 from '../Cryptographic Functions/RMD160.js';
 
 /**
  * @typedef {Object} VersionBytes

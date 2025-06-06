@@ -19,7 +19,7 @@ export const BIP44_CONSTANTS = {
      * @constant {number}
      */
     PURPOSE: 44,
-    
+
     /**
      * Bitcoin coin type identifiers for BIP44 derivation
      * @namespace COIN_TYPES
@@ -30,13 +30,13 @@ export const BIP44_CONSTANTS = {
         /** Bitcoin testnet coin type */
         BITCOIN_TESTNET: 1
     },
-    
+
     /**
      * Default account index for new wallets
      * @constant {number}
      */
     ACCOUNT: 0,
-    
+
     /**
      * Change derivation constants
      * @namespace CHANGE
@@ -97,7 +97,7 @@ export const NETWORKS = {
         /** Network identifier */
         network: 'main'
     },
-    
+
     /**
      * Bitcoin testnet configuration
      * @namespace TESTNET
@@ -223,11 +223,11 @@ export function generateDerivationPath({
 export function parseDerivationPath(path) {
     const pathRegex = /^m\/(\d+)'\/(\d+)'\/(\d+)'\/(\d+)\/(\d+)$/;
     const match = path.match(pathRegex);
-    
+
     if (!match) {
         throw new Error(`Invalid derivation path format: ${path}`);
     }
-    
+
     return {
         purpose: parseInt(match[1]),
         coinType: parseInt(match[2]),

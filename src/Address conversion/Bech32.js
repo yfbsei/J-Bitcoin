@@ -13,8 +13,8 @@
  * @version 2.0.0
  */
 
-import { decode_legacy_address, convertBits, checksum_5bit } from '../../utilities/addressHelpers.js';
-import base32_encode from '../../utilities/Base32.js';
+import { decode_legacy_address, convertBits, checksum_5bit } from '../Decoding utilities/Address decode.js';
+import base32_encode from '../Encoding utilities/Base32.js';
 
 /**
  * Bech32 and Bech32m address encoding utilities for Bitcoin SegWit addresses

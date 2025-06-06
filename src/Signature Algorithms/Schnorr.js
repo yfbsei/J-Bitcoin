@@ -14,7 +14,7 @@
 
 import { randomBytes } from 'node:crypto';
 import { schnorr } from '@noble/curves/secp256k1';
-import { privateKey_decode } from '../utilities/decodeKeys.js';
+import { privateKey_decode } from '../Decoding utilities/Decode keys.js';
 
 /**
  * Schnorr signature operations for Bitcoin according to BIP340

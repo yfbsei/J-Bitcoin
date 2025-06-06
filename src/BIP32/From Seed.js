@@ -14,7 +14,7 @@
 import { createHmac } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 
-import { hdKey } from '../utilities/encodeKeys.js';
+import { hdKey } from '../Encoding utilities/Encode Keys.js';
 import { secp256k1 } from '@noble/curves/secp256k1';
 
 /**
