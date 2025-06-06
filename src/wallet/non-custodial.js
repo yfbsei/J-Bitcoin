@@ -23,7 +23,7 @@
  * const thresholdWallet = Non_Custodial_Wallet.fromRandom('main', 3, 2);
  */
 
-import { standardKey, address } from '../Encoding utilities/Encode Keys.js';
+import { standardKey, address } from '../encoding/address/encode Keys.js';
 import {
     BIP44_CONSTANTS,
     DERIVATION_PATHS,
@@ -35,7 +35,7 @@ import {
     isValidBitcoinPath,
     getNetworkByCoinType
 } from '../Constants.js';
-import ThresholdSignature from "../Threshold signature scheme (TSS)/Threshold signature.js";
+import ThresholdSignature from "../core/crypto/signatures/threshold/threshold-signature.js";
 import BN from 'bn.js';
 import { secp256k1 } from '@noble/curves/secp256k1';
 

@@ -26,10 +26,10 @@
 
 import fromSeed from '../BIP32/From Seed.js';
 import derive from '../BIP32/Derive.js';
-import bip39 from '../BIP39/mnemonic.js';
-import ecdsa from '../Signature Algorithms/Ecdsa.js';
+import bip39 from '../bip/bip39/mnemonic.js';
+import ecdsa from '../core/crypto/signatures/ecdsa.js';
 
-import { standardKey, address } from '../Encoding utilities/Encode Keys.js';
+import { standardKey, address } from '../encoding/address/encode Keys.js';
 import {
     BIP44_CONSTANTS,
     DERIVATION_PATHS,

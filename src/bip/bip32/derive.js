@@ -15,7 +15,7 @@
 import { createHmac, createHash } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 
-import rmd160 from '../Cryptographic Functions/RMD160.js';
+import rmd160 from '../core/crypto/hash/ripemd160.js';
 import { secp256k1 } from '@noble/curves/secp256k1';
 import { hdKey } from '../Encoding utilities/Encode Keys.js';
 import BN from 'bn.js';
