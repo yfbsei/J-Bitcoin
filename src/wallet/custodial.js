@@ -26,15 +26,11 @@
 
 import {
     BIP44_CONSTANTS,
-    DERIVATION_PATHS,
-    NETWORKS as BITCOIN_NETWORKS,
-    ADDRESS_FORMATS,
-    BIP_PURPOSES,
     generateDerivationPath,
     parseDerivationPath,
     isValidBitcoinPath,
-    getNetworkByCoinType
-} from '../Constants.js';
+    getNetworkConfiguration
+} from '../core/constants.js';
 
 import generateMasterKey from '../bip/bip32/master-key.js';
 import derive from '../bip/bip32/derive.js';
@@ -229,7 +225,7 @@ class Custodial_Wallet {
          * console.log(wallet.networkConfig.symbol);      // "BTC"
          * console.log(wallet.networkConfig.coinType);    // 0 or 1
          */
-        this.networkConfig = getNetworkByCoinType(net === 'main' ? 0 : 1);
+        this.networkConfig = getNetworkConfiguration(net === 'main' ? 0 : 1);
 
         /**
          * Hierarchical deterministic key pair for this wallet.

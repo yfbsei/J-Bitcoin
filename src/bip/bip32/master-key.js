@@ -19,10 +19,9 @@ import { secp256k1 } from '@noble/curves/secp256k1';
 import { encodeExtendedKey } from '../../encoding/address/encode.js';
 import {
 	BIP32_CONSTANTS,
-	NETWORK_VERSIONS,
 	CRYPTO_CONSTANTS,
 	validateAndGetNetwork
-} from '../core/constants.js';
+} from '../../core/constants.js';
 
 /**
  * @typedef {Object} ExtendedKeyPair

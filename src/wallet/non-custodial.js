@@ -26,17 +26,7 @@
 import { secp256k1 } from '@noble/curves/secp256k1';
 import BN from 'bn.js';
 
-import {
-    BIP44_CONSTANTS,
-    DERIVATION_PATHS,
-    NETWORKS as BITCOIN_NETWORKS,
-    ADDRESS_FORMATS,
-    BIP_PURPOSES,
-    generateDerivationPath,
-    parseDerivationPath,
-    isValidBitcoinPath,
-    getNetworkByCoinType
-} from '../Constants.js';
+import { getNetworkConfiguration } from '../core/constants.js';
 
 import { encodeStandardKeys, generateAddressFromExtendedVersion } from '../encoding/address/encode.js';
 import ThresholdSignature from "../core/crypto/signatures/threshold/threshold-signature.js";
@@ -164,7 +154,7 @@ class Non_Custodial_Wallet extends ThresholdSignature {
          * console.log(wallet.networkConfig.symbol);      // "BTC"
          * console.log(wallet.networkConfig.coinType);    // 0 or 1
          */
-        this.networkConfig = getNetworkByCoinType(net === 'main' ? 0 : 1);
+        this.networkConfig = getNetworkConfiguration(net === 'main' ? 0 : 1);
 
         // Generate wallet address and public key from threshold scheme
         [this.publicKey, this.address] = this.#wallet();
