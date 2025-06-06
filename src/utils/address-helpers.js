@@ -464,40 +464,8 @@ function isAddressForNetwork(address, expectedNetwork) {
     return actualNetwork === expectedNetwork;
 }
 
-/**
- * Decodes WIF private key to raw bytes (legacy compatibility)
- * 
- * @param {string} wifPrivateKey - WIF private key
- * @returns {Uint8Array} Raw private key bytes
- */
-function decodeWIFPrivateKey(wifPrivateKey) {
-    try {
-        const decoded = base58_to_binary(wifPrivateKey);
-        // Extract private key bytes (skip version byte and suffix)
-        return decoded.filter((_, i) => i > 0 && i < 33);
-    } catch (error) {
-        throw new Error(`Failed to decode WIF private key: ${error.message}`);
-    }
-}
-
-/**
- * Decodes legacy address hash (legacy compatibility)
- * 
- * @param {string} legacyAddress - Legacy address
- * @returns {Uint8Array} Hash160 bytes
- */
-function decodeLegacyAddressHash(legacyAddress) {
-    try {
-        const decoded = base58_to_binary(legacyAddress);
-        // Extract hash160 (skip version byte and checksum)
-        return decoded.filter((_, i) => i > 0 && i < 21);
-    } catch (error) {
-        throw new Error(`Failed to decode legacy address: ${error.message}`);
-    }
-}
-
 export {
-    decodeLegacyAddress, // decode_legacy_address
+    decodeLegacyAddress,
     convertBitGroups, // convertBits
     convertChecksumTo5Bit, // checksum_5bit
     validateAndDecodeLegacyAddress,
@@ -505,7 +473,5 @@ export {
     normalizeAddress,
     compareAddresses,
     getNetworkFromAddress,
-    isAddressForNetwork,
-    decodeWIFPrivateKey, // privateKey_decode
-    decodeLegacyAddressHash // legacyAddress_decode
+    isAddressForNetwork
 };

@@ -15,10 +15,7 @@
 
 import { base58_to_binary } from 'base58-js';
 import {
-    decodeLegacyAddress,
     validateAndDecodeLegacyAddress,
-    decodeWIFPrivateKey,
-    decodeLegacyAddressHash,
     detectAddressFormat
 } from '../../utils/address-helpers.js';
 import {
@@ -341,13 +338,10 @@ function decodeAddressAuto(address) {
     }
 }
 
-// privateKey_decode, legacyAddress_decode
-export { decodeWIFPrivateKey, decodeLegacyAddressComplete, decodeAddressAuto, decodePrivateKeyAuto }
-
-// Re-export helper functions for convenience
 export {
-    decodeLegacyAddress,
-    validateAndDecodeLegacyAddress,
     decodeWIFPrivateKey,
-    decodeLegacyAddressHash,
-} from '../../utils/address-helpers.js';
+    decodeHexPrivateKey,
+    decodeLegacyAddressComplete,
+    decodeAddressAuto,
+    decodePrivateKeyAuto
+};

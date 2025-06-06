@@ -13,7 +13,7 @@
  * @version 2.0.0
  */
 
-import { decodeLegacyAddress } from '../encoding/address/decode.js';
+import { decodeLegacyAddress } from '../utils/address-helpers.js';
 import { convertBitGroups, convertChecksumTo5Bit } from '../utils/address-helpers.js'
 import base32_encode from '../encoding/base32.js';
 
@@ -160,7 +160,9 @@ const BECH32 = {
 	 */
 	to_P2WPKH(witness_program = "legacy address") {
 		// Decode legacy address to get network prefix and hash160
-		let [btc_prefix, hash] = decodeLegacyAddress(witness_program);
+		const decoded = decodeLegacyAddress(witness_program);
+		const btc_prefix = decoded.prefix;
+		let hash = decoded.hash160Hex;
 
 		// Convert hash from hex string to buffer, then to 5-bit representation
 		hash = Buffer.from(hash, 'hex');
