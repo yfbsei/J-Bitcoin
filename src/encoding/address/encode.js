@@ -16,7 +16,7 @@
  */
 
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import { b58encode } from '../base58.js';
+import { encodeBase58Check } from '../base58.js';
 import rmd160 from '../../core/crypto/hash/ripemd160.js';
 import {
 	NETWORK_VERSIONS,
@@ -487,7 +487,7 @@ function encodeExtendedKey(keyType, keyContext) {
 		EncodingSecurityUtils.validateExecutionTime(startTime, 'extended key encoding');
 
 		// FIX #8: Encode with validation and compatibility checks
-		const encodedKey = b58encode(extendedKeyPayload);
+		const encodedKey = encodeBase58Check(extendedKeyPayload);
 
 		// Basic format validation of result
 		if (!encodedKey || typeof encodedKey !== 'string') {
@@ -583,7 +583,7 @@ function encodeStandardKeys(privateKeyData = false, publicKeyData = null) {
 
 			sensitiveBuffers.push(wifPayload);
 
-			privateKeyWIF = b58encode(wifPayload);
+			privateKeyWIF = encodeBase58Check(wifPayload);
 
 			// Validate WIF result
 			if (!privateKeyWIF || typeof privateKeyWIF !== 'string') {
@@ -777,7 +777,7 @@ function generateAddress(networkVersionByte, publicKeyBuffer) {
 
 		EncodingSecurityUtils.validateExecutionTime(startTime, 'address generation');
 
-		const address = b58encode(addressPayload);
+		const address = encodeBase58Check(addressPayload);
 
 		// Validate address result
 		if (!address || typeof address !== 'string') {
