@@ -18,7 +18,7 @@
  */
 
 import { createHash, timingSafeEqual } from 'node:crypto';
-import Schnorr from '../crypto/signatures/schnorr.js';
+import Schnorr from '../crypto/signatures/schnorr-BIP340.js';
 import { CRYPTO_CONSTANTS } from '../../constants.js';
 
 /**

@@ -18,7 +18,7 @@ export { BIP39 } from './src/bip/bip39/mnemonic.js';
 
 // Signature algorithms
 export { default as ecdsa } from './src/core/crypto/signatures/ecdsa.js';
-export { default as schnorr_sig } from './src/core/crypto/signatures/schnorr - BIP340.js';
+export { default as schnorr_sig } from './src/core/crypto/signatures/schnorr-BIP340.js';
 export { default as Polynomial } from './src/core/crypto/signatures/threshold/polynomial.js';
 export { default as ThresholdSignature } from './src/core/crypto/signatures/threshold/threshold-signature.js';
 

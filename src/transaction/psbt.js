@@ -15,7 +15,7 @@
 
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import ECDSA from '../core/crypto/signatures/ecdsa.js';
-import Schnorr from '../core/crypto/signatures/schnorr.js';
+import Schnorr from '../core/crypto/signatures/schnorr-BIP340.js';
 import { TaprootControlBlock } from '../core/taproot/control-block.js';
 import { TapscriptInterpreter } from '../core/taproot/tapscript-interpreter.js';
 import { validateAndGetNetwork } from '../core/constants.js';
