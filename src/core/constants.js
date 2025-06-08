@@ -5,8 +5,13 @@
  * network configurations, cryptographic parameters, BIP specifications,
  * and standard values used throughout the J-Bitcoin library.
  * 
+ * FIXES APPLIED (v2.1.1):
+ * - Added missing HASH256_LENGTH constant
+ * - Fixed BIP32 constants consistency
+ * - Added missing validation constants
+ * 
  * @author yfbsei
- * @version 2.0.0
+ * @version 2.1.1
  */
 
 /**
@@ -169,7 +174,9 @@ const CRYPTO_CONSTANTS = {
     /** Hash160 length (RIPEMD160 output) */
     HASH160_LENGTH: 20,
     /** SHA256 hash length */
-    SHA256_LENGTH: 32
+    SHA256_LENGTH: 32,
+    /** FIXED: Added missing HASH256_LENGTH constant */
+    HASH256_LENGTH: 32
 };
 
 /**
@@ -188,7 +195,10 @@ const BIP32_CONSTANTS = {
     /** Maximum derivation depth recommended */
     MAX_DERIVATION_DEPTH: 255,
     /** Extended key total length */
-    EXTENDED_KEY_LENGTH: 78
+    EXTENDED_KEY_LENGTH: 78,
+    /** FIXED: Added missing seed validation constants */
+    MIN_SEED_BYTES: 16,
+    MAX_SEED_BYTES: 64
 };
 
 /**
