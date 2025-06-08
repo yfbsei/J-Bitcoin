@@ -1,386 +1,62 @@
 /**
  * @fileoverview Main entry point for J-Bitcoin cryptocurrency library
- * 
- * J-Bitcoin is a comprehensive JavaScript library for Bitcoin that provides both 
- * custodial and non-custodial wallet functionality with advanced cryptographic 
- * features including threshold signatures and hierarchical deterministic keys.
- * 
- * Version 2.0.0+ focuses exclusively on Bitcoin (BTC), providing optimal 
- * performance and security for Bitcoin-only applications.
- * 
- * @author yfbsei
- * @version 2.0.0
- * @license ISC
- * 
- * @example
- * // Import main wallet classes
- * import { Custodial_Wallet, Non_Custodial_Wallet } from 'j-bitcoin';
- * 
- * // Import address utilities
- * import { BECH32 } from 'j-bitcoin';
- * 
- * // Import signature utilities  
- * import { schnorr_sig, ecdsa } from 'j-bitcoin';
- * 
- * @see {@link https://github.com/yfbsei/J-Bitcoin|GitHub Repository}
+ *
+ * Provides convenient re-exports for wallet classes, cryptographic primitives
+ * and utility functions. Version 2.0.0+ focuses exclusively on Bitcoin.
  */
 
-// Core wallet implementations
-import { Custodial_Wallet, Non_Custodial_Wallet } from './src/wallet.js';
+// Wallet implementations
+export { default as Custodial_Wallet } from './src/wallet/custodial.js';
+export { default as Non_Custodial_Wallet } from './src/wallet/non-custodial.js';
 
-// BIP32 hierarchical deterministic key derivation
-import fromSeed from './src/BIP32/fromSeed.js';
-import derive from './src/BIP32/derive.js';
+// BIP32 key derivation
+export { generateMasterKey as fromSeed } from './src/bip/bip32/master-key.js';
+export { derive } from './src/bip/bip32/derive.js';
 
-// BIP39 mnemonic phrase handling
-import bip39 from './src/BIP39/bip39.js';
+// BIP39 mnemonic utilities
+export { BIP39 } from './src/bip/bip39/mnemonic.js';
 
-// Cryptographic signature algorithms
-import ecdsa from './src/ECDSA/ecdsa.js';
+// Signature algorithms
+export { default as ecdsa } from './src/core/crypto/signatures/ecdsa.js';
+export { default as schnorr_sig } from './src/core/crypto/signatures/schnorr - BIP340.js';
+export { default as Polynomial } from './src/core/crypto/signatures/threshold/polynomial.js';
+export { default as ThresholdSignature } from './src/core/crypto/signatures/threshold/threshold-signature.js';
 
-// Threshold signature scheme components
-import Polynomial from './src/Threshold-signature/Polynomial.js';
-import ThresholdSignature from './src/Threshold-signature/threshold_signature.js';
+// Address utilities and encodings
+export * from './src/encoding/base58.js';
+export * from './src/encoding/base32.js';
+export * from './src/encoding/address/encode.js';
+export * from './src/encoding/address/decode.js';
+export { BECH32 } from './src/bip/BIP173-BIP350.js';
 
-// Encoding and utility functions
-import b58encode from './src/utilities/base58.js';
-import { hdKey, standardKey, address } from './src/utilities/encodeKeys.js';
-import rmd160 from './src/utilities/rmd160.js';
+// Validation helpers and constants
+export * from './src/utils/validation.js';
+export * from './src/utils/address-helpers.js';
+export * from './src/core/constants.js';
 
-// Bitcoin address format support
-import BECH32 from './src/Address-conversion/BTC/bech32.js';
+// Transaction and Taproot modules
+export * from './src/transaction/builder.js';
+export * from './src/transaction/utxo-manager.js';
+export * from './src/core/taproot/control-block.js';
+export * from './src/core/taproot/merkle-tree.js';
+export * from './src/core/taproot/tapscript-interpreter.js';
 
-// Advanced signature schemes
-import schnorr_sig from './src/Schnorr-signature/Schnorr_Signature.js';
-
-// Key decoding utilities
-import { privateKey_decode, legacyAddress_decode } from './src/utilities/decodeKeys.js';
-
-// Bitcoin-specific constants and utilities
-import {
-    BIP44_CONSTANTS,
-    DERIVATION_PATHS,
-    NETWORKS as BITCOIN_NETWORKS,
-    ADDRESS_FORMATS,
-    BIP_PURPOSES,
-    generateDerivationPath,
-    parseDerivationPath,
-    isValidBitcoinPath,
-    getNetworkByCoinType
-} from './src/utilities/constants.js';
-
-/**
- * Main wallet classes for Bitcoin cryptocurrency operations
- * @namespace Wallets
- */
-
-/**
- * @memberof Wallets
- * @see {@link Custodial_Wallet}
- */
-export { Custodial_Wallet };
-
-/**
- * @memberof Wallets  
- * @see {@link Non_Custodial_Wallet}
- */
-export { Non_Custodial_Wallet };
-
-/**
- * BIP32 hierarchical deterministic key derivation utilities
- * @namespace BIP32
- */
-
-/**
- * Generates master keys from a seed according to BIP32 specification
- * @memberof BIP32
- * @function
- * @param {string} seed - Hex-encoded seed (typically from BIP39)
- * @param {string} net - Network type ('main' or 'test')
- * @returns {Array} Array containing HD keys and serialization format
- * @returns {HDKeys} returns.0 - HD key pair object
- * @returns {Object} returns.1 - Serialization format object
- * @example
- * const [hdKeys, format] = fromSeed("000102030405060708090a0b0c0d0e0f", "main");
- */
-export { fromSeed };
-
-/**
- * Derives child keys from parent keys using BIP32 derivation paths
- * @memberof BIP32
- * @function
- * @param {string} path - BIP32 derivation path (e.g., "m/0'/1")
- * @param {string} key - Parent key in xprv/xpub format
- * @param {Object} format - Serialization format from parent
- * @returns {Array} Array containing derived keys and new format
- * @returns {HDKeys} returns.0 - Derived HD key pair  
- * @returns {Object} returns.1 - Updated serialization format
- * @example
- * const [childKeys, childFormat] = derive("m/0'/1", parentKey, parentFormat);
- */
-export { derive };
-
-/**
- * BIP39 mnemonic phrase and seed generation utilities
- * @namespace BIP39
- */
-
-/**
- * @memberof BIP39
- * @see {@link module:bip39}
- */
-export { bip39 };
-
-/**
- * Cryptographic signature algorithms
- * @namespace Signatures
- */
-
-/**
- * ECDSA signature operations for Bitcoin
- * @memberof Signatures
- * @see {@link module:ecdsa}
- */
-export { ecdsa };
-
-/**
- * Schnorr signature operations (BIP340)
- * @memberof Signatures
- * @see {@link module:schnorr_sig}
- */
-export { schnorr_sig };
-
-/**
- * Threshold signature scheme components for distributed cryptography
- * @namespace ThresholdCrypto
- */
-
-/**
- * Polynomial arithmetic for secret sharing
- * @memberof ThresholdCrypto
- * @see {@link Polynomial}
- */
-export { Polynomial };
-
-/**
- * Threshold signature scheme implementation
- * @memberof ThresholdCrypto
- * @see {@link ThresholdSignature}
- */
-export { ThresholdSignature };
-
-/**
- * Encoding and utility functions
- * @namespace Utilities
- */
-
-/**
- * Base58Check encoding for Bitcoin addresses and keys
- * @memberof Utilities
- * @function
- * @param {Buffer} data - Data to encode
- * @returns {string} Base58Check encoded string
- */
-export { b58encode };
-
-/**
- * Generates hierarchical deterministic keys in standard format
- * @memberof Utilities
- * @function
- * @param {string} keyType - 'pri' for private key, 'pub' for public key
- * @param {Object} format - Key serialization format
- * @returns {string} Formatted HD key (xprv/xpub)
- */
-export { hdKey };
-
-/**
- * Generates standard format private/public key pair
- * @memberof Utilities
- * @function
- * @param {Object} privKey - Private key information
- * @param {Object} pubKey - Public key information
- * @returns {Object} Standard key pair {pri, pub}
- */
-export { standardKey };
-
-/**
- * Generates Bitcoin address from public key
- * @memberof Utilities
- * @function
- * @param {number} versionByte - Address version byte
- * @param {Buffer} pubKey - Public key buffer
- * @returns {string} Bitcoin address
- */
-export { address };
-
-/**
- * RIPEMD160 hash function implementation
- * @memberof Utilities
- * @function
- * @param {Buffer} data - Data to hash
- * @returns {Buffer} RIPEMD160 hash result
- */
-export { rmd160 };
-
-/**
- * Bitcoin address format support
- * @namespace AddressFormats
- */
-
-/**
- * Bitcoin Bech32 SegWit address utilities
- * @memberof AddressFormats
- * @namespace
- * @example
- * // Convert legacy address to P2WPKH
- * const segwitAddr = BECH32.to_P2WPKH("1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2");
- * // Returns: "bc1qhkfq3zahaqkkzx5mjnamwjsfpw3tvke7v6aaph"
- */
-export { BECH32 };
-
-/**
- * Key decoding utilities for various formats
- * @namespace KeyDecoding
- */
-
-/**
- * Decodes WIF (Wallet Import Format) private keys
- * @memberof KeyDecoding
- * @function
- * @param {string} priKey - WIF-encoded private key
- * @returns {Uint8Array} Raw private key bytes
- */
-export { privateKey_decode };
-
-/**
- * Decodes legacy Bitcoin addresses to extract hash160
- * @memberof KeyDecoding
- * @function
- * @param {string} address - Legacy Bitcoin address
- * @returns {Uint8Array} Hash160 bytes
- */
-export { legacyAddress_decode };
-
-/**
- * Bitcoin-specific constants and utilities
- * @namespace BitcoinConstants
- */
-
-/**
- * BIP44 derivation path constants
- * @memberof BitcoinConstants
- * @see {@link BIP44_CONSTANTS}
- */
-export { BIP44_CONSTANTS };
-
-/**
- * Standard Bitcoin derivation paths
- * @memberof BitcoinConstants
- * @see {@link DERIVATION_PATHS}
- */
-export { DERIVATION_PATHS };
-
-/**
- * Bitcoin network configurations
- * @memberof BitcoinConstants
- */
-export { BITCOIN_NETWORKS };
-
-/**
- * Address format identifiers
- * @memberof BitcoinConstants
- */
-export { ADDRESS_FORMATS };
-
-/**
- * BIP purpose constants for different address types
- * @memberof BitcoinConstants
- */
-export { BIP_PURPOSES };
-
-/**
- * Generate a BIP44 derivation path
- * @memberof BitcoinConstants
- * @function
- */
-export { generateDerivationPath };
-
-/**
- * Parse a derivation path into components
- * @memberof BitcoinConstants
- * @function
- */
-export { parseDerivationPath };
-
-/**
- * Validate if a path is valid for Bitcoin
- * @memberof BitcoinConstants
- * @function
- */
-export { isValidBitcoinPath };
-
-/**
- * Get network configuration by coin type
- * @memberof BitcoinConstants
- * @function
- */
-export { getNetworkByCoinType };
-
-/**
- * @typedef {Object} WalletKeyPair
- * @property {string} pri - WIF-encoded private key
- * @property {string} pub - Hex-encoded public key
- */
-
-/**
- * @typedef {Object} HDKeyPair
- * @property {string} HDpri - xprv-formatted hierarchical deterministic private key
- * @property {string} HDpub - xpub-formatted hierarchical deterministic public key
- */
-
-/**
- * @typedef {Object} AddressInfo
- * @property {string} address - Bitcoin address string
- * @property {string} format - Address format ('legacy', 'segwit')
- * @property {string} network - Network type ('main', 'test')
- */
-
-/**
- * Library feature support matrix
- * @readonly
- * @enum {boolean}
- */
+/** Feature support matrix */
 export const FEATURES = {
-    /** Hierarchical Deterministic Wallets (BIP32) */
-    HD_WALLETS: true,
-    /** Threshold Signature Schemes */
-    THRESHOLD_SIGNATURES: true,
-    /** ECDSA Signatures */
-    ECDSA: true,
-    /** Schnorr Signatures (BIP340) */
-    SCHNORR: true,
-    /** P2PKH Legacy Addresses */
-    P2PKH: true,
-    /** P2WPKH SegWit Addresses */
-    P2WPKH: true,
-    /** P2SH Script Hash Addresses */
-    P2SH: false,
-    /** P2WSH SegWit Script Hash */
-    P2WSH: false,
-    /** Transaction Building */
-    TRANSACTIONS: false,
-    /** SPV (Simplified Payment Verification) */
-    SPV: false
+  HD_WALLETS: true,
+  THRESHOLD_SIGNATURES: true,
+  ECDSA: true,
+  SCHNORR: true,
+  P2PKH: true,
+  P2WPKH: true,
+  P2SH: false,
+  P2WSH: false,
+  TRANSACTIONS: true,
+  SPV: false,
 };
 
-/**
- * Supported cryptocurrency networks
- * @readonly
- * @enum {Object}
- */
+/** Supported networks */
 export const NETWORKS = {
-    /** Bitcoin mainnet */
-    BTC_MAIN: { name: 'Bitcoin', symbol: 'BTC', network: 'main' },
-    /** Bitcoin testnet */
-    BTC_TEST: { name: 'Bitcoin Testnet', symbol: 'BTC', network: 'test' },
+  BTC_MAIN: { name: 'Bitcoin', symbol: 'BTC', network: 'main' },
+  BTC_TEST: { name: 'Bitcoin Testnet', symbol: 'BTC', network: 'test' },
 };

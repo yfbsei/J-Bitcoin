@@ -35,6 +35,10 @@ import derive from '../bip/bip32/derive.js';
 import { BIP39 } from '../bip/bip39/mnemonic.js';
 import ecdsa from '../core/crypto/signatures/ecdsa.js';
 
+import { TransactionBuilder } from '../transaction/builder.js';
+import { UTXOManager } from '../transaction/utxo-manager.js';
+import { TaprootMerkleTree } from '../core/taproot/merkle-tree.js';
+
 import { encodeStandardKeys, generateAddressFromExtendedVersion } from '../encoding/address/encode.js';
 import {
     validateNetwork,
@@ -1045,6 +1049,36 @@ class Custodial_Wallet {
                 { originalError: error.message }
             );
         }
+    }
+
+    /**
+     * Create a transaction builder for this wallet's network.
+     *
+     * @param {Object} [options={}] Builder configuration options
+     * @returns {TransactionBuilder} New transaction builder instance
+     */
+    createTransactionBuilder(options = {}) {
+        return new TransactionBuilder(this.net, options);
+    }
+
+    /**
+     * Create a UTXO manager for this wallet's network.
+     *
+     * @param {Object} [options={}] Manager configuration options
+     * @returns {UTXOManager} New UTXO manager instance
+     */
+    createUTXOManager(options = {}) {
+        return new UTXOManager(this.net, options);
+    }
+
+    /**
+     * Initialize a Taproot merkle tree from script leaves.
+     *
+     * @param {Array} leaves - Taproot leaves for the merkle tree
+     * @returns {TaprootMerkleTree} New Taproot merkle tree instance
+     */
+    createTaprootTree(leaves = []) {
+        return new TaprootMerkleTree(leaves);
     }
 
     /**
