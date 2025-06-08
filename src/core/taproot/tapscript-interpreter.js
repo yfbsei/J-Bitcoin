@@ -17,9 +17,8 @@
  * @version 2.1.0
  */
 
-import { createHash, timingSafeEqual } from 'node:crypto';
+import { timingSafeEqual } from 'node:crypto';
 import Schnorr from '../crypto/signatures/schnorr-BIP340.js';
-import { CRYPTO_CONSTANTS } from '../../constants.js';
 
 /**
  * Tapscript-specific error class for proper error handling

@@ -1,18 +1,18 @@
 /**
  * @fileoverview Enhanced BIP39 mnemonic phrase generation and seed derivation
  * 
- * SECURITY IMPROVEMENTS (v2.1.0):
- * - FIX #1: Added Unicode NFKD normalization for cross-platform compatibility
+ * SECURITY IMPROVEMENTS (v2.1.1):
+ * - FIX #1: Corrected Unicode NFKD normalization using built-in String.normalize()
  * - FIX #2: Enhanced entropy validation and quality testing  
  * - FIX #3: Proper Error object usage instead of string throws
  * - FIX #4: Comprehensive input validation and boundary checks
+ * - FIX #5: Fixed import statement for proper Unicode normalization
  * 
  * @author yfbsei
- * @version 2.1.0
+ * @version 2.1.1
  */
 
 import { createHash, randomBytes, pbkdf2Sync } from 'node:crypto';
-import { normalize } from 'node:util';
 import ENGLISH_WORDLIST from './wordlist-en.js';
 
 /**
@@ -220,12 +220,12 @@ const BIP39 = {
 			throw new Error('Passphrase must be a string');
 		}
 
-		// FIX #1: Apply Unicode NFKD normalization (CRITICAL for compatibility)
+		// FIX #1: Apply Unicode NFKD normalization using built-in String.normalize()
 		let normalizedMnemonic;
 		let normalizedPassphrase;
 		try {
-			normalizedMnemonic = normalize('NFKD', mnemonicPhrase.trim());
-			normalizedPassphrase = normalize('NFKD', passphrase);
+			normalizedMnemonic = mnemonicPhrase.trim().normalize('NFKD');
+			normalizedPassphrase = passphrase.normalize('NFKD');
 		} catch (error) {
 			throw new Error(`Unicode normalization failed: ${error.message}`);
 		}
@@ -268,7 +268,7 @@ const BIP39 = {
 		// FIX #1: Apply Unicode normalization before validation
 		let normalizedMnemonic;
 		try {
-			normalizedMnemonic = normalize('NFKD', mnemonicPhrase.trim());
+			normalizedMnemonic = mnemonicPhrase.trim().normalize('NFKD');
 		} catch (error) {
 			throw new Error(`Unicode normalization failed: ${error.message}`);
 		}

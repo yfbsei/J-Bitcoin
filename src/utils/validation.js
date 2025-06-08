@@ -16,7 +16,7 @@
 
 import { randomBytes, timingSafeEqual, createHash } from 'node:crypto';
 import { base58_to_binary } from 'base58-js';
-import ENGLISH_WORDLIST from '../bip/bip39/wordlist-en.js';
+import ENGLISH_WORDLIST from '../bip/bip39/wordList_en.js';
 import {
     BIP44_CONSTANTS,
     CRYPTO_CONSTANTS,

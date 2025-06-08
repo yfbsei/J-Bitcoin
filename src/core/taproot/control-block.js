@@ -17,14 +17,13 @@
  * @version 2.1.0
  */
 
-import { createHash, timingSafeEqual } from 'node:crypto';
+import { timingSafeEqual } from 'node:crypto';
 import { secp256k1 } from '@noble/curves/secp256k1';
 import { TaprootMerkleTree, TaggedHash, MERKLE_CONSTANTS } from './merkle-tree.js';
 import { TAPSCRIPT_CONSTANTS } from './tapscript-interpreter.js';
-import { CRYPTO_CONSTANTS } from '../../constants.js';
+import { CRYPTO_CONSTANTS } from '../constants.js';
 import {
     validateNumberRange,
-    validateBufferLength,
     assertValid,
     ValidationError
 } from '../../utils/validation.js';

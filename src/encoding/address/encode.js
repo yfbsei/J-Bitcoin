@@ -16,8 +16,8 @@
  */
 
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import { encodeBase58Check } from '../base58.js';
-import { hash160 } from '../../core/crypto/hash/ripemd160.js';
+import { b58encode } from '../base58.js';
+import rmd160 from '../../core/crypto/hash/ripemd160.js';
 import {
 	NETWORK_VERSIONS,
 	BIP32_CONSTANTS,
@@ -487,7 +487,7 @@ function encodeExtendedKey(keyType, keyContext) {
 		EncodingSecurityUtils.validateExecutionTime(startTime, 'extended key encoding');
 
 		// FIX #8: Encode with validation and compatibility checks
-		const encodedKey = encodeBase58Check(extendedKeyPayload);
+		const encodedKey = b58encode(extendedKeyPayload);
 
 		// Basic format validation of result
 		if (!encodedKey || typeof encodedKey !== 'string') {
@@ -583,7 +583,7 @@ function encodeStandardKeys(privateKeyData = false, publicKeyData = null) {
 
 			sensitiveBuffers.push(wifPayload);
 
-			privateKeyWIF = encodeBase58Check(wifPayload);
+			privateKeyWIF = b58encode(wifPayload);
 
 			// Validate WIF result
 			if (!privateKeyWIF || typeof privateKeyWIF !== 'string') {
@@ -759,7 +759,7 @@ function generateAddress(networkVersionByte, publicKeyBuffer) {
 		const sha256Hash = createHash('sha256').update(publicKeyBuffer).digest();
 		sensitiveBuffers.push(sha256Hash);
 
-		const hash160Buffer = hash160(sha256Hash);
+		const hash160Buffer = rmd160(sha256Hash);
 		sensitiveBuffers.push(hash160Buffer);
 
 		// Validate hash160 length
@@ -777,7 +777,7 @@ function generateAddress(networkVersionByte, publicKeyBuffer) {
 
 		EncodingSecurityUtils.validateExecutionTime(startTime, 'address generation');
 
-		const address = encodeBase58Check(addressPayload);
+		const address = b58encode(addressPayload);
 
 		// Validate address result
 		if (!address || typeof address !== 'string') {
@@ -891,7 +891,7 @@ function createPublicKeyFingerprint(publicKeyBuffer) {
 		const sha256Hash = createHash('sha256').update(publicKeyBuffer).digest();
 		sensitiveBuffers.push(sha256Hash);
 
-		const hash160Buffer = hash160(sha256Hash);
+		const hash160Buffer = rmd160(sha256Hash);
 		sensitiveBuffers.push(hash160Buffer);
 
 		if (hash160Buffer.length !== CRYPTO_CONSTANTS.HASH160_LENGTH) {

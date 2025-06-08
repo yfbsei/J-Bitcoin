@@ -1,4 +1,4 @@
-export default [ 'abandon',
+export default ['abandon',
   'ability',
   'able',
   'about',
@@ -2045,4 +2045,4 @@ export default [ 'abandon',
   'zebra',
   'zero',
   'zone',
-  'zoo' ]
+  'zoo']
