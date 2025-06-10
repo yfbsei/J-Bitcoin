@@ -18,7 +18,6 @@
  */
 
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import { TAPSCRIPT_CONSTANTS } from './tapscript-interpreter.js';
 
 /**
  * Merkle tree specific error class
@@ -332,6 +331,7 @@ class TaprootMerkleTree {
         this.branches = [];
         this.root = null;
         this.builtAt = null;
+        this.leafMap = new Map(); // For O(1) hash lookups
     }
 
     /**
@@ -361,6 +361,7 @@ class TaprootMerkleTree {
             };
 
             this.leaves.push(leaf);
+            this.leafMap.set(leafHash.toString('hex'), leaf);
             this.root = null; // Invalidate cached root
 
             return leaf;
@@ -402,11 +403,12 @@ class TaprootMerkleTree {
                 return this.root;
             }
 
-            // Build tree bottom-up
-            let currentLevel = this.leaves.map(leaf => ({
+            // Build tree bottom-up using proper algorithm
+            let currentLevel = this.leaves.map((leaf, index) => ({
                 hash: leaf.hash,
-                leafIndex: leaf.index,
-                isLeaf: true
+                leafIndex: index,
+                isLeaf: true,
+                originalIndex: index
             }));
 
             let depth = 0;
@@ -418,9 +420,15 @@ class TaprootMerkleTree {
                 const nextLevel = [];
                 depth++;
 
+                // Process pairs
                 for (let i = 0; i < currentLevel.length; i += 2) {
                     const left = currentLevel[i];
-                    const right = currentLevel[i + 1] || left; // Duplicate last if odd
+                    let right = currentLevel[i + 1];
+
+                    // Handle odd number of nodes by duplicating the last one
+                    if (!right) {
+                        right = { ...left };
+                    }
 
                     const branchHash = TaggedHash.createTapBranch(left.hash, right.hash);
 
@@ -438,7 +446,9 @@ class TaprootMerkleTree {
                     nextLevel.push({
                         hash: branchHash,
                         isLeaf: false,
-                        branchIndex: this.branches.length - 1
+                        branchIndex: this.branches.length - 1,
+                        leftChild: left,
+                        rightChild: right !== left ? right : null
                     });
                 }
 
@@ -446,7 +456,7 @@ class TaprootMerkleTree {
             }
 
             this.root = currentLevel[0].hash;
-            this.updateLeafPaths();
+            this._updateLeafPaths();
             this.builtAt = Date.now();
 
             MerkleSecurityUtils.validateConstructionTime(startTime, 'tree construction');
@@ -468,48 +478,94 @@ class TaprootMerkleTree {
     /**
      * Update leaf paths after tree construction
      */
-    updateLeafPaths() {
+    _updateLeafPaths() {
         if (this.leaves.length === 1) {
             this.leaves[0].path = '';
             this.leaves[0].depth = 0;
             return;
         }
 
-        // Traverse tree to find paths
+        // Build a reverse lookup from hash to node for efficient path finding
+        const hashToNode = new Map();
+
+        // Add leaves to lookup
         this.leaves.forEach((leaf, index) => {
-            const path = this.findLeafPath(leaf.hash, 0, '');
-            if (path !== null) {
-                leaf.path = path.path;
-                leaf.depth = path.depth;
+            hashToNode.set(leaf.hash.toString('hex'), {
+                type: 'leaf',
+                index: index,
+                hash: leaf.hash
+            });
+        });
+
+        // Add branches to lookup
+        this.branches.forEach((branch, index) => {
+            hashToNode.set(branch.hash.toString('hex'), {
+                type: 'branch',
+                index: index,
+                hash: branch.hash,
+                leftHash: branch.leftHash,
+                rightHash: branch.rightHash
+            });
+        });
+
+        // Find path for each leaf
+        this.leaves.forEach((leaf, index) => {
+            const pathInfo = this._findLeafPathNew(leaf.hash, hashToNode);
+            if (pathInfo) {
+                leaf.path = pathInfo.path;
+                leaf.depth = pathInfo.depth;
             }
         });
     }
 
     /**
-     * Find path to a specific leaf hash
+     * Find path to a specific leaf hash using efficient lookup
      */
-    findLeafPath(targetHash, currentDepth, currentPath) {
-        // Check if this is the target hash
-        if (this.leaves.some(leaf => MerkleSecurityUtils.constantTimeHashEqual(leaf.hash, targetHash))) {
-            return { path: currentPath, depth: currentDepth };
+    _findLeafPathNew(targetHash, hashToNode) {
+        const targetHex = targetHash.toString('hex');
+
+        // Start from the leaf
+        const leafNode = hashToNode.get(targetHex);
+        if (!leafNode || leafNode.type !== 'leaf') {
+            return null;
         }
 
-        // Search through branches
-        for (const branch of this.branches) {
-            if (branch.depth !== currentDepth + 1) continue;
+        // Build path by traversing up through parents
+        let currentHash = targetHash;
+        let path = '';
+        let depth = 0;
 
-            // Check left child
-            if (MerkleSecurityUtils.constantTimeHashEqual(branch.leftHash, targetHash)) {
-                return { path: currentPath + '0', depth: currentDepth + 1 };
+        // Search for parent branches
+        while (true) {
+            let foundParent = false;
+
+            for (const branch of this.branches) {
+                const leftHex = branch.leftHash.toString('hex');
+                const rightHex = branch.rightHash.toString('hex');
+                const currentHex = currentHash.toString('hex');
+
+                if (leftHex === currentHex) {
+                    path = '0' + path; // Left child
+                    currentHash = branch.hash;
+                    depth++;
+                    foundParent = true;
+                    break;
+                } else if (rightHex === currentHex) {
+                    path = '1' + path; // Right child
+                    currentHash = branch.hash;
+                    depth++;
+                    foundParent = true;
+                    break;
+                }
             }
 
-            // Check right child
-            if (MerkleSecurityUtils.constantTimeHashEqual(branch.rightHash, targetHash)) {
-                return { path: currentPath + '1', depth: currentDepth + 1 };
+            if (!foundParent) {
+                // Reached root
+                break;
             }
         }
 
-        return null;
+        return { path, depth };
     }
 
     /**
@@ -548,39 +604,38 @@ class TaprootMerkleTree {
                 return path;
             }
 
-            // Build path by traversing up the tree
+            // Build path by traversing from leaf to root
             let currentHash = leaf.hash;
-            let currentIndex = leafIndex;
-            let levelSize = this.leaves.length;
 
-            while (levelSize > 1) {
-                const isRightChild = (currentIndex % 2) === 1;
-                const siblingIndex = isRightChild ? currentIndex - 1 : currentIndex + 1;
+            while (true) {
+                let foundParent = false;
 
-                let siblingHash;
-                if (siblingIndex < levelSize) {
-                    // Normal sibling
-                    if (currentIndex < this.leaves.length && siblingIndex < this.leaves.length) {
-                        siblingHash = this.leaves[siblingIndex].hash;
-                    } else {
-                        // Find sibling in branches
-                        siblingHash = this.findSiblingHash(currentHash, levelSize);
+                for (const branch of this.branches) {
+                    const leftHex = branch.leftHash.toString('hex');
+                    const rightHex = branch.rightHash.toString('hex');
+                    const currentHex = currentHash.toString('hex');
+
+                    if (leftHex === currentHex) {
+                        // Current node is left child, sibling is right
+                        path.hashes.push(branch.rightHash);
+                        path.directions.push(false); // We are left child
+                        currentHash = branch.hash;
+                        foundParent = true;
+                        break;
+                    } else if (rightHex === currentHex) {
+                        // Current node is right child, sibling is left
+                        path.hashes.push(branch.leftHash);
+                        path.directions.push(true); // We are right child
+                        currentHash = branch.hash;
+                        foundParent = true;
+                        break;
                     }
-                } else {
-                    // Odd number of nodes - duplicate current node
-                    siblingHash = currentHash;
                 }
 
-                path.hashes.push(siblingHash);
-                path.directions.push(isRightChild);
-
-                // Move up to parent
-                currentIndex = Math.floor(currentIndex / 2);
-                levelSize = Math.ceil(levelSize / 2);
-                currentHash = TaggedHash.createTapBranch(
-                    isRightChild ? siblingHash : currentHash,
-                    isRightChild ? currentHash : siblingHash
-                );
+                if (!foundParent) {
+                    // Reached root
+                    break;
+                }
             }
 
             return path;
@@ -595,21 +650,6 @@ class TaprootMerkleTree {
                 { originalError: error.message, leafIndex }
             );
         }
-    }
-
-    /**
-     * Find sibling hash for a given hash at a specific level
-     */
-    findSiblingHash(hash, levelSize) {
-        for (const branch of this.branches) {
-            if (MerkleSecurityUtils.constantTimeHashEqual(branch.leftHash, hash)) {
-                return branch.rightHash;
-            }
-            if (MerkleSecurityUtils.constantTimeHashEqual(branch.rightHash, hash)) {
-                return branch.leftHash;
-            }
-        }
-        throw new MerkleTreeError('Sibling hash not found', 'SIBLING_NOT_FOUND');
     }
 
     /**
@@ -679,6 +719,14 @@ class TaprootMerkleTree {
     }
 
     /**
+     * Get leaf by hash (O(1) lookup)
+     */
+    getLeafByHash(hash) {
+        const hashHex = Buffer.isBuffer(hash) ? hash.toString('hex') : hash;
+        return this.leafMap.get(hashHex);
+    }
+
+    /**
      * Get tree summary with security metrics
      */
     getSummary() {
@@ -686,13 +734,13 @@ class TaprootMerkleTree {
             leaves: this.leaves.length,
             branches: this.branches.length,
             root: this.root?.toString('hex'),
-            maxDepth: Math.max(...this.leaves.map(leaf => leaf.depth)),
+            maxDepth: this.leaves.length > 0 ? Math.max(...this.leaves.map(leaf => leaf.depth || 0)) : 0,
             builtAt: this.builtAt,
             isBuilt: this.root !== null,
             securityMetrics: {
                 leafCount: this.leaves.length,
                 maxAllowedLeaves: MERKLE_CONSTANTS.MAX_LEAVES,
-                treeDepth: this.root ? Math.max(...this.leaves.map(leaf => leaf.depth)) : 0,
+                treeDepth: this.root ? Math.max(...this.leaves.map(leaf => leaf.depth || 0)) : 0,
                 maxAllowedDepth: MERKLE_CONSTANTS.MAX_TREE_DEPTH
             }
         };
@@ -725,6 +773,7 @@ class TaprootMerkleTree {
 
             this.leaves = [];
             this.branches = [];
+            this.leafMap.clear();
             this.root = null;
 
             console.log('✅ Merkle tree destroyed securely');

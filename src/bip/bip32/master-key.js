@@ -1,17 +1,19 @@
 /**
  * @fileoverview Enhanced BIP32 master key generation with critical security fixes
  * 
- * SECURITY IMPROVEMENTS (v2.1.0):
+ * SECURITY IMPROVEMENTS (v2.1.1):
  * - FIX #2: Added validation for invalid master keys (IL ≥ n or IL = 0)
  * - FIX #5: Enhanced seed validation and boundary checks
  * - FIX #6: Secure memory clearing of sensitive data
  * - FIX #12: Cross-implementation compatibility validation
+ * - FIX #13: Missing import fixes and proper error handling
+ * - FIX #14: Corrected HMAC clearing and buffer management
  * 
  * @author yfbsei
- * @version 2.1.0
+ * @version 2.1.1
  */
 
-import { createHmac } from 'node:crypto';
+import { createHmac, randomBytes } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { secp256k1 } from '@noble/curves/secp256k1';
 import { encodeExtendedKey } from '../../encoding/address/encode.js';
@@ -19,7 +21,7 @@ import {
 	BIP32_CONSTANTS,
 	CRYPTO_CONSTANTS,
 	validateAndGetNetwork
-} from '../../core/constants.js';
+} from '../../constants.js';
 import BN from 'bn.js';
 
 /**
@@ -32,11 +34,11 @@ class BIP32SecurityUtils {
 	 */
 	static validateMasterKey(privateKeyMaterial, chainCode) {
 		if (!Buffer.isBuffer(privateKeyMaterial) || privateKeyMaterial.length !== CRYPTO_CONSTANTS.PRIVATE_KEY_LENGTH) {
-			throw new Error(`Invalid private key material length: expected ${CRYPTO_CONSTANTS.PRIVATE_KEY_LENGTH}, got ${privateKeyMaterial.length}`);
+			throw new Error(`Invalid private key material length: expected ${CRYPTO_CONSTANTS.PRIVATE_KEY_LENGTH}, got ${privateKeyMaterial?.length || 'undefined'}`);
 		}
 
 		if (!Buffer.isBuffer(chainCode) || chainCode.length !== CRYPTO_CONSTANTS.CHAIN_CODE_LENGTH) {
-			throw new Error(`Invalid chain code length: expected ${CRYPTO_CONSTANTS.CHAIN_CODE_LENGTH}, got ${chainCode.length}`);
+			throw new Error(`Invalid chain code length: expected ${CRYPTO_CONSTANTS.CHAIN_CODE_LENGTH}, got ${chainCode?.length || 'undefined'}`);
 		}
 
 		const keyBN = new BN(privateKeyMaterial);
@@ -91,9 +93,9 @@ class BIP32SecurityUtils {
 		const byteLength = seedHex.length / 2;
 
 		// BIP39 seeds are typically 64 bytes, but BIP32 allows 128-512 bits (16-64 bytes)
-		if (byteLength < BIP32_CONSTANTS.MIN_SEED_BYTES || byteLength > BIP32_CONSTANTS.MAX_SEED_BYTES) {
+		if (byteLength < ENHANCED_BIP32_CONSTANTS.MIN_SEED_BYTES || byteLength > ENHANCED_BIP32_CONSTANTS.MAX_SEED_BYTES) {
 			throw new Error(
-				`Seed length must be between ${BIP32_CONSTANTS.MIN_SEED_BYTES}-${BIP32_CONSTANTS.MAX_SEED_BYTES} bytes, got ${byteLength} bytes`
+				`Seed length must be between ${ENHANCED_BIP32_CONSTANTS.MIN_SEED_BYTES}-${ENHANCED_BIP32_CONSTANTS.MAX_SEED_BYTES} bytes, got ${byteLength} bytes`
 			);
 		}
 
@@ -106,17 +108,23 @@ class BIP32SecurityUtils {
 	}
 
 	/**
-	 * FIX #6: Secure memory clearing
+	 * FIX #6: Secure memory clearing with proper buffer handling
 	 */
 	static secureClear(buffer) {
 		if (Buffer.isBuffer(buffer)) {
 			// Overwrite with cryptographically secure random data first
-			const crypto = require('node:crypto');
-			const random = crypto.randomBytes(buffer.length);
-			random.copy(buffer);
-			buffer.fill(0);
-			// Clear the random buffer too
-			random.fill(0);
+			try {
+				const random = randomBytes(buffer.length);
+				random.copy(buffer);
+				buffer.fill(0);
+				// Clear the random buffer too
+				random.fill(0);
+			} catch (error) {
+				// If random generation fails, still clear with patterns
+				buffer.fill(0xAA);
+				buffer.fill(0x55);
+				buffer.fill(0x00);
+			}
 		}
 	}
 
@@ -200,6 +208,21 @@ class BIP32SecurityUtils {
 			}
 		}
 	}
+
+	/**
+	 * FIX #14: Secure HMAC clearing
+	 */
+	static clearHMAC(hmac) {
+		try {
+			// Clear HMAC internal state if possible
+			if (hmac && typeof hmac.destroy === 'function') {
+				hmac.destroy();
+			}
+		} catch (error) {
+			// Ignore cleanup errors, but log them
+			console.warn('⚠️  Warning: Could not properly clear HMAC state');
+		}
+	}
 }
 
 /**
@@ -233,15 +256,15 @@ function generateMasterKey(seedHex, network = 'main') {
 	let masterKeyMaterial;
 	let chainCode;
 	let attemptCount = 0;
+	let hmacResult;
 
 	// FIX #2: Retry until we get a valid master key (BIP32 requirement)
 	while (attemptCount < ENHANCED_BIP32_CONSTANTS.MASTER_KEY_RETRY_LIMIT) {
 		attemptCount++;
 
 		// Generate 512-bit HMAC using "Bitcoin seed" as key (BIP32 specification)
-		const hmacResult = createHmac('sha512', Buffer.from(BIP32_CONSTANTS.MASTER_KEY_HMAC_KEY))
-			.update(seedBuffer)
-			.digest();
+		const hmac = createHmac('sha512', Buffer.from(BIP32_CONSTANTS.MASTER_KEY_HMAC_KEY));
+		hmacResult = hmac.update(seedBuffer).digest();
 
 		// Split HMAC result: first 256 bits = private key, last 256 bits = chain code
 		masterKeyMaterial = hmacResult.slice(0, CRYPTO_CONSTANTS.PRIVATE_KEY_LENGTH);
@@ -268,12 +291,17 @@ function generateMasterKey(seedHex, network = 'main') {
 			// For retry, we modify the seed slightly
 			// In practice, you would typically use a completely different seed
 			console.warn(`⚠️  Invalid master key (attempt ${attemptCount}), retrying...`);
-			seedBuffer = createHmac('sha256', seedBuffer).update(Buffer.from([attemptCount])).digest();
+			const hmacForSeed = createHmac('sha256', seedBuffer);
+			seedBuffer = hmacForSeed.update(Buffer.from([attemptCount])).digest();
 
 			// Clear the invalid key material
 			BIP32SecurityUtils.secureClear(masterKeyMaterial);
 			BIP32SecurityUtils.secureClear(chainCode);
 			BIP32SecurityUtils.secureClear(hmacResult);
+
+			// Clear HMAC states
+			BIP32SecurityUtils.clearHMAC(hmac);
+			BIP32SecurityUtils.clearHMAC(hmacForSeed);
 		}
 	}
 
@@ -344,7 +372,12 @@ function generateMasterKey(seedHex, network = 'main') {
 
 	} finally {
 		// FIX #6: Always clear sensitive data, even on success
-		BIP32SecurityUtils.secureClear(seedBuffer);
+		if (seedBuffer) {
+			BIP32SecurityUtils.secureClear(seedBuffer);
+		}
+		if (hmacResult) {
+			BIP32SecurityUtils.secureClear(hmacResult);
+		}
 		// Note: Don't clear masterKeyMaterial and chainCode here as they're still needed
 		// They will be cleared when the masterKeyContext is no longer needed
 	}
@@ -390,10 +423,44 @@ function validateMasterKeyGeneration() {
 	}
 }
 
+/**
+ * FIX #13: Cleanup function for master key context
+ */
+function clearMasterKeyContext(masterKeyContext) {
+	if (!masterKeyContext) return;
+
+	try {
+		// Clear private key material
+		if (masterKeyContext.privateKey?.keyMaterial) {
+			BIP32SecurityUtils.secureClear(masterKeyContext.privateKey.keyMaterial);
+		}
+
+		// Clear chain code
+		if (masterKeyContext.chainCode) {
+			BIP32SecurityUtils.secureClear(masterKeyContext.chainCode);
+		}
+
+		// Clear public key material
+		if (masterKeyContext.publicKey?.keyMaterial) {
+			BIP32SecurityUtils.secureClear(masterKeyContext.publicKey.keyMaterial);
+		}
+
+		// Clear parent fingerprint
+		if (masterKeyContext.parentFingerprint) {
+			BIP32SecurityUtils.secureClear(masterKeyContext.parentFingerprint);
+		}
+
+		console.log('✅ Master key context cleared securely');
+	} catch (error) {
+		console.warn('⚠️  Warning: Error during master key context cleanup:', error.message);
+	}
+}
+
 export {
 	BIP32SecurityUtils,
 	ENHANCED_BIP32_CONSTANTS,
 	generateMasterKey,
 	generateMasterKeySecure,
-	validateMasterKeyGeneration
+	validateMasterKeyGeneration,
+	clearMasterKeyContext
 };

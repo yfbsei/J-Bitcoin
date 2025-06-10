@@ -17,13 +17,14 @@
  * @version 2.1.0
  */
 
-import { timingSafeEqual } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { secp256k1 } from '@noble/curves/secp256k1';
 import { TaprootMerkleTree, TaggedHash, MERKLE_CONSTANTS } from './merkle-tree.js';
 import { TAPSCRIPT_CONSTANTS } from './tapscript-interpreter.js';
 import { CRYPTO_CONSTANTS } from '../constants.js';
 import {
     validateNumberRange,
+    validateBufferLength,
     assertValid,
     ValidationError
 } from '../../utils/validation.js';
@@ -252,11 +253,11 @@ class ControlBlockSecurityUtils {
             );
         }
 
-        if (internalKey.length !== CRYPTO_CONSTANTS.HASH256_LENGTH) {
+        if (internalKey.length !== CRYPTO_CONSTANTS.PRIVATE_KEY_LENGTH) {
             throw new ControlBlockError(
-                `${fieldName} must be ${CRYPTO_CONSTANTS.HASH256_LENGTH} bytes`,
+                `${fieldName} must be ${CRYPTO_CONSTANTS.PRIVATE_KEY_LENGTH} bytes`,
                 'INVALID_INTERNAL_KEY_LENGTH',
-                { expectedLength: CRYPTO_CONSTANTS.HASH256_LENGTH, actualLength: internalKey.length }
+                { expectedLength: CRYPTO_CONSTANTS.PRIVATE_KEY_LENGTH, actualLength: internalKey.length }
             );
         }
 
@@ -384,7 +385,7 @@ class TaprootControlBlock {
             const { leafVersion, parity, internalKey, merklePath } = parsedControlBlock;
 
             // Validate expected output key
-            if (!Buffer.isBuffer(expectedOutputKey) || expectedOutputKey.length !== CRYPTO_CONSTANTS.HASH256_LENGTH) {
+            if (!Buffer.isBuffer(expectedOutputKey) || expectedOutputKey.length !== CRYPTO_CONSTANTS.PRIVATE_KEY_LENGTH) {
                 throw new ControlBlockError(
                     'Expected output key must be 32 bytes',
                     'INVALID_OUTPUT_KEY_LENGTH'
@@ -541,7 +542,7 @@ class TaprootControlBlock {
         try {
             ControlBlockSecurityUtils.validateInternalKey(internalKey);
 
-            if (merkleRoot && (!Buffer.isBuffer(merkleRoot) || merkleRoot.length !== CRYPTO_CONSTANTS.HASH256_LENGTH)) {
+            if (merkleRoot && (!Buffer.isBuffer(merkleRoot) || merkleRoot.length !== CRYPTO_CONSTANTS.PRIVATE_KEY_LENGTH)) {
                 throw new ControlBlockError(
                     'Merkle root must be 32 bytes if provided',
                     'INVALID_MERKLE_ROOT_LENGTH'
@@ -574,7 +575,7 @@ class TaprootControlBlock {
         try {
             ControlBlockSecurityUtils.validateInternalKey(internalKey);
 
-            if (!Buffer.isBuffer(tapTweak) || tapTweak.length !== CRYPTO_CONSTANTS.HASH256_LENGTH) {
+            if (!Buffer.isBuffer(tapTweak) || tapTweak.length !== CRYPTO_CONSTANTS.PRIVATE_KEY_LENGTH) {
                 throw new ControlBlockError(
                     'TapTweak must be 32 bytes',
                     'INVALID_TAPTWEAK_LENGTH'
@@ -588,7 +589,6 @@ class TaprootControlBlock {
             const internalPoint = secp256k1.ProjectivePoint.fromHex('02' + internalKey.toString('hex'));
 
             // Create tweak point: t * G
-            const tweakScalar = BigInt('0x' + tapTweak.toString('hex'));
             const tweakPoint = secp256k1.ProjectivePoint.fromPrivateKey(tapTweak);
 
             // Compute output point: P + t*G

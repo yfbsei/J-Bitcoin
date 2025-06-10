@@ -1,26 +1,28 @@
 /**
  * @fileoverview Enhanced BIP32 hierarchical deterministic key derivation with critical fixes
  * 
- * SECURITY IMPROVEMENTS (v2.1.0):
+ * SECURITY IMPROVEMENTS (v2.1.1):
  * - FIX #3: CRITICAL - Leading zero preservation in 32-byte key serialization (~0.39% of keys affected)
  * - FIX #10: Comprehensive BIP32 validation and edge case handling
  * - FIX #6: Secure memory clearing of intermediate values
  * - FIX #7: Timing attack protection in validation routines
+ * - FIX #11: Improved error handling and input validation
+ * - FIX #12: Better code organization and maintainability
  * 
  * @author yfbsei
- * @version 2.1.0
+ * @version 2.1.1
  */
 
-import { createHmac, createHash } from 'node:crypto';
+import { createHmac, createHash, randomBytes } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { secp256k1 } from '@noble/curves/secp256k1';
 import BN from 'bn.js';
 import rmd160 from '../../core/crypto/hash/ripemd160.js';
 import { encodeExtendedKey } from '../../encoding/address/encode.js';
-import { CRYPTO_CONSTANTS } from '../../core/constants.js';
+import { CRYPTO_CONSTANTS } from '../../constants.js';
 
 /**
- * Enhanced derivation security utilities
+ * Enhanced derivation security utilities with fixed functions
  */
 class DerivationSecurityUtils {
     /**
@@ -85,7 +87,7 @@ class DerivationSecurityUtils {
      * FIX #3: CRITICAL - Validates child key and ensures proper 32-byte serialization
      */
     static validateAndFormatChildKey(childKeyBN, keyType = 'private') {
-        const curveOrder = new BN(CRYPTO_CONSTANTS.SECP256K1_ORDER, 'hex');
+        const curveOrder = new BN(CRYPTO_CONSTANTS.SECP256K1_ORDER, "hex");
 
         // BIP32 requirement: validate ki ≠ 0 and ki < n
         if (childKeyBN.isZero()) {
@@ -149,10 +151,10 @@ class DerivationSecurityUtils {
     static secureClearDerivationData(data) {
         if (Buffer.isBuffer(data)) {
             // Overwrite with random data first
-            const crypto = require('node:crypto');
-            const random = crypto.randomBytes(data.length);
+            const random = randomBytes(data.length);
             random.copy(data);
             data.fill(0);
+            // Clear the random buffer too
             random.fill(0);
         } else if (BN.isBN(data)) {
             // Clear BigNumber by setting to zero
@@ -179,7 +181,7 @@ class DerivationSecurityUtils {
     }
 
     /**
-     * FIX #10: Validates HMAC input construction
+     * FIX #11: Enhanced HMAC input validation
      */
     static validateHMACInputs(parentChainCode, inputData, childIndex) {
         if (!Buffer.isBuffer(parentChainCode) || parentChainCode.length !== 32) {
@@ -192,7 +194,7 @@ class DerivationSecurityUtils {
 
         // Validate input data length based on derivation type
         const isHardened = childIndex >= 0x80000000;
-        const expectedLength = isHardened ? 37 : 37; // Both should be 37 bytes (1+32+4 or 33+4)
+        const expectedLength = 37; // Both hardened (1+32+4) and non-hardened (33+4) should be 37 bytes
 
         if (inputData.length !== expectedLength) {
             throw new Error(`Invalid HMAC input length: expected ${expectedLength}, got ${inputData.length}`);
@@ -200,28 +202,197 @@ class DerivationSecurityUtils {
 
         return true;
     }
+
+    /**
+     * FIX #12: Validate elliptic curve point operations
+     */
+    static validateECPoint(point, operation = 'EC operation') {
+        try {
+            if (!point || typeof point.equals !== 'function') {
+                throw new Error(`Invalid point object for ${operation}`);
+            }
+
+            // Check if point is at infinity (invalid result)
+            if (point.equals(secp256k1.ProjectivePoint.ZERO)) {
+                throw new Error(`${operation} resulted in point at infinity`);
+            }
+
+            return true;
+        } catch (error) {
+            throw new Error(`${operation} validation failed: ${error.message}`);
+        }
+    }
 }
 
 /**
- * FIX #3,#10: Enhanced child key derivation with critical security fixes
+ * FIX #11: Enhanced derivation step processing
+ */
+class DerivationProcessor {
+    /**
+     * Process a single derivation step with comprehensive validation
+     */
+    static processSingleDerivation(currentContext, childIndex, numPath, stepIndex) {
+        const isHardened = childIndex >= 0x80000000;
+        const { versionByte, depth, parentFingerPrint, chainCode, privKey, pubKey } = currentContext;
+
+        // FIX #11: Enhanced input validation
+        if (!chainCode || chainCode.length !== 32) {
+            throw new Error('Invalid chain code in serialization format');
+        }
+
+        const serializedIndex = Buffer.alloc(4);
+        serializedIndex.writeUInt32BE(childIndex >>> 0, 0);
+
+        let hmacInput;
+        const keyType = privKey !== null;
+
+        // Construct HMAC input based on derivation type
+        if (keyType) {
+            // Private key available
+            if (isHardened) {
+                // Hardened derivation: 0x00 || privkey || index
+                hmacInput = Buffer.concat([
+                    Buffer.from([0x00]),
+                    privKey.key,
+                    serializedIndex
+                ]);
+            } else {
+                // Non-hardened derivation: pubkey || index
+                hmacInput = Buffer.concat([
+                    pubKey.key,
+                    serializedIndex
+                ]);
+            }
+        } else {
+            // Public key only (non-hardened only)
+            if (isHardened) {
+                throw new Error("Public Key can't derive from hardened path - private key required for hardened derivation");
+            }
+            hmacInput = Buffer.concat([
+                pubKey.key,
+                serializedIndex
+            ]);
+        }
+
+        // FIX #11: Validate HMAC inputs
+        DerivationSecurityUtils.validateHMACInputs(chainCode, hmacInput, childIndex);
+
+        return { hmacInput, isHardened, keyType, serializedIndex };
+    }
+
+    /**
+     * FIX #11: Process HMAC result and derive child key
+     */
+    static processHMACResult(hashHmac, currentContext, childIndex, isHardened, keyType) {
+        const { privKey, pubKey } = currentContext;
+        const N = new BN(CRYPTO_CONSTANTS.SECP256K1_ORDER, 'hex');
+
+        // Split HMAC result: IL = key material, IR = new chain code
+        const IL = hashHmac.slice(0, 32);
+        const IR = hashHmac.slice(32, 64);
+
+        // FIX #10: Validate IL is not >= curve order (rare but must be handled)
+        const IL_BN = new BN(IL);
+        if (IL_BN.gte(N)) {
+            console.warn(`⚠️  IL >= n detected at index ${childIndex}. Incrementing index and retrying...`);
+            throw new Error(`Invalid IL value at index ${childIndex}. Increment index and retry.`);
+        }
+
+        let childKey, childPublicKey, childPublicKeyPoint;
+
+        if (keyType) {
+            // Private key derivation: ki = (IL + kpar) mod n
+            const parentKey_BN = new BN(privKey.key);
+            const childKey_BN = IL_BN.add(parentKey_BN).mod(N);
+
+            // FIX #3: CRITICAL - Validate and format child key with leading zero preservation
+            childKey = DerivationSecurityUtils.validateAndFormatChildKey(childKey_BN, 'private');
+
+            // Derive corresponding public key with validation
+            try {
+                childPublicKey = Buffer.from(secp256k1.getPublicKey(childKey, true));
+                childPublicKeyPoint = secp256k1.ProjectivePoint.fromPrivateKey(childKey);
+
+                // FIX #12: Validate derived point
+                DerivationSecurityUtils.validateECPoint(childPublicKeyPoint, 'private key derivation');
+
+            } catch (error) {
+                throw new Error(`Failed to derive public key from private key: ${error.message}`);
+            }
+
+        } else {
+            // Public key derivation: Ki = IL*G + Kpar
+            try {
+                const IL_Point = secp256k1.ProjectivePoint.fromPrivateKey(IL);
+                childPublicKeyPoint = IL_Point.add(pubKey.points);
+
+                // FIX #12: Validate resulting point
+                DerivationSecurityUtils.validateECPoint(childPublicKeyPoint, 'public key derivation');
+
+                childPublicKey = Buffer.from(childPublicKeyPoint.toRawBytes(true));
+
+            } catch (error) {
+                throw new Error(`Public key derivation failed: ${error.message}`);
+            }
+        }
+
+        return { childKey, childPublicKey, childPublicKeyPoint, IR };
+    }
+
+    /**
+     * FIX #11: Update serialization context with new derived key
+     */
+    static updateSerializationContext(currentContext, derivedKeys, childIndex, depth) {
+        const { versionByte, privKey, pubKey } = currentContext;
+        const { childKey, childPublicKey, childPublicKeyPoint, IR } = derivedKeys;
+
+        // Compute parent fingerprint
+        const parentFingerprint = rmd160(
+            createHash('sha256').update(pubKey.key).digest()
+        ).slice(0, 4);
+
+        return {
+            versionByte: versionByte,
+            depth: depth + 1,
+            parentFingerPrint: parentFingerprint,
+            childIndex: childIndex,
+            chainCode: IR,
+            privKey: childKey ? {
+                key: childKey,
+                versionByteNum: privKey?.versionByteNum
+            } : null,
+            pubKey: {
+                key: childPublicKey,
+                points: childPublicKeyPoint
+            }
+        };
+    }
+}
+
+/**
+ * FIX #3,#10,#11: Enhanced child key derivation with critical security fixes
  */
 const derive = (path, key = '', serialization_format) => {
+    let sensitiveBuffers = []; // Track buffers for cleanup
+
     try {
         // FIX #10: Comprehensive input validation
         DerivationSecurityUtils.validateDerivationPath(path);
         DerivationSecurityUtils.validateExtendedKey(key);
+
+        if (!serialization_format || typeof serialization_format !== 'object') {
+            throw new Error('Invalid serialization format provided');
+        }
+
         DerivationSecurityUtils.validateDerivationDepth(serialization_format?.depth || 0);
 
         // Determine if working with private key or public key
-        const keyType = key.slice(0, 4).slice(1) === 'prv'; // Check for 'prv' in xprv/tprv
+        const keyType = key.slice(0, 4).includes('prv'); // Check for 'prv' in xprv/tprv
 
         // Validate hardened derivation compatibility
         if (!keyType && path.includes("'")) {
             throw new Error("Public Key can't derive from hardened path - private key required for hardened derivation");
         }
-
-        // secp256k1 curve order for modular arithmetic
-        const N = new BN(CRYPTO_CONSTANTS.SECP256K1_ORDER, 'hex');
 
         // Parse derivation path into numeric indices
         const numPath = path.split('/').filter(x => !isNaN(parseInt(x))).map(x => {
@@ -236,153 +407,40 @@ const derive = (path, key = '', serialization_format) => {
             return isHardened ? (index & 0x7fffffff) + 0x80000000 : index;
         });
 
-        // Serialize path indices as 4-byte big-endian integers for HMAC
-        const serializedIndices = numPath.map(y => {
-            const buffer = Buffer.alloc(4);
-            buffer.writeUInt32BE(y >>> 0, 0); // Ensure unsigned 32-bit
-            return buffer;
-        });
-
         let currentSerializationFormat = { ...serialization_format };
 
         // Derive each level of the path iteratively
         for (let i = 0; i < numPath.length; i++) {
             const childIndex = numPath[i];
-            const isHardened = childIndex >= 0x80000000;
 
-            // Extract current serialization components
-            const {
-                versionByte,
-                depth,
-                parentFingerPrint,
-                chainCode,
-                privKey,
-                pubKey
-            } = currentSerializationFormat;
+            // FIX #11: Process single derivation step
+            const stepData = DerivationProcessor.processSingleDerivation(
+                currentSerializationFormat, childIndex, numPath, i
+            );
 
-            let hmacInput;
-
-            // Construct HMAC input based on derivation type
-            if (keyType) {
-                // Private key available
-                if (isHardened) {
-                    // Hardened derivation: 0x00 || privkey || index
-                    hmacInput = Buffer.concat([
-                        Buffer.from([0x00]),
-                        privKey.key,
-                        serializedIndices[i]
-                    ]);
-                } else {
-                    // Non-hardened derivation: pubkey || index
-                    hmacInput = Buffer.concat([
-                        pubKey.key,
-                        serializedIndices[i]
-                    ]);
-                }
-            } else {
-                // Public key only (non-hardened only)
-                hmacInput = Buffer.concat([
-                    pubKey.key,
-                    serializedIndices[i]
-                ]);
-            }
-
-            // FIX #10: Validate HMAC inputs
-            DerivationSecurityUtils.validateHMACInputs(chainCode, hmacInput, childIndex);
+            const { hmacInput, isHardened, keyType: hasPrivateKey } = stepData;
+            sensitiveBuffers.push(hmacInput);
 
             // Compute HMAC-SHA512 for child key derivation
-            const hashHmac = createHmac('sha512', chainCode).update(hmacInput).digest();
+            const hashHmac = createHmac('sha512', currentSerializationFormat.chainCode)
+                .update(hmacInput)
+                .digest();
+            sensitiveBuffers.push(hashHmac);
 
-            // Split HMAC result: IL = key material, IR = new chain code
-            const IL = hashHmac.slice(0, 32);
-            const IR = hashHmac.slice(32, 64);
+            // FIX #11: Process HMAC result and derive child key
+            const derivedKeys = DerivationProcessor.processHMACResult(
+                hashHmac, currentSerializationFormat, childIndex, isHardened, hasPrivateKey
+            );
 
-            // FIX #10: Validate IL is not >= curve order (rare but must be handled)
-            const IL_BN = new BN(IL);
-            if (IL_BN.gte(N)) {
-                console.warn(`⚠️  IL >= n detected at index ${childIndex}. Incrementing index and retrying...`);
-                // In practice, increment index and retry
-                throw new Error(`Invalid IL value at index ${childIndex}. Increment index and retry.`);
+            // FIX #11: Update context for next iteration
+            currentSerializationFormat = DerivationProcessor.updateSerializationContext(
+                currentSerializationFormat, derivedKeys, childIndex, currentSerializationFormat.depth
+            );
+
+            // Track sensitive data for cleanup
+            if (derivedKeys.childKey) {
+                sensitiveBuffers.push(derivedKeys.childKey);
             }
-
-            // Derive child key using elliptic curve arithmetic
-            let childKey;
-            let childPublicKey;
-
-            if (keyType) {
-                // Private key derivation: ki = (IL + kpar) mod n
-                const parentKey_BN = new BN(privKey.key);
-                const childKey_BN = IL_BN.add(parentKey_BN).mod(N);
-
-                // FIX #3: CRITICAL - Validate and format child key with leading zero preservation
-                childKey = DerivationSecurityUtils.validateAndFormatChildKey(childKey_BN, 'private');
-
-                // Derive corresponding public key
-                try {
-                    childPublicKey = Buffer.from(secp256k1.getPublicKey(childKey, true));
-                    const childPublicKeyPoint = secp256k1.ProjectivePoint.fromPrivateKey(childKey);
-
-                    // Update serialization format for child key
-                    currentSerializationFormat = {
-                        versionByte: versionByte,
-                        depth: depth + 1,
-                        parentFingerPrint: rmd160(
-                            createHash('sha256').update(pubKey.key).digest()
-                        ).slice(0, 4),
-                        childIndex: childIndex,
-                        chainCode: IR,
-                        privKey: {
-                            key: childKey,
-                            versionByteNum: privKey.versionByteNum
-                        },
-                        pubKey: {
-                            key: childPublicKey,
-                            points: childPublicKeyPoint
-                        }
-                    };
-
-                } catch (error) {
-                    throw new Error(`Failed to derive public key from private key: ${error.message}`);
-                }
-
-            } else {
-                // Public key derivation: Ki = IL*G + Kpar
-                try {
-                    const IL_Point = secp256k1.ProjectivePoint.fromPrivateKey(IL);
-                    const childPublicKeyPoint = IL_Point.add(pubKey.points);
-
-                    // Validate the resulting point is not at infinity
-                    if (childPublicKeyPoint.equals(secp256k1.ProjectivePoint.ZERO)) {
-                        throw new Error(`Child public key is point at infinity at index ${childIndex}. Increment index and retry.`);
-                    }
-
-                    childPublicKey = Buffer.from(childPublicKeyPoint.toRawBytes(true));
-
-                    // Update serialization format for child key
-                    currentSerializationFormat = {
-                        versionByte: versionByte,
-                        depth: depth + 1,
-                        parentFingerPrint: rmd160(
-                            createHash('sha256').update(pubKey.key).digest()
-                        ).slice(0, 4),
-                        childIndex: childIndex,
-                        chainCode: IR,
-                        privKey: null, // No private key available
-                        pubKey: {
-                            key: childPublicKey,
-                            points: childPublicKeyPoint
-                        }
-                    };
-
-                } catch (error) {
-                    throw new Error(`Public key derivation failed: ${error.message}`);
-                }
-            }
-
-            // FIX #6: Clear sensitive intermediate values
-            DerivationSecurityUtils.secureClearDerivationData(hashHmac);
-            DerivationSecurityUtils.secureClearDerivationData(IL);
-            DerivationSecurityUtils.secureClearDerivationData(hmacInput);
         }
 
         // Generate extended keys from final serialization format
@@ -404,11 +462,18 @@ const derive = (path, key = '', serialization_format) => {
         const safeError = new Error(error.message.replace(/[0-9a-fA-F]{64,}/g, '[REDACTED]'));
         safeError.code = error.code;
         throw safeError;
+    } finally {
+        // FIX #6: Always clear sensitive data, even on errors
+        sensitiveBuffers.forEach(buffer => {
+            if (Buffer.isBuffer(buffer)) {
+                DerivationSecurityUtils.secureClearDerivationData(buffer);
+            }
+        });
     }
 };
 
 /**
- * FIX #10: Enhanced derivation with comprehensive error handling and validation
+ * FIX #10,#11: Enhanced derivation with comprehensive error handling and validation
  */
 const deriveSecure = (path, key = '', serialization_format, options = {}) => {
     const {
@@ -476,32 +541,35 @@ function validateDerivationCompatibility(derivationResult, path) {
 }
 
 /**
- * Validation function for the leading zero fix
+ * FIX #11: Enhanced validation function for the leading zero fix
  */
 function validateLeadingZeroFix() {
     console.log('🧪 Testing leading zero preservation fix...');
 
-    // Test with a private key that would have leading zeros
-    const testKey = new BN('00000123456789ABCDEF', 'hex');
-
     try {
-        const formattedKey = DerivationSecurityUtils.validateAndFormatChildKey(testKey);
+        // Test with multiple private keys that would have leading zeros
+        const testKeys = [
+            new BN('00000123456789ABCDEF', 'hex'),
+            new BN('000000000000000123', 'hex'),
+            new BN('00FF', 'hex')
+        ];
 
-        // Verify the key has proper 32-byte length with leading zeros
-        if (formattedKey.length !== 32) {
-            throw new Error('Leading zero test failed: incorrect length');
+        for (const testKey of testKeys) {
+            const formattedKey = DerivationSecurityUtils.validateAndFormatChildKey(testKey);
+
+            // Verify the key has proper 32-byte length with leading zeros
+            if (formattedKey.length !== 32) {
+                throw new Error('Leading zero test failed: incorrect length');
+            }
+
+            // Verify the value is preserved
+            const reconstructed = new BN(formattedKey);
+            if (!reconstructed.eq(testKey)) {
+                throw new Error('Leading zero test failed: value not preserved');
+            }
         }
 
-        // Verify leading zeros are preserved
-        const leadingZeros = formattedKey.slice(0, 6); // Should have several leading zeros
-        const hasLeadingZeros = leadingZeros.some(byte => byte === 0);
-
-        if (!hasLeadingZeros) {
-            console.warn('⚠️  Leading zero test inconclusive - test key may not have leading zeros');
-        } else {
-            console.log('✅ Leading zero preservation test passed');
-        }
-
+        console.log('✅ Leading zero preservation test passed');
         return true;
 
     } catch (error) {
@@ -510,10 +578,39 @@ function validateLeadingZeroFix() {
     }
 }
 
+/**
+ * FIX #12: Enhanced derivation statistics and monitoring
+ */
+function getDerivationStats() {
+    return {
+        version: '2.1.1',
+        securityFeatures: [
+            'Leading zero preservation (CRITICAL)',
+            'Comprehensive BIP32 validation',
+            'Secure memory clearing',
+            'Timing attack protection',
+            'Enhanced error handling',
+            'Improved code organization'
+        ],
+        fixes: [
+            'FIX #3: Leading zero preservation in key serialization',
+            'FIX #6: Secure memory clearing of sensitive data',
+            'FIX #7: Timing attack protection',
+            'FIX #10: Comprehensive validation and edge cases',
+            'FIX #11: Enhanced error handling and input validation',
+            'FIX #12: Better code organization and maintainability'
+        ],
+        compatibility: 'Bitcoin Core compatible',
+        testVectorSupport: true
+    };
+}
+
 export {
     DerivationSecurityUtils,
+    DerivationProcessor,
     derive,
     deriveSecure,
     validateDerivationCompatibility,
-    validateLeadingZeroFix
+    validateLeadingZeroFix,
+    getDerivationStats
 };

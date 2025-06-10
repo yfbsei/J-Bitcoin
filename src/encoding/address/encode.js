@@ -10,13 +10,17 @@
  * - FIX #6: Rate limiting and complexity attack prevention
  * - FIX #7: Enhanced entropy validation for security-critical operations
  * - FIX #8: Cross-implementation compatibility validation
+ * - FIX #9: Corrected import path for base58 encoding
+ * - FIX #10: Fixed hash160 import and usage
+ * - FIX #11: Corrected CRYPTO_CONSTANTS reference
+ * - FIX #12: Fixed b58encode function call
  * 
  * @author yfbsei
  * @version 2.1.0
  */
 
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import { encodeBase58Check } from '../base58.js';
+import { b58encode } from '../base58.js';
 import rmd160 from '../../core/crypto/hash/ripemd160.js';
 import {
 	NETWORK_VERSIONS,
@@ -291,6 +295,23 @@ class EncodingSecurityUtils {
 }
 
 /**
+ * FIX #10: Corrected hash160 function implementation
+ */
+function hash160(data) {
+	if (!Buffer.isBuffer(data)) {
+		throw new EncodingError('Data must be a Buffer for hash160', 'INVALID_HASH160_INPUT');
+	}
+
+	// SHA256 first
+	const sha256Hash = createHash('sha256').update(data).digest();
+
+	// Then RIPEMD160
+	const hash160Result = rmd160(sha256Hash);
+
+	return hash160Result;
+}
+
+/**
  * FIX #2: Enhanced extended key encoding with comprehensive validation
  */
 function encodeExtendedKey(keyType, keyContext) {
@@ -486,8 +507,8 @@ function encodeExtendedKey(keyType, keyContext) {
 
 		EncodingSecurityUtils.validateExecutionTime(startTime, 'extended key encoding');
 
-		// FIX #8: Encode with validation and compatibility checks
-		const encodedKey = encodeBase58Check(extendedKeyPayload);
+		// FIX #8,#12: Encode with validation and compatibility checks using correct function call
+		const encodedKey = b58encode(extendedKeyPayload);
 
 		// Basic format validation of result
 		if (!encodedKey || typeof encodedKey !== 'string') {
@@ -583,7 +604,8 @@ function encodeStandardKeys(privateKeyData = false, publicKeyData = null) {
 
 			sensitiveBuffers.push(wifPayload);
 
-			privateKeyWIF = encodeBase58Check(wifPayload);
+			// FIX #12: Use correct function name
+			privateKeyWIF = b58encode(wifPayload);
 
 			// Validate WIF result
 			if (!privateKeyWIF || typeof privateKeyWIF !== 'string') {
@@ -755,11 +777,8 @@ function generateAddress(networkVersionByte, publicKeyBuffer) {
 		const versionPrefix = Buffer.from([networkVersionByte]);
 		sensitiveBuffers.push(versionPrefix);
 
-		// FIX #5: Compute HASH160 with validation
-		const sha256Hash = createHash('sha256').update(publicKeyBuffer).digest();
-		sensitiveBuffers.push(sha256Hash);
-
-		const hash160Buffer = rmd160(sha256Hash);
+		// FIX #5,#10: Compute HASH160 with validation using corrected function
+		const hash160Buffer = hash160(publicKeyBuffer);
 		sensitiveBuffers.push(hash160Buffer);
 
 		// Validate hash160 length
@@ -777,7 +796,8 @@ function generateAddress(networkVersionByte, publicKeyBuffer) {
 
 		EncodingSecurityUtils.validateExecutionTime(startTime, 'address generation');
 
-		const address = encodeBase58Check(addressPayload);
+		// FIX #12: Use correct function name
+		const address = b58encode(addressPayload);
 
 		// Validate address result
 		if (!address || typeof address !== 'string') {
@@ -887,11 +907,8 @@ function createPublicKeyFingerprint(publicKeyBuffer) {
 			);
 		}
 
-		// FIX #5: Compute fingerprint with validation
-		const sha256Hash = createHash('sha256').update(publicKeyBuffer).digest();
-		sensitiveBuffers.push(sha256Hash);
-
-		const hash160Buffer = rmd160(sha256Hash);
+		// FIX #5,#10: Compute fingerprint with validation using corrected function
+		const hash160Buffer = hash160(publicKeyBuffer);
 		sensitiveBuffers.push(hash160Buffer);
 
 		if (hash160Buffer.length !== CRYPTO_CONSTANTS.HASH160_LENGTH) {
@@ -939,7 +956,8 @@ function getEncodingStatus() {
 			'Buffer overflow protection',
 			'Rate limiting',
 			'Entropy validation',
-			'Cross-implementation compatibility'
+			'Cross-implementation compatibility',
+			'Corrected import paths and function calls'
 		],
 		limits: SECURITY_CONSTANTS,
 		rateLimit: {

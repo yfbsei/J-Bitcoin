@@ -9,6 +9,7 @@
  * - FIX #5: Integration with actual BIP39 wordlist validation
  * - FIX #6: Standardized error codes for programmatic handling
  * - FIX #7: Secure memory management for sensitive operations
+ * - FIX #8: Fixed import inconsistencies and missing constants
  * 
  * @author yfbsei
  * @version 2.1.0
@@ -16,7 +17,7 @@
 
 import { randomBytes, timingSafeEqual, createHash } from 'node:crypto';
 import { base58_to_binary } from 'base58-js';
-import ENGLISH_WORDLIST from '../bip/bip39/wordList_en.js';
+import ENGLISH_WORDLIST from '../bip/bip39/wordlist_en.js';
 import {
     BIP44_CONSTANTS,
     CRYPTO_CONSTANTS,
@@ -109,7 +110,8 @@ class ValidationSecurityUtils {
         if (now - this.lastCleanup > 60000) {
             const cutoff = Math.floor(now / 1000) - 60;
             for (const [key] of this.validationHistory) {
-                if (key.endsWith(cutoff.toString()) || key.split('-')[1] < cutoff) {
+                const keyTime = parseInt(key.split('-').pop());
+                if (keyTime < cutoff) {
                     this.validationHistory.delete(key);
                 }
             }

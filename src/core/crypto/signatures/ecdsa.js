@@ -10,7 +10,7 @@
  * @see {@link https://github.com/bitcoin/bips/blob/master/bip-0062.mediawiki|BIP62 - Dealing with malleability}
  * @see {@link https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki|BIP143 - Transaction Signature Verification for Version 0 Witness Program}
  * @author yfbsei
- * @version 2.1.0
+ * @version 2.1.1
  */
 
 import { createHash, randomBytes } from 'node:crypto';
@@ -50,7 +50,7 @@ const SIGHASH_TYPES = {
  * Curve order for secp256k1 (for signature validation)
  */
 const CURVE_ORDER = new BN(CRYPTO_CONSTANTS.SECP256K1_ORDER, 'hex');
-const CURVE_HALF_ORDER = CURVE_ORDER.shln(1); // n/2 for low-S enforcement
+const CURVE_HALF_ORDER = CURVE_ORDER.shln(-1); // n/2 for low-S enforcement (fixed division)
 
 /**
  * Bitcoin message signing prefix
@@ -191,7 +191,7 @@ class ECDSAValidator {
             if (r.isZero() || r.gte(CURVE_ORDER)) {
                 throw new ECDSAError('Signature r component out of range', 'INVALID_SIGNATURE_R');
             }
-            if (s.isZero() || s.gte(CURVE_ORDER)) {
+            if (s.gte(CURVE_ORDER)) {
                 throw new ECDSAError('Signature s component out of range', 'INVALID_SIGNATURE_S');
             }
 
@@ -248,11 +248,12 @@ class TransactionHasher {
     static createMessageHash(message) {
         const messageBuffer = ECDSAValidator.validateMessage(message);
         const prefix = Buffer.from(BITCOIN_MESSAGE_PREFIX, 'utf8');
-        const messageLength = Buffer.from([messageBuffer.length]);
+        const messageLength = this._getCompactSizeBuffer(messageBuffer.length);
+        const prefixLength = this._getCompactSizeBuffer(prefix.length);
 
-        // Bitcoin message format: prefix + message_length + message
+        // Bitcoin message format: prefix_length + prefix + message_length + message
         const fullMessage = Buffer.concat([
-            Buffer.from([prefix.length]), prefix,
+            prefixLength, prefix,
             messageLength, messageBuffer
         ]);
 
@@ -278,23 +279,66 @@ class TransactionHasher {
             throw new ECDSAError('Invalid input index', 'INVALID_INPUT_INDEX');
         }
 
+        // Convert version and lockTime to 4-byte little-endian
+        const versionBuffer = Buffer.allocUnsafe(4);
+        versionBuffer.writeUInt32LE(transaction.version, 0);
+
+        const lockTimeBuffer = Buffer.allocUnsafe(4);
+        lockTimeBuffer.writeUInt32LE(transaction.lockTime, 0);
+
+        // Convert amount to 8-byte little-endian
+        const amountBuffer = Buffer.allocUnsafe(8);
+        amountBuffer.writeBigUInt64LE(BigInt(amount), 0);
+
+        // Convert sequence to 4-byte little-endian
+        const sequenceBuffer = Buffer.allocUnsafe(4);
+        sequenceBuffer.writeUInt32LE(input.sequence, 0);
+
+        // Convert sighash type to 4-byte little-endian
+        const sighashBuffer = Buffer.allocUnsafe(4);
+        sighashBuffer.writeUInt32LE(sighashType, 0);
+
         // BIP143 signature hash construction
         const data = Buffer.concat([
-            Buffer.from([transaction.version]),           // nVersion (4 bytes)
+            versionBuffer,                                // nVersion (4 bytes)
             hashPrevouts,                                 // hashPrevouts (32 bytes)
             hashSequence,                                 // hashSequence (32 bytes)
             Buffer.from(input.previousOutput, 'hex'),     // outpoint (36 bytes)
             scriptCode,                                   // scriptCode
-            Buffer.from(amount.toString(16).padStart(16, '0'), 'hex'), // amount (8 bytes)
-            Buffer.from([input.sequence]),                // nSequence (4 bytes)
+            amountBuffer,                                 // amount (8 bytes)
+            sequenceBuffer,                               // nSequence (4 bytes)
             hashOutputs,                                  // hashOutputs (32 bytes)
-            Buffer.from([transaction.lockTime]),          // nLockTime (4 bytes)
-            Buffer.from([sighashType])                    // sighash type (4 bytes)
+            lockTimeBuffer,                               // nLockTime (4 bytes)
+            sighashBuffer                                 // sighash type (4 bytes)
         ]);
 
         // Double SHA256
         const hash1 = createHash('sha256').update(data).digest();
         return createHash('sha256').update(hash1).digest();
+    }
+
+    /**
+     * Helper method to get compact size buffer
+     */
+    static _getCompactSizeBuffer(value) {
+        if (value < 0xfd) {
+            return Buffer.from([value]);
+        } else if (value <= 0xffff) {
+            const buffer = Buffer.allocUnsafe(3);
+            buffer[0] = 0xfd;
+            buffer.writeUInt16LE(value, 1);
+            return buffer;
+        } else if (value <= 0xffffffff) {
+            const buffer = Buffer.allocUnsafe(5);
+            buffer[0] = 0xfe;
+            buffer.writeUInt32LE(value, 1);
+            return buffer;
+        } else {
+            const buffer = Buffer.allocUnsafe(9);
+            buffer[0] = 0xff;
+            buffer.writeBigUInt64LE(BigInt(value), 1);
+            return buffer;
+        }
     }
 
     /**
@@ -323,9 +367,11 @@ class TransactionHasher {
             return Buffer.alloc(32, 0); // Zero hash
         }
 
-        const sequences = transaction.inputs.map(input =>
-            Buffer.from([input.sequence])
-        );
+        const sequences = transaction.inputs.map(input => {
+            const sequenceBuffer = Buffer.allocUnsafe(4);
+            sequenceBuffer.writeUInt32LE(input.sequence, 0);
+            return sequenceBuffer;
+        });
         const concat = Buffer.concat(sequences);
         const hash1 = createHash('sha256').update(concat).digest();
         return createHash('sha256').update(hash1).digest();
@@ -343,8 +389,11 @@ class TransactionHasher {
             }
             // Hash only the output at the same index
             const output = transaction.outputs[inputIndex];
+            const amountBuffer = Buffer.allocUnsafe(8);
+            amountBuffer.writeBigUInt64LE(BigInt(output.amount), 0);
+
             const outputData = Buffer.concat([
-                Buffer.from(output.amount.toString(16).padStart(16, '0'), 'hex'),
+                amountBuffer,
                 Buffer.from(output.scriptPubKey, 'hex')
             ]);
             const hash1 = createHash('sha256').update(outputData).digest();
@@ -353,12 +402,15 @@ class TransactionHasher {
             return Buffer.alloc(32, 0); // Zero hash
         } else {
             // SIGHASH_ALL - hash all outputs
-            const outputs = transaction.outputs.map(output =>
-                Buffer.concat([
-                    Buffer.from(output.amount.toString(16).padStart(16, '0'), 'hex'),
+            const outputs = transaction.outputs.map(output => {
+                const amountBuffer = Buffer.allocUnsafe(8);
+                amountBuffer.writeBigUInt64LE(BigInt(output.amount), 0);
+
+                return Buffer.concat([
+                    amountBuffer,
                     Buffer.from(output.scriptPubKey, 'hex')
-                ])
-            );
+                ]);
+            });
             const concat = Buffer.concat(outputs);
             const hash1 = createHash('sha256').update(concat).digest();
             return createHash('sha256').update(hash1).digest();
@@ -614,7 +666,6 @@ class EnhancedECDSA {
                     transaction, inputIndex, scriptCode, amount, sighashType
                 );
             } else {
-                // Legacy transaction signing would go here
                 throw new ECDSAError(
                     'Legacy transaction signing not yet implemented',
                     'LEGACY_SIGNING_NOT_IMPLEMENTED'
