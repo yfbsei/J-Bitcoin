@@ -115,28 +115,22 @@ class PSBTKeyValue {
     }
 
     /**
-     * Get full key (type + key data)
-     */
-    getFullKey() {
-        const typeBuffer = Buffer.from([this.type]);
-        return Buffer.concat([typeBuffer, this.key]);
-    }
-
-    /**
      * Serialize key-value pair
      */
     serialize() {
-        const fullKey = this.getFullKey();
-        const keyLength = this.encodeVarInt(fullKey.length);
-        const valueLength = this.encodeVarInt(this.value.length);
+        const typeBuffer = Buffer.from([this.type]);
+        const fullKey = Buffer.concat([typeBuffer, this.key]);
+
+        const keyLength = this._encodeVarInt(fullKey.length);
+        const valueLength = this._encodeVarInt(this.value.length);
 
         return Buffer.concat([keyLength, fullKey, valueLength, this.value]);
     }
 
     /**
-     * Encode variable integer (Bitcoin format)
+     * Encode variable integer
      */
-    encodeVarInt(n) {
+    _encodeVarInt(n) {
         if (n < 0xfd) {
             return Buffer.from([n]);
         } else if (n <= 0xffff) {
@@ -159,38 +153,36 @@ class PSBTKeyValue {
 }
 
 /**
- * Enhanced PSBT class with comprehensive functionality
+ * Enhanced PSBT implementation with comprehensive features
  */
 class PSBT {
-    /**
-     * Create a new PSBT instance
-     * 
-     * @param {string} [network='main'] - Network type
-     * @param {Object} [options={}] - PSBT options
-     */
     constructor(network = 'main', options = {}) {
-        this.network = network;
-        this.networkConfig = validateAndGetNetwork(network);
+        this.network = validateAndGetNetwork(network);
+        this.createdAt = Date.now();
+        this.finalized = false;
 
-        // PSBT structure
+        // PSBT sections
         this.global = {
-            version: PSBT_CONSTANTS.VERSION,
             unsignedTx: null,
             xpubs: new Map(),
+            version: PSBT_CONSTANTS.VERSION,
             proprietary: new Map()
         };
 
         this.inputs = [];
         this.outputs = [];
 
-        // State tracking
-        this.finalized = false;
-        this.signed = false;
-        this.createdAt = Date.now();
+        // Configuration options
+        this.options = this._normalizeOptions(options);
+    }
 
-        // Options
-        this.options = {
-            allowSigningWithoutPrevTx: options.allowSigningWithoutPrevTx || false,
+    /**
+     * Normalize constructor options
+     */
+    _normalizeOptions(options) {
+        return {
+            allowEmptyInputs: options.allowEmptyInputs || false,
+            requireAllSignatures: options.requireAllSignatures !== false,
             maximumFeeRate: options.maximumFeeRate || 5000, // 5000 sat/vB
             ...options
         };
@@ -201,6 +193,7 @@ class PSBT {
      * 
      * @param {Object} unsignedTx - Unsigned transaction structure
      * @param {Array} utxos - Array of UTXO data for inputs
+     * @param {string} [network='main'] - Network type
      * @returns {PSBT} New PSBT instance
      */
     static fromUnsignedTx(unsignedTx, utxos = [], network = 'main') {
@@ -315,21 +308,21 @@ class PSBT {
             sequence: inputData.sequence || 0xffffffff,
 
             // UTXO data
-            nonWitnessUtxo: inputData.nonWitnessUtxo,
+            nonWitnessUtxo: inputData.nonWitnessUtxo || null,
             witnessUtxo: inputData.witnessUtxo || {
-                amount: inputData.value,
+                amount: inputData.value || inputData.amount,
                 scriptPubKey: inputData.scriptPubKey
             },
 
-            // Scripts
-            redeemScript: inputData.redeemScript,
-            witnessScript: inputData.witnessScript,
-
-            // Signatures
+            // Signature data
             partialSigs: new Map(),
             sighashType: inputData.sighashType || PSBT_CONSTANTS.DEFAULT_SIGHASH_TYPE,
 
-            // HD key derivation
+            // Scripts
+            redeemScript: inputData.redeemScript || null,
+            witnessScript: inputData.witnessScript || null,
+
+            // BIP32 derivation
             bip32Derivation: new Map(),
 
             // Finalization
@@ -337,19 +330,34 @@ class PSBT {
             finalScriptWitness: null,
 
             // Taproot fields
-            tapKeySig: inputData.tapKeySig,
+            tapKeySig: null,
             tapScriptSigs: new Map(),
             tapLeafScripts: new Map(),
             tapBip32Derivation: new Map(),
-            tapInternalKey: inputData.tapInternalKey,
-            tapMerkleRoot: inputData.tapMerkleRoot,
+            tapInternalKey: inputData.tapInternalKey || null,
+            tapMerkleRoot: inputData.tapMerkleRoot || null,
 
-            // Proprietary data
+            // Custom fields
             proprietary: new Map()
         };
 
-        // Validate input
-        this._validateInput(input, this.inputs.length);
+        // Add to unsigned transaction inputs
+        if (!this.global.unsignedTx) {
+            this.global.unsignedTx = {
+                version: 2,
+                locktime: 0,
+                inputs: [],
+                outputs: []
+            };
+        }
+
+        this.global.unsignedTx.inputs.push({
+            hash: Buffer.isBuffer(input.previousTxId) ?
+                input.previousTxId : Buffer.from(input.previousTxId, 'hex').reverse(),
+            index: input.previousOutputIndex,
+            script: Buffer.alloc(0),
+            sequence: input.sequence
+        });
 
         this.inputs.push(input);
         return this;
@@ -365,27 +373,40 @@ class PSBT {
         this._validateNotFinalized();
 
         const output = {
-            amount: outputData.value || outputData.amount,
+            amount: outputData.amount || outputData.value,
             scriptPubKey: outputData.scriptPubKey || outputData.script,
 
-            // Scripts for P2SH/P2WSH
-            redeemScript: outputData.redeemScript,
-            witnessScript: outputData.witnessScript,
+            // Scripts
+            redeemScript: outputData.redeemScript || null,
+            witnessScript: outputData.witnessScript || null,
 
-            // HD key derivation
+            // BIP32 derivation
             bip32Derivation: new Map(),
 
             // Taproot fields
-            tapInternalKey: outputData.tapInternalKey,
-            tapTree: outputData.tapTree,
+            tapInternalKey: outputData.tapInternalKey || null,
+            tapTree: outputData.tapTree || null,
             tapBip32Derivation: new Map(),
 
-            // Proprietary data
+            // Custom fields
             proprietary: new Map()
         };
 
-        // Validate output
-        this._validateOutput(output, this.outputs.length);
+        // Add to unsigned transaction outputs
+        if (!this.global.unsignedTx) {
+            this.global.unsignedTx = {
+                version: 2,
+                locktime: 0,
+                inputs: [],
+                outputs: []
+            };
+        }
+
+        this.global.unsignedTx.outputs.push({
+            amount: output.amount,
+            script: Buffer.isBuffer(output.scriptPubKey) ?
+                output.scriptPubKey : Buffer.from(output.scriptPubKey, 'hex')
+        });
 
         this.outputs.push(output);
         return this;
@@ -395,61 +416,127 @@ class PSBT {
      * Add partial signature to input
      * 
      * @param {number} inputIndex - Input index
-     * @param {Buffer} publicKey - Public key
+     * @param {Buffer} pubkey - Public key
      * @param {Buffer} signature - Signature
      * @returns {PSBT} This PSBT instance for chaining
      */
-    addPartialSig(inputIndex, publicKey, signature) {
-        this._validateInputIndex(inputIndex);
+    addPartialSig(inputIndex, pubkey, signature) {
         this._validateNotFinalized();
+        this._validateInputIndex(inputIndex);
 
-        const input = this.inputs[inputIndex];
-
-        // Validate signature format
-        if (!Buffer.isBuffer(signature) || signature.length === 0) {
-            throw new PSBTError('Invalid signature format', 'INVALID_SIGNATURE');
+        if (!Buffer.isBuffer(pubkey) || pubkey.length !== 33) {
+            throw new PSBTError('Invalid public key format', 'INVALID_PUBKEY');
         }
 
-        // Validate public key
-        if (!Buffer.isBuffer(publicKey) || (publicKey.length !== 33 && publicKey.length !== 65)) {
-            throw new PSBTError('Invalid public key format', 'INVALID_PUBLIC_KEY');
+        if (!Buffer.isBuffer(signature)) {
+            throw new PSBTError('Signature must be a Buffer', 'INVALID_SIGNATURE');
         }
 
-        input.partialSigs.set(publicKey.toString('hex'), signature);
+        this.inputs[inputIndex].partialSigs.set(pubkey.toString('hex'), signature);
         return this;
     }
 
     /**
-     * Finalize input (convert partial signatures to final scripts)
+     * Sign input with private key
      * 
      * @param {number} inputIndex - Input index
-     * @param {Function} [finalizer] - Custom finalizer function
+     * @param {Buffer} privateKey - Private key for signing
+     * @param {number} [sighashType] - Signature hash type
      * @returns {PSBT} This PSBT instance for chaining
      */
-    finalizeInput(inputIndex, finalizer = null) {
+    signInput(inputIndex, privateKey, sighashType = PSBT_CONSTANTS.SIGHASH_ALL) {
+        this._validateNotFinalized();
+        this._validateInputIndex(inputIndex);
+
+        if (!Buffer.isBuffer(privateKey) || privateKey.length !== 32) {
+            throw new PSBTError('Invalid private key format', 'INVALID_PRIVATE_KEY');
+        }
+
+        try {
+            // Derive public key
+            const pubkey = secp256k1.getPublicKey(privateKey, true);
+
+            // Create signature hash
+            const signatureHash = this._getSignatureHash(inputIndex, sighashType);
+
+            // Sign the hash
+            const signature = secp256k1.sign(signatureHash, privateKey);
+            const signatureBuffer = Buffer.concat([
+                Buffer.from(signature.toCompactRawBytes()),
+                Buffer.from([sighashType])
+            ]);
+
+            // Add signature to PSBT
+            this.addPartialSig(inputIndex, Buffer.from(pubkey), signatureBuffer);
+
+            return this;
+
+        } catch (error) {
+            throw new PSBTError(
+                `Failed to sign input ${inputIndex}: ${error.message}`,
+                'SIGNING_FAILED',
+                { inputIndex, originalError: error.message }
+            );
+        }
+    }
+
+    /**
+     * Sign all inputs with private key
+     * 
+     * @param {Buffer} privateKey - Private key for signing
+     * @param {number} [sighashType] - Signature hash type
+     * @returns {PSBT} This PSBT instance for chaining
+     */
+    signAllInputs(privateKey, sighashType = PSBT_CONSTANTS.SIGHASH_ALL) {
+        for (let i = 0; i < this.inputs.length; i++) {
+            if (this._canSignInput(i)) {
+                this.signInput(i, privateKey, sighashType);
+            }
+        }
+        return this;
+    }
+
+    /**
+     * Finalize input
+     * 
+     * @param {number} inputIndex - Input index to finalize
+     * @returns {PSBT} This PSBT instance for chaining
+     */
+    finalizeInput(inputIndex) {
         this._validateInputIndex(inputIndex);
 
         const input = this.inputs[inputIndex];
 
+        // Check if already finalized
         if (input.finalScriptSig || input.finalScriptWitness) {
-            return this; // Already finalized
+            return this;
         }
 
-        if (finalizer && typeof finalizer === 'function') {
-            const result = finalizer(input, this);
-            if (result) {
-                input.finalScriptSig = result.scriptSig || Buffer.alloc(0);
-                input.finalScriptWitness = result.scriptWitness || [];
-            }
-        } else {
-            // Use default finalizer based on input type
-            this._defaultFinalize(input);
+        // Check if we have required signatures
+        if (!this._canFinalizeInput(inputIndex)) {
+            throw new PSBTError(
+                `Cannot finalize input ${inputIndex}: insufficient signatures`,
+                'INSUFFICIENT_SIGNATURES'
+            );
         }
 
-        // Clear partial signatures after finalization
-        if (input.finalScriptSig || input.finalScriptWitness) {
+        try {
+            // Generate final scripts based on input type
+            const finalization = this._generateFinalization(inputIndex);
+
+            input.finalScriptSig = finalization.scriptSig;
+            input.finalScriptWitness = finalization.scriptWitness;
+
+            // Clear intermediate data
             input.partialSigs.clear();
             input.tapScriptSigs.clear();
+
+        } catch (error) {
+            throw new PSBTError(
+                `Failed to finalize input ${inputIndex}: ${error.message}`,
+                'FINALIZATION_FAILED',
+                { inputIndex, originalError: error.message }
+            );
         }
 
         return this;
@@ -462,7 +549,9 @@ class PSBT {
      */
     finalizeAllInputs() {
         for (let i = 0; i < this.inputs.length; i++) {
-            this.finalizeInput(i);
+            if (this._canFinalizeInput(i)) {
+                this.finalizeInput(i);
+            }
         }
         this.finalized = true;
         return this;
@@ -630,6 +719,24 @@ class PSBT {
     // ==================== PRIVATE METHODS ====================
 
     /**
+     * Validate that PSBT is not finalized
+     */
+    _validateNotFinalized() {
+        if (this.finalized) {
+            throw new PSBTError('Cannot modify finalized PSBT', 'PSBT_FINALIZED');
+        }
+    }
+
+    /**
+     * Validate input index
+     */
+    _validateInputIndex(index) {
+        if (typeof index !== 'number' || index < 0 || index >= this.inputs.length) {
+            throw new PSBTError(`Invalid input index: ${index}`, 'INVALID_INPUT_INDEX');
+        }
+    }
+
+    /**
      * Normalize unsigned transaction structure
      */
     _normalizeUnsignedTx(unsignedTx) {
@@ -709,189 +816,14 @@ class PSBT {
             amount: output.amount,
             scriptPubKey: Buffer.isBuffer(output.script) ? output.script : Buffer.from(output.script, 'hex'),
 
+            redeemScript: null,
+            witnessScript: null,
+
             bip32Derivation: new Map(),
             tapBip32Derivation: new Map(),
+
             proprietary: new Map()
         };
-    }
-
-    /**
-     * Default input finalizer
-     */
-    _defaultFinalize(input) {
-        // This is a simplified finalizer
-        // In practice, you'd need to handle different script types
-
-        if (input.partialSigs.size === 0) {
-            throw new PSBTError('No signatures available for finalization', 'NO_SIGNATURES');
-        }
-
-        // For P2PKH and similar simple cases
-        if (input.partialSigs.size === 1) {
-            const [pubkey, signature] = input.partialSigs.entries().next().value;
-
-            // Create script sig for P2PKH
-            const scriptSig = Buffer.concat([
-                Buffer.from([signature.length]),
-                signature,
-                Buffer.from([Buffer.from(pubkey, 'hex').length]),
-                Buffer.from(pubkey, 'hex')
-            ]);
-
-            input.finalScriptSig = scriptSig;
-        }
-    }
-
-    /**
-     * Validate input index
-     */
-    _validateInputIndex(index) {
-        if (typeof index !== 'number' || index < 0 || index >= this.inputs.length) {
-            throw new PSBTError(`Invalid input index: ${index}`, 'INVALID_INPUT_INDEX');
-        }
-    }
-
-    /**
-     * Validate not finalized
-     */
-    _validateNotFinalized() {
-        if (this.finalized) {
-            throw new PSBTError('Cannot modify finalized PSBT', 'PSBT_FINALIZED');
-        }
-    }
-
-    /**
-     * Validate input data
-     */
-    _validateInput(input, index) {
-        if (!input.witnessUtxo && !input.nonWitnessUtxo) {
-            throw new PSBTError(`Input ${index} missing UTXO data`, 'MISSING_UTXO');
-        }
-
-        if (!Buffer.isBuffer(input.witnessUtxo?.scriptPubKey)) {
-            throw new PSBTError(`Input ${index} has invalid scriptPubKey`, 'INVALID_SCRIPT');
-        }
-    }
-
-    /**
-     * Validate output data
-     */
-    _validateOutput(output, index) {
-        if (typeof output.amount !== 'number' || output.amount < 0) {
-            throw new PSBTError(`Output ${index} has invalid amount`, 'INVALID_AMOUNT');
-        }
-
-        if (!Buffer.isBuffer(output.scriptPubKey)) {
-            throw new PSBTError(`Output ${index} has invalid scriptPubKey`, 'INVALID_SCRIPT');
-        }
-    }
-
-    /**
-     * Calculate transaction fee
-     */
-    _calculateFee() {
-        let totalInput = 0;
-        let totalOutput = 0;
-
-        for (const input of this.inputs) {
-            if (input.witnessUtxo) {
-                totalInput += input.witnessUtxo.amount;
-            } else if (input.nonWitnessUtxo) {
-                // Would need to parse transaction to get amount
-                // This is simplified
-                totalInput += 0;
-            }
-        }
-
-        for (const output of this.outputs) {
-            totalOutput += output.amount;
-        }
-
-        return totalInput - totalOutput;
-    }
-
-    /**
-     * Estimate transaction size
-     */
-    _estimateTransactionSize() {
-        // Base transaction size
-        let size = 4 + 4; // version + locktime
-
-        // Input count + inputs
-        size += this._getVarIntSize(this.inputs.length);
-        for (const input of this.inputs) {
-            size += 32 + 4 + 4; // outpoint + sequence
-
-            if (input.finalScriptSig) {
-                size += this._getVarIntSize(input.finalScriptSig.length) + input.finalScriptSig.length;
-            } else {
-                // Estimate based on input type
-                size += 107; // Average P2PKH input
-            }
-        }
-
-        // Output count + outputs
-        size += this._getVarIntSize(this.outputs.length);
-        for (const output of this.outputs) {
-            size += 8; // amount
-            size += this._getVarIntSize(output.scriptPubKey.length) + output.scriptPubKey.length;
-        }
-
-        // Add witness data if present
-        let hasWitness = false;
-        for (const input of this.inputs) {
-            if (input.finalScriptWitness && input.finalScriptWitness.length > 0) {
-                hasWitness = true;
-                break;
-            }
-        }
-
-        if (hasWitness) {
-            size += 2; // witness flag + marker
-            for (const input of this.inputs) {
-                if (input.finalScriptWitness) {
-                    size += this._getVarIntSize(input.finalScriptWitness.length);
-                    for (const witness of input.finalScriptWitness) {
-                        size += this._getVarIntSize(witness.length) + witness.length;
-                    }
-                } else {
-                    size += 1; // empty witness
-                }
-            }
-        }
-
-        return size;
-    }
-
-    /**
-     * Get variable integer size
-     */
-    _getVarIntSize(n) {
-        if (n < 0xfd) return 1;
-        if (n <= 0xffff) return 3;
-        if (n <= 0xffffffff) return 5;
-        return 9;
-    }
-
-    /**
-     * Get required signatures count
-     */
-    _getRequiredSignatures() {
-        // Simplified - would need to analyze scripts for multisig
-        return this.inputs.length;
-    }
-
-    /**
-     * Get current signatures count
-     */
-    _getCurrentSignatures() {
-        let count = 0;
-        for (const input of this.inputs) {
-            if (input.partialSigs.size > 0 || input.tapKeySig || input.finalScriptSig || input.finalScriptWitness) {
-                count++;
-            }
-        }
-        return count;
     }
 
     /**
@@ -899,7 +831,7 @@ class PSBT {
      */
     _canSignInput(index) {
         const input = this.inputs[index];
-        return !!(input.witnessUtxo || input.nonWitnessUtxo) &&
+        return !(input.witnessUtxo || input.nonWitnessUtxo) &&
             !input.finalScriptSig &&
             !input.finalScriptWitness;
     }
@@ -921,6 +853,143 @@ class PSBT {
         return this.inputs.every(input =>
             input.finalScriptSig !== null || input.finalScriptWitness !== null
         );
+    }
+
+    /**
+     * Generate signature hash for input
+     */
+    _getSignatureHash(inputIndex, sighashType = PSBT_CONSTANTS.SIGHASH_ALL) {
+        // This is a simplified implementation
+        // In practice, this would implement BIP143/BIP341 signature hash calculation
+        const input = this.inputs[inputIndex];
+
+        // Create a simplified signature hash based on transaction data
+        const txData = this._serializeUnsignedTransaction();
+        const inputData = Buffer.concat([
+            Buffer.from([inputIndex]),
+            Buffer.from([sighashType]),
+            input.witnessUtxo ? this._serializeWitnessUtxo(input.witnessUtxo) : Buffer.alloc(0)
+        ]);
+
+        return createHash('sha256')
+            .update(createHash('sha256').update(Buffer.concat([txData, inputData])).digest())
+            .digest();
+    }
+
+    /**
+     * Generate finalization scripts for input
+     */
+    _generateFinalization(inputIndex) {
+        const input = this.inputs[inputIndex];
+
+        // For Taproot inputs
+        if (input.tapKeySig) {
+            return {
+                scriptSig: null,
+                scriptWitness: [input.tapKeySig]
+            };
+        }
+
+        // For witness inputs with partial signatures
+        if (input.partialSigs.size > 0) {
+            const signatures = Array.from(input.partialSigs.values());
+            const pubkeys = Array.from(input.partialSigs.keys()).map(hex => Buffer.from(hex, 'hex'));
+
+            if (input.witnessScript) {
+                // P2WSH
+                return {
+                    scriptSig: null,
+                    scriptWitness: [...signatures, ...pubkeys, input.witnessScript]
+                };
+            } else {
+                // P2WPKH
+                return {
+                    scriptSig: null,
+                    scriptWitness: [signatures[0], pubkeys[0]]
+                };
+            }
+        }
+
+        // Legacy inputs
+        if (input.partialSigs.size > 0) {
+            const signatures = Array.from(input.partialSigs.values());
+            const pubkeys = Array.from(input.partialSigs.keys()).map(hex => Buffer.from(hex, 'hex'));
+
+            // Create scriptSig
+            const scriptSig = Buffer.concat([
+                Buffer.from([signatures[0].length]),
+                signatures[0],
+                Buffer.from([pubkeys[0].length]),
+                pubkeys[0]
+            ]);
+
+            return {
+                scriptSig,
+                scriptWitness: null
+            };
+        }
+
+        throw new PSBTError('No signatures found for finalization', 'NO_SIGNATURES');
+    }
+
+    /**
+     * Get required signatures count
+     */
+    _getRequiredSignatures() {
+        // Simplified: assume 1 signature per input
+        return this.inputs.length;
+    }
+
+    /**
+     * Get current signatures count
+     */
+    _getCurrentSignatures() {
+        return this.inputs.reduce((total, input) => {
+            return total + Math.max(input.partialSigs.size, input.tapKeySig ? 1 : 0);
+        }, 0);
+    }
+
+    /**
+     * Estimate transaction size
+     */
+    _estimateTransactionSize() {
+        let size = 10; // Base transaction overhead
+
+        // Input sizes
+        for (const input of this.inputs) {
+            if (input.tapInternalKey) {
+                size += 64; // Taproot input
+            } else if (input.witnessUtxo) {
+                size += 68; // Witness input
+            } else {
+                size += 148; // Legacy input
+            }
+        }
+
+        // Output sizes
+        size += this.outputs.length * 34; // Average output size
+
+        return size;
+    }
+
+    /**
+     * Calculate transaction fee
+     */
+    _calculateFee() {
+        try {
+            const inputValue = this.inputs.reduce((total, input) => {
+                const utxo = input.witnessUtxo || input.nonWitnessUtxo;
+                return total + (utxo ? utxo.amount : 0);
+            }, 0);
+
+            const outputValue = this.outputs.reduce((total, output) => {
+                return total + output.amount;
+            }, 0);
+
+            return inputValue - outputValue;
+        } catch (error) {
+            return -1; // Invalid fee calculation
+        }
     }
 
     /**
@@ -1004,23 +1073,6 @@ class PSBT {
     }
 
     /**
-     * Read variable integer from buffer
-     */
-    _readVarInt(buffer, offset) {
-        const first = buffer[offset];
-
-        if (first < 0xfd) {
-            return { value: first, offset: offset + 1 };
-        } else if (first === 0xfd) {
-            return { value: buffer.readUInt16LE(offset + 1), offset: offset + 3 };
-        } else if (first === 0xfe) {
-            return { value: buffer.readUInt32LE(offset + 1), offset: offset + 5 };
-        } else {
-            return { value: Number(buffer.readBigUInt64LE(offset + 1)), offset: offset + 9 };
-        }
-    }
-
-    /**
      * Process global fields
      */
     _processGlobalFields(fields) {
@@ -1033,7 +1085,7 @@ class PSBT {
                     this.global.unsignedTx = this._parseUnsignedTransaction(field.value);
                     break;
                 case PSBT_CONSTANTS.GLOBAL_XPUB:
-                    // Parse xpub data
+                    this.global.xpubs.set(keyData.toString('hex'), field.value);
                     break;
                 case PSBT_CONSTANTS.GLOBAL_VERSION:
                     this.global.version = field.value.readUInt32LE(0);
@@ -1050,11 +1102,31 @@ class PSBT {
      */
     _processInputFields(fields, index) {
         const input = {
+            previousTxId: null,
+            previousOutputIndex: null,
+            sequence: 0xffffffff,
+
+            nonWitnessUtxo: null,
+            witnessUtxo: null,
+
             partialSigs: new Map(),
+            sighashType: PSBT_CONSTANTS.DEFAULT_SIGHASH_TYPE,
+
+            redeemScript: null,
+            witnessScript: null,
+
             bip32Derivation: new Map(),
+
+            finalScriptSig: null,
+            finalScriptWitness: null,
+
+            tapKeySig: null,
             tapScriptSigs: new Map(),
             tapLeafScripts: new Map(),
             tapBip32Derivation: new Map(),
+            tapInternalKey: null,
+            tapMerkleRoot: null,
+
             proprietary: new Map()
         };
 
@@ -1097,7 +1169,7 @@ class PSBT {
                     input.tapScriptSigs.set(keyData.toString('hex'), field.value);
                     break;
                 case PSBT_CONSTANTS.IN_TAP_LEAF_SCRIPT:
-                    input.tapLeafScripts.set(keyData.toString('hex'), this._parseTapLeafScript(field.value));
+                    input.tapLeafScripts.set(keyData.toString('hex'), field.value);
                     break;
                 case PSBT_CONSTANTS.IN_TAP_BIP32_DERIVATION:
                     input.tapBip32Derivation.set(keyData.toString('hex'), this._parseTapBip32Derivation(field.value));
@@ -1122,8 +1194,18 @@ class PSBT {
      */
     _processOutputFields(fields, index) {
         const output = {
+            amount: 0,
+            scriptPubKey: Buffer.alloc(0),
+
+            redeemScript: null,
+            witnessScript: null,
+
             bip32Derivation: new Map(),
             tapBip32Derivation: new Map(),
+
+            tapInternalKey: null,
+            tapTree: null,
+
             proprietary: new Map()
         };
 
@@ -1163,14 +1245,59 @@ class PSBT {
      * Parse unsigned transaction from buffer
      */
     _parseUnsignedTransaction(buffer) {
-        // This would implement full transaction parsing
-        // For now, return a simplified structure
-        return {
-            version: 2,
-            locktime: 0,
-            inputs: [],
-            outputs: []
-        };
+        // Simplified transaction parsing
+        let offset = 0;
+
+        // Version
+        const version = buffer.readUInt32LE(offset);
+        offset += 4;
+
+        // Input count
+        const inputCountResult = this._readVarInt(buffer, offset);
+        offset = inputCountResult.offset;
+
+        const inputs = [];
+        for (let i = 0; i < inputCountResult.value; i++) {
+            const hash = buffer.slice(offset, offset + 32);
+            offset += 32;
+
+            const index = buffer.readUInt32LE(offset);
+            offset += 4;
+
+            const scriptLength = this._readVarInt(buffer, offset);
+            offset = scriptLength.offset;
+
+            const script = buffer.slice(offset, offset + scriptLength.value);
+            offset += scriptLength.value;
+
+            const sequence = buffer.readUInt32LE(offset);
+            offset += 4;
+
+            inputs.push({ hash, index, script, sequence });
+        }
+
+        // Output count
+        const outputCountResult = this._readVarInt(buffer, offset);
+        offset = outputCountResult.offset;
+
+        const outputs = [];
+        for (let i = 0; i < outputCountResult.value; i++) {
+            const amount = Number(buffer.readBigUInt64LE(offset));
+            offset += 8;
+
+            const scriptLength = this._readVarInt(buffer, offset);
+            offset = scriptLength.offset;
+
+            const script = buffer.slice(offset, offset + scriptLength.value);
+            offset += scriptLength.value;
+
+            outputs.push({ amount, script });
+        }
+
+        // Locktime
+        const locktime = buffer.readUInt32LE(offset);
+
+        return { version, inputs, outputs, locktime };
     }
 
     /**
@@ -1185,12 +1312,68 @@ class PSBT {
     }
 
     /**
+     * Parse script witness
+     */
+    _parseScriptWitness(buffer) {
+        const witness = [];
+        let offset = 0;
+
+        const itemCount = this._readVarInt(buffer, offset);
+        offset = itemCount.offset;
+
+        for (let i = 0; i < itemCount.value; i++) {
+            const itemLength = this._readVarInt(buffer, offset);
+            offset = itemLength.offset;
+
+            const item = buffer.slice(offset, offset + itemLength.value);
+            offset += itemLength.value;
+
+            witness.push(item);
+        }
+
+        return witness;
+    }
+
+    /**
      * Parse BIP32 derivation
      */
     _parseBip32Derivation(buffer) {
         return {
             masterFingerprint: buffer.slice(0, 4),
             path: this._parseDerivationPath(buffer.slice(4))
+        };
+    }
+
+    /**
+     * Parse Taproot BIP32 derivation
+     */
+    _parseTapBip32Derivation(buffer) {
+        const leafHashes = [];
+        let offset = 0;
+
+        // Read leaf hashes count
+        const hashCount = buffer[offset];
+        offset += 1;
+
+        for (let i = 0; i < hashCount; i++) {
+            leafHashes.push(buffer.slice(offset, offset + 32));
+            offset += 32;
+        }
+
+        return {
+            leafHashes,
+            derivation: this._parseBip32Derivation(buffer.slice(offset))
+        };
+    }
+
+    /**
+     * Parse Taproot tree
+     */
+    _parseTapTree(buffer) {
+        // Simplified tap tree parsing
+        return {
+            leaves: [],
+            depth: 0
         };
     }
 
@@ -1206,64 +1389,20 @@ class PSBT {
     }
 
     /**
-     * Parse script witness
+     * Read variable integer
      */
-    _parseScriptWitness(buffer) {
-        const witness = [];
-        let offset = 0;
+    _readVarInt(buffer, offset) {
+        const first = buffer[offset];
 
-        const count = this._readVarInt(buffer, offset);
-        offset = count.offset;
-
-        for (let i = 0; i < count.value; i++) {
-            const length = this._readVarInt(buffer, offset);
-            offset = length.offset;
-
-            const element = buffer.slice(offset, offset + length.value);
-            offset += length.value;
-
-            witness.push(element);
+        if (first < 0xfd) {
+            return { value: first, offset: offset + 1 };
+        } else if (first === 0xfd) {
+            return { value: buffer.readUInt16LE(offset + 1), offset: offset + 3 };
+        } else if (first === 0xfe) {
+            return { value: buffer.readUInt32LE(offset + 1), offset: offset + 5 };
+        } else {
+            return { value: Number(buffer.readBigUInt64LE(offset + 1)), offset: offset + 9 };
         }
-
-        return witness;
-    }
-
-    /**
-     * Parse Taproot leaf script
-     */
-    _parseTapLeafScript(buffer) {
-        return {
-            leafVersion: buffer[0],
-            script: buffer.slice(1)
-        };
-    }
-
-    /**
-     * Parse Taproot BIP32 derivation
-     */
-    _parseTapBip32Derivation(buffer) {
-        const leafHashesLength = this._readVarInt(buffer, 0);
-        let offset = leafHashesLength.offset;
-
-        const leafHashes = [];
-        for (let i = 0; i < leafHashesLength.value / 32; i++) {
-            leafHashes.push(buffer.slice(offset, offset + 32));
-            offset += 32;
-        }
-
-        return {
-            leafHashes,
-            masterFingerprint: buffer.slice(offset, offset + 4),
-            path: this._parseDerivationPath(buffer.slice(offset + 4))
-        };
-    }
-
-    /**
-     * Parse Taproot tree
-     */
-    _parseTapTree(buffer) {
-        // Simplified Taproot tree parsing
-        return buffer;
     }
 
     /**
@@ -1274,20 +1413,31 @@ class PSBT {
 
         // Unsigned transaction
         if (this.global.unsignedTx) {
-            const txBuffer = this._serializeUnsignedTransaction();
-            fields.push(new PSBTKeyValue(PSBT_CONSTANTS.GLOBAL_UNSIGNED_TX, Buffer.alloc(0), txBuffer));
+            fields.push(new PSBTKeyValue(
+                PSBT_CONSTANTS.GLOBAL_UNSIGNED_TX,
+                Buffer.alloc(0),
+                this._serializeUnsignedTransaction()
+            ));
+        }
+
+        // XPUBs
+        for (const [key, value] of this.global.xpubs) {
+            fields.push(new PSBTKeyValue(
+                PSBT_CONSTANTS.GLOBAL_XPUB,
+                Buffer.from(key, 'hex'),
+                value
+            ));
         }
 
         // Version
-        if (this.global.version !== undefined) {
+        if (this.global.version !== PSBT_CONSTANTS.VERSION) {
             const versionBuffer = Buffer.allocUnsafe(4);
             versionBuffer.writeUInt32LE(this.global.version, 0);
-            fields.push(new PSBTKeyValue(PSBT_CONSTANTS.GLOBAL_VERSION, Buffer.alloc(0), versionBuffer));
-        }
-
-        // Proprietary fields
-        for (const [key, value] of this.global.proprietary) {
-            fields.push(new PSBTKeyValue(PSBT_CONSTANTS.GLOBAL_PROPRIETARY, Buffer.from(key, 'hex'), value));
+            fields.push(new PSBTKeyValue(
+                PSBT_CONSTANTS.GLOBAL_VERSION,
+                Buffer.alloc(0),
+                versionBuffer
+            ));
         }
 
         // Serialize all fields
@@ -1304,15 +1454,13 @@ class PSBT {
         const input = this.inputs[index];
         const fields = [];
 
-        // Non-witness UTXO
+        // UTXO data
         if (input.nonWitnessUtxo) {
             fields.push(new PSBTKeyValue(PSBT_CONSTANTS.IN_NON_WITNESS_UTXO, Buffer.alloc(0), input.nonWitnessUtxo));
         }
 
-        // Witness UTXO
         if (input.witnessUtxo) {
-            const utxoBuffer = this._serializeWitnessUtxo(input.witnessUtxo);
-            fields.push(new PSBTKeyValue(PSBT_CONSTANTS.IN_WITNESS_UTXO, Buffer.alloc(0), utxoBuffer));
+            fields.push(new PSBTKeyValue(PSBT_CONSTANTS.IN_WITNESS_UTXO, Buffer.alloc(0), this._serializeWitnessUtxo(input.witnessUtxo)));
         }
 
         // Partial signatures
@@ -1321,7 +1469,7 @@ class PSBT {
         }
 
         // Sighash type
-        if (input.sighashType !== undefined) {
+        if (input.sighashType !== PSBT_CONSTANTS.DEFAULT_SIGHASH_TYPE) {
             const sighashBuffer = Buffer.allocUnsafe(4);
             sighashBuffer.writeUInt32LE(input.sighashType, 0);
             fields.push(new PSBTKeyValue(PSBT_CONSTANTS.IN_SIGHASH_TYPE, Buffer.alloc(0), sighashBuffer));
@@ -1342,8 +1490,7 @@ class PSBT {
         }
 
         if (input.finalScriptWitness) {
-            const witnessBuffer = this._serializeScriptWitness(input.finalScriptWitness);
-            fields.push(new PSBTKeyValue(PSBT_CONSTANTS.IN_FINAL_SCRIPTWITNESS, Buffer.alloc(0), witnessBuffer));
+            fields.push(new PSBTKeyValue(PSBT_CONSTANTS.IN_FINAL_SCRIPTWITNESS, Buffer.alloc(0), this._serializeScriptWitness(input.finalScriptWitness)));
         }
 
         // Taproot fields
@@ -1353,10 +1500,6 @@ class PSBT {
 
         if (input.tapInternalKey) {
             fields.push(new PSBTKeyValue(PSBT_CONSTANTS.IN_TAP_INTERNAL_KEY, Buffer.alloc(0), input.tapInternalKey));
-        }
-
-        if (input.tapMerkleRoot) {
-            fields.push(new PSBTKeyValue(PSBT_CONSTANTS.IN_TAP_MERKLE_ROOT, Buffer.alloc(0), input.tapMerkleRoot));
         }
 
         // Serialize all fields
@@ -1402,8 +1545,6 @@ class PSBT {
      * Serialize unsigned transaction
      */
     _serializeUnsignedTransaction() {
-        // This would implement full transaction serialization
-        // For now, return a minimal structure
         const parts = [];
 
         // Version
@@ -1474,7 +1615,7 @@ class PSBT {
      */
     _serializeTransaction() {
         // This would implement full transaction serialization with witnesses
-        // For now, return a placeholder
+        // For now, return the unsigned transaction as a placeholder
         return this._serializeUnsignedTransaction();
     }
 
@@ -1603,6 +1744,292 @@ class PSBTUtils {
         // Parse global section to find version
         // This is a simplified implementation
         return PSBT_CONSTANTS.VERSION;
+    }
+
+    /**
+     * Convert hex string to PSBT
+     * 
+     * @param {string} hex - Hex encoded PSBT
+     * @param {string} [network='main'] - Network type
+     * @returns {PSBT} Parsed PSBT instance
+     */
+    static fromHex(hex, network = 'main') {
+        try {
+            const buffer = Buffer.from(hex, 'hex');
+            return PSBT.fromBuffer(buffer, network);
+        } catch (error) {
+            throw new PSBTError(`Failed to parse PSBT from hex: ${error.message}`, 'PARSE_ERROR');
+        }
+    }
+
+    /**
+     * Extract transaction ID from finalized PSBT
+     * 
+     * @param {PSBT} psbt - Finalized PSBT
+     * @returns {string} Transaction ID
+     */
+    static extractTxId(psbt) {
+        if (!psbt.finalized) {
+            throw new PSBTError('PSBT must be finalized to extract transaction ID', 'NOT_FINALIZED');
+        }
+
+        const txBuffer = psbt.extractTransaction();
+        const hash = createHash('sha256').update(createHash('sha256').update(txBuffer).digest()).digest();
+        return hash.reverse().toString('hex');
+    }
+
+    /**
+     * Calculate PSBT fee
+     * 
+     * @param {PSBT} psbt - PSBT instance
+     * @returns {number} Fee in satoshis
+     */
+    static calculateFee(psbt) {
+        return psbt._calculateFee();
+    }
+
+    /**
+     * Get PSBT size estimation
+     * 
+     * @param {PSBT} psbt - PSBT instance
+     * @returns {Object} Size information
+     */
+    static getSizeInfo(psbt) {
+        const psbtSize = psbt.toBuffer().length;
+        const estimatedTxSize = psbt._estimateTransactionSize();
+
+        return {
+            psbtSize,
+            estimatedTxSize,
+            overhead: psbtSize - estimatedTxSize,
+            compressionRatio: estimatedTxSize / psbtSize
+        };
+    }
+
+    /**
+     * Validate PSBT signatures
+     * 
+     * @param {PSBT} psbt - PSBT instance
+     * @returns {Object} Validation results
+     */
+    static validateSignatures(psbt) {
+        const results = {
+            valid: true,
+            inputResults: [],
+            errors: []
+        };
+
+        for (let i = 0; i < psbt.inputs.length; i++) {
+            const input = psbt.inputs[i];
+            const inputResult = {
+                index: i,
+                valid: true,
+                signatures: [],
+                errors: []
+            };
+
+            // Validate partial signatures
+            for (const [pubkeyHex, signature] of input.partialSigs) {
+                try {
+                    const pubkey = Buffer.from(pubkeyHex, 'hex');
+                    const signatureHash = psbt._getSignatureHash(i, input.sighashType);
+
+                    // Extract signature without sighash type byte
+                    const sigWithoutHashType = signature.slice(0, -1);
+
+                    // Verify signature (simplified)
+                    const isValid = secp256k1.verify(sigWithoutHashType, signatureHash, pubkey.slice(1));
+
+                    inputResult.signatures.push({
+                        pubkey: pubkeyHex,
+                        valid: isValid
+                    });
+
+                    if (!isValid) {
+                        inputResult.valid = false;
+                        inputResult.errors.push(`Invalid signature for pubkey ${pubkeyHex}`);
+                    }
+                } catch (error) {
+                    inputResult.valid = false;
+                    inputResult.errors.push(`Signature validation error: ${error.message}`);
+                }
+            }
+
+            // Validate Taproot key signature
+            if (input.tapKeySig) {
+                try {
+                    const signatureHash = psbt._getSignatureHash(i, PSBT_CONSTANTS.SIGHASH_ALL);
+                    // Taproot signature validation would go here
+                    inputResult.signatures.push({
+                        type: 'taproot-key',
+                        valid: true // Simplified
+                    });
+                } catch (error) {
+                    inputResult.valid = false;
+                    inputResult.errors.push(`Taproot signature validation error: ${error.message}`);
+                }
+            }
+
+            if (!inputResult.valid) {
+                results.valid = false;
+                results.errors.push(...inputResult.errors);
+            }
+
+            results.inputResults.push(inputResult);
+        }
+
+        return results;
+    }
+
+    /**
+     * Convert PSBT to human-readable format
+     * 
+     * @param {PSBT} psbt - PSBT instance
+     * @returns {Object} Human-readable PSBT data
+     */
+    static toReadable(psbt) {
+        return {
+            global: {
+                version: psbt.global.version,
+                network: psbt.network,
+                unsignedTx: psbt.global.unsignedTx ? {
+                    version: psbt.global.unsignedTx.version,
+                    locktime: psbt.global.unsignedTx.locktime,
+                    inputCount: psbt.global.unsignedTx.inputs.length,
+                    outputCount: psbt.global.unsignedTx.outputs.length
+                } : null
+            },
+            inputs: psbt.inputs.map((input, i) => ({
+                index: i,
+                previousTx: input.previousTxId?.toString('hex'),
+                previousOutput: input.previousOutputIndex,
+                sequence: input.sequence,
+                hasUtxo: !!(input.witnessUtxo || input.nonWitnessUtxo),
+                utxoValue: input.witnessUtxo?.amount || 0,
+                partialSigCount: input.partialSigs.size,
+                hasRedeemScript: !!input.redeemScript,
+                hasWitnessScript: !!input.witnessScript,
+                isTaproot: !!input.tapInternalKey,
+                isFinalized: !!(input.finalScriptSig || input.finalScriptWitness)
+            })),
+            outputs: psbt.outputs.map((output, i) => ({
+                index: i,
+                value: output.amount,
+                scriptType: this._detectScriptType(output.scriptPubKey),
+                hasRedeemScript: !!output.redeemScript,
+                hasWitnessScript: !!output.witnessScript,
+                isTaproot: !!output.tapInternalKey
+            })),
+            status: psbt.getStatus(),
+            validation: psbt.validate()
+        };
+    }
+
+    /**
+     * Detect script type from scriptPubKey
+     */
+    static _detectScriptType(scriptPubKey) {
+        if (!Buffer.isBuffer(scriptPubKey)) return 'unknown';
+
+        const len = scriptPubKey.length;
+
+        if (len === 25 && scriptPubKey[0] === 0x76 && scriptPubKey[1] === 0xa9) {
+            return 'p2pkh';
+        } else if (len === 23 && scriptPubKey[0] === 0xa9) {
+            return 'p2sh';
+        } else if (len === 22 && scriptPubKey[0] === 0x00 && scriptPubKey[1] === 0x14) {
+            return 'p2wpkh';
+        } else if (len === 34 && scriptPubKey[0] === 0x00 && scriptPubKey[1] === 0x20) {
+            return 'p2wsh';
+        } else if (len === 34 && scriptPubKey[0] === 0x51 && scriptPubKey[1] === 0x20) {
+            return 'p2tr';
+        } else {
+            return 'unknown';
+        }
+    }
+
+    /**
+     * Create template PSBT for common transaction types
+     * 
+     * @param {string} type - Transaction type ('simple', 'multisig', 'taproot')
+     * @param {Object} params - Transaction parameters
+     * @param {string} [network='main'] - Network type
+     * @returns {PSBT} Template PSBT
+     */
+    static createTemplate(type, params, network = 'main') {
+        const psbt = new PSBT(network);
+
+        switch (type) {
+            case 'simple':
+                return this._createSimpleTemplate(psbt, params);
+            case 'multisig':
+                return this._createMultisigTemplate(psbt, params);
+            case 'taproot':
+                return this._createTaprootTemplate(psbt, params);
+            default:
+                throw new PSBTError(`Unknown template type: ${type}`, 'UNKNOWN_TEMPLATE');
+        }
+    }
+
+    /**
+     * Create simple P2WPKH template
+     */
+    static _createSimpleTemplate(psbt, params) {
+        // Add inputs
+        for (const input of params.inputs || []) {
+            psbt.addInput({
+                txid: input.txid,
+                vout: input.vout,
+                value: input.value,
+                scriptPubKey: input.scriptPubKey
+            });
+        }
+
+        // Add outputs
+        for (const output of params.outputs || []) {
+            psbt.addOutput({
+                amount: output.amount,
+                scriptPubKey: output.scriptPubKey
+            });
+        }
+
+        return psbt;
+    }
+
+    /**
+     * Create multisig template
+     */
+    static _createMultisigTemplate(psbt, params) {
+        // Similar to simple but with multisig scripts
+        return this._createSimpleTemplate(psbt, params);
+    }
+
+    /**
+     * Create Taproot template
+     */
+    static _createTaprootTemplate(psbt, params) {
+        // Add Taproot-specific fields
+        for (const input of params.inputs || []) {
+            psbt.addInput({
+                txid: input.txid,
+                vout: input.vout,
+                value: input.value,
+                scriptPubKey: input.scriptPubKey,
+                tapInternalKey: input.tapInternalKey,
+                tapMerkleRoot: input.tapMerkleRoot
+            });
+        }
+
+        for (const output of params.outputs || []) {
+            psbt.addOutput({
+                amount: output.amount,
+                scriptPubKey: output.scriptPubKey,
+                tapInternalKey: output.tapInternalKey,
+                tapTree: output.tapTree
+            });
+        }
+
+        return psbt;
     }
 }
 

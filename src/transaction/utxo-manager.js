@@ -153,95 +153,77 @@ class UTXOSecurityUtils {
     }
 
     /**
-     * Validates selection time to prevent DoS attacks
+     * Validate UTXO structure and security
      */
-    static validateSelectionTime(startTime, operation = 'UTXO selection') {
-        const elapsed = Date.now() - startTime;
-        if (elapsed > UTXO_CONSTANTS.MAX_SELECTION_TIME_MS) {
-            throw new UTXOManagerError(
-                `${operation} timeout: ${elapsed}ms > ${UTXO_CONSTANTS.MAX_SELECTION_TIME_MS}ms`,
-                'SELECTION_TIMEOUT',
-                { elapsed, maxTime: UTXO_CONSTANTS.MAX_SELECTION_TIME_MS }
-            );
-        }
-    }
-
-    /**
-     * Validates UTXO structure and content
-     */
-    static validateUTXO(utxo, fieldName = 'UTXO') {
+    static validateUTXO(utxo) {
         if (!utxo || typeof utxo !== 'object') {
             throw new UTXOManagerError(
-                `${fieldName} must be a valid object`,
-                'INVALID_UTXO_STRUCTURE'
+                'UTXO must be a valid object',
+                'INVALID_UTXO_OBJECT'
             );
         }
 
-        const requiredFields = ['txid', 'vout', 'value', 'scriptPubKey', 'address'];
-        for (const field of requiredFields) {
-            if (!(field in utxo)) {
+        if (!utxo.txid || typeof utxo.txid !== 'string' || utxo.txid.length !== 64) {
+            throw new UTXOManagerError(
+                'UTXO must have valid txid',
+                'INVALID_UTXO_TXID'
+            );
+        }
+
+        if (typeof utxo.vout !== 'number' || utxo.vout < 0 || utxo.vout > 0xffffffff) {
+            throw new UTXOManagerError(
+                'UTXO must have valid vout',
+                'INVALID_UTXO_VOUT'
+            );
+        }
+
+        if (typeof utxo.value !== 'number' || utxo.value < 0 || utxo.value > 21000000 * 100000000) {
+            throw new UTXOManagerError(
+                'UTXO must have valid value',
+                'INVALID_UTXO_VALUE'
+            );
+        }
+
+        if (utxo.address) {
+            try {
+                assertValid(validateAddress(utxo.address));
+            } catch (error) {
                 throw new UTXOManagerError(
-                    `${fieldName} missing required field: ${field}`,
-                    'MISSING_UTXO_FIELD',
-                    { missingField: field }
+                    `UTXO has invalid address: ${error.message}`,
+                    'INVALID_UTXO_ADDRESS'
                 );
             }
         }
-
-        // Validate txid format
-        if (typeof utxo.txid !== 'string' || !/^[0-9a-fA-F]{64}$/.test(utxo.txid)) {
-            throw new UTXOManagerError(
-                `Invalid txid format in ${fieldName}`,
-                'INVALID_TXID_FORMAT'
-            );
-        }
-
-        // Validate vout
-        const voutValidation = validateNumberRange(utxo.vout, 0, 0xffffffff, 'vout');
-        assertValid(voutValidation);
-
-        // Validate value
-        const valueValidation = validateNumberRange(
-            utxo.value,
-            UTXO_CONSTANTS.MIN_UTXO_VALUE,
-            Number.MAX_SAFE_INTEGER,
-            'UTXO value'
-        );
-        assertValid(valueValidation);
-
-        // Validate scriptPubKey
-        if (!Buffer.isBuffer(utxo.scriptPubKey)) {
-            throw new UTXOManagerError(
-                `scriptPubKey must be a Buffer in ${fieldName}`,
-                'INVALID_SCRIPT_PUBKEY_TYPE'
-            );
-        }
-
-        // Validate address
-        const addressValidation = validateAddress(utxo.address);
-        assertValid(addressValidation);
-
-        return true;
     }
 
     /**
-     * Secure memory clearing for UTXO data
+     * Validate selection timing to prevent DoS
      */
-    static secureClear(data) {
-        if (Array.isArray(data)) {
-            data.forEach(item => this.secureClear(item));
-            data.length = 0;
-        } else if (Buffer.isBuffer(data)) {
-            const randomData = randomBytes(data.length);
-            randomData.copy(data);
-            data.fill(0);
-        } else if (typeof data === 'object' && data !== null) {
-            for (const key in data) {
-                if (Buffer.isBuffer(data[key])) {
-                    this.secureClear(data[key]);
-                } else if (typeof data[key] === 'string' && key.includes('key')) {
-                    data[key] = '';
-                }
+    static validateSelectionTime(startTime, operation) {
+        const elapsed = Date.now() - startTime;
+        if (elapsed > UTXO_CONSTANTS.MAX_SELECTION_TIME_MS) {
+            throw new UTXOManagerError(
+                `${operation} took too long: ${elapsed}ms`,
+                'OPERATION_TIMEOUT',
+                { elapsed, maxAllowed: UTXO_CONSTANTS.MAX_SELECTION_TIME_MS }
+            );
+        }
+    }
+
+    /**
+     * Secure cleanup of sensitive UTXO data
+     */
+    static secureClear(utxo) {
+        if (utxo && typeof utxo === 'object') {
+            // Clear sensitive fields
+            if (utxo.scriptPubKey && Buffer.isBuffer(utxo.scriptPubKey)) {
+                utxo.scriptPubKey.fill(0);
+            }
+            if (utxo.derivationPath) {
+                utxo.derivationPath = null;
+            }
+            if (utxo.metadata) {
+                utxo.metadata = null;
             }
         }
     }
@@ -252,164 +234,142 @@ class UTXOSecurityUtils {
  */
 class UTXOSelectionStrategies {
     /**
-     * Exact biggest: Select the largest UTXO that exactly covers the target
-     * Best for privacy when you have a UTXO that exactly matches the target
+     * Exact biggest: Try to find single UTXO that matches target
      */
-    static exactBiggest(utxos, targetValue, feeEstimate) {
-        const sortedUtxos = [...utxos].sort((a, b) => b.value - a.value);
+    static exactBiggest(utxos, targetValue) {
+        const sorted = [...utxos].sort((a, b) => b.value - a.value);
 
         // Try to find exact match first
-        for (const utxo of sortedUtxos) {
-            if (utxo.value === targetValue + feeEstimate) {
+        for (const utxo of sorted) {
+            if (utxo.value === targetValue) {
                 return {
-                    utxos: [utxo],
+                    selectedUtxos: [utxo],
                     totalValue: utxo.value,
-                    efficiency: 1.0,
-                    privacy: 0.9 // High privacy - single input
+                    changeValue: 0
                 };
             }
         }
 
-        // Find smallest UTXO that covers target + fee
-        for (const utxo of sortedUtxos.reverse()) {
-            if (utxo.value >= targetValue + feeEstimate) {
+        // Find smallest UTXO that covers target
+        for (const utxo of sorted.reverse()) {
+            if (utxo.value >= targetValue) {
                 return {
-                    utxos: [utxo],
+                    selectedUtxos: [utxo],
                     totalValue: utxo.value,
-                    efficiency: 0.8,
-                    privacy: 0.9
+                    changeValue: utxo.value - targetValue
                 };
             }
         }
 
-        return null; // No single UTXO can cover the target
+        return null;
     }
 
     /**
-     * Accumulate smallest: Start with smallest UTXOs and accumulate until target is met
-     * Good for consolidating small UTXOs and reducing UTXO set size
+     * Accumulate smallest: Start with smallest UTXOs
      */
-    static accumSmallest(utxos, targetValue, feeEstimate) {
-        const sortedUtxos = [...utxos].sort((a, b) => a.value - b.value);
-        const selectedUtxos = [];
+    static accumSmallest(utxos, targetValue) {
+        const sorted = [...utxos].sort((a, b) => a.value - b.value);
+        const selected = [];
         let totalValue = 0;
-        const targetWithFee = targetValue + feeEstimate;
 
-        for (const utxo of sortedUtxos) {
-            selectedUtxos.push(utxo);
+        for (const utxo of sorted) {
+            selected.push(utxo);
             totalValue += utxo.value;
 
-            if (totalValue >= targetWithFee) {
+            if (totalValue >= targetValue) {
                 return {
-                    utxos: selectedUtxos,
+                    selectedUtxos: selected,
                     totalValue,
-                    efficiency: 0.6, // Lower efficiency due to many inputs
-                    privacy: Math.max(0.3, 1 - (selectedUtxos.length * 0.1)) // Privacy decreases with more inputs
+                    changeValue: totalValue - targetValue
                 };
             }
         }
 
-        return null; // Insufficient funds
+        return null;
     }
 
     /**
-     * Accumulate biggest: Start with largest UTXOs and accumulate until target is met
-     * Efficient for minimizing transaction size and fees
+     * Branch and bound algorithm for optimal selection
      */
-    static accumBiggest(utxos, targetValue, feeEstimate) {
-        const sortedUtxos = [...utxos].sort((a, b) => b.value - a.value);
-        const selectedUtxos = [];
-        let totalValue = 0;
-        const targetWithFee = targetValue + feeEstimate;
+    static branchAndBound(utxos, targetValue, maxAttempts = 1000) {
+        if (utxos.length === 0) return null;
 
-        for (const utxo of sortedUtxos) {
-            selectedUtxos.push(utxo);
-            totalValue += utxo.value;
-
-            if (totalValue >= targetWithFee) {
-                return {
-                    utxos: selectedUtxos,
-                    totalValue,
-                    efficiency: 0.9, // High efficiency - fewer inputs
-                    privacy: Math.max(0.4, 1 - (selectedUtxos.length * 0.15))
-                };
-            }
-        }
-
-        return null; // Insufficient funds
-    }
-
-    /**
-     * Random selection: Randomly select UTXOs to improve privacy
-     * Best privacy but potentially less efficient
-     */
-    static randomSelection(utxos, targetValue, feeEstimate) {
-        const shuffledUtxos = [...utxos].sort(() => Math.random() - 0.5);
-        const selectedUtxos = [];
-        let totalValue = 0;
-        const targetWithFee = targetValue + feeEstimate;
-
-        for (const utxo of shuffledUtxos) {
-            selectedUtxos.push(utxo);
-            totalValue += utxo.value;
-
-            if (totalValue >= targetWithFee) {
-                return {
-                    utxos: selectedUtxos,
-                    totalValue,
-                    efficiency: 0.5, // Variable efficiency
-                    privacy: 0.95 // Highest privacy score
-                };
-            }
-        }
-
-        return null; // Insufficient funds
-    }
-
-    /**
-     * Branch and bound: Optimal selection algorithm for exact matches
-     * Attempts to minimize change outputs for better privacy
-     */
-    static branchAndBound(utxos, targetValue, feeEstimate, maxAttempts = 1000) {
-        const target = targetValue + feeEstimate;
-        let bestMatch = null;
-        let bestWaste = Number.MAX_SAFE_INTEGER;
+        let bestSelection = null;
+        let bestWaste = Infinity;
         let attempts = 0;
 
-        function search(index, currentUtxos, currentValue) {
+        const search = (index, current, currentValue) => {
             if (attempts++ > maxAttempts) return;
 
-            if (currentValue >= target) {
-                const waste = currentValue - target;
+            if (currentValue >= targetValue) {
+                const waste = currentValue - targetValue;
                 if (waste < bestWaste) {
                     bestWaste = waste;
-                    bestMatch = [...currentUtxos];
+                    bestSelection = [...current];
                 }
                 return;
             }
 
             if (index >= utxos.length) return;
 
-            // Try including current UTXO
-            search(index + 1, [...currentUtxos, utxos[index]], currentValue + utxos[index].value);
+            // Include current UTXO
+            current.push(utxos[index]);
+            search(index + 1, current, currentValue + utxos[index].value);
+            current.pop();
 
-            // Try not including current UTXO
-            search(index + 1, currentUtxos, currentValue);
-        }
+            // Exclude current UTXO
+            search(index + 1, current, currentValue);
+        };
 
         search(0, [], 0);
 
-        if (bestMatch) {
-            const totalValue = bestMatch.reduce((sum, utxo) => sum + utxo.value, 0);
+        if (bestSelection) {
+            const totalValue = bestSelection.reduce((sum, utxo) => sum + utxo.value, 0);
             return {
-                utxos: bestMatch,
+                selectedUtxos: bestSelection,
                 totalValue,
-                efficiency: 0.95, // Very efficient - optimal selection
-                privacy: bestWaste === 0 ? 1.0 : 0.8 // Perfect privacy if no change
+                changeValue: totalValue - targetValue
             };
         }
 
-        return null; // No suitable combination found
+        return null;
+    }
+
+    /**
+     * Privacy-focused selection to avoid address reuse
+     */
+    static privacyAware(utxos, targetValue) {
+        // Prefer UTXOs with higher privacy scores
+        const sorted = [...utxos].sort((a, b) => {
+            const scoreDiff = (b.privacyScore || 0) - (a.privacyScore || 0);
+            if (scoreDiff !== 0) return scoreDiff;
+            return a.value - b.value; // Then by value ascending
+        });
+
+        const selected = [];
+        let totalValue = 0;
+        const usedAddresses = new Set();
+
+        for (const utxo of sorted) {
+            // Skip if address already used (unless necessary)
+            if (usedAddresses.has(utxo.address) && totalValue >= targetValue) {
+                continue;
+            }
+
+            selected.push(utxo);
+            totalValue += utxo.value;
+            usedAddresses.add(utxo.address);
+
+            if (totalValue >= targetValue) {
+                return {
+                    selectedUtxos: selected,
+                    totalValue,
+                    changeValue: totalValue - targetValue
+                };
+            }
+        }
+
+        return null;
     }
 }
 
@@ -418,201 +378,129 @@ class UTXOSelectionStrategies {
  */
 class FeeEstimationService {
     constructor(options = {}) {
-        this.mempoolApiUrl = options.mempoolApiUrl || UTXO_CONSTANTS.DEFAULT_MEMPOOL_API;
+        this.apiUrl = options.apiUrl || UTXO_CONSTANTS.DEFAULT_MEMPOOL_API;
         this.timeout = options.timeout || UTXO_CONSTANTS.FEE_ESTIMATION_TIMEOUT;
         this.cache = new Map();
         this.cacheSize = 0;
-        this.maxCacheSize = UTXO_CONSTANTS.CACHE_SIZE_LIMIT;
     }
 
     /**
-     * Get current fee estimations from mempool
-     * 
-     * @returns {Promise<FeeEstimation>} Current fee rates
+     * Estimate transaction fee based on current network conditions
      */
-    async getCurrentFeeRates() {
-        const cacheKey = 'current_fees';
-        const cached = this.cache.get(cacheKey);
-
-        // Return cached result if still valid
-        if (cached && Date.now() - cached.timestamp < UTXO_CONSTANTS.FEE_CACHE_DURATION) {
-            return cached;
-        }
-
-        try {
-            const response = await this._fetchWithTimeout(this.mempoolApiUrl);
-            const data = await response.json();
-
-            const feeEstimation = {
-                economyFee: Math.max(data.hourFee || UTXO_CONSTANTS.MIN_FEE_RATE, UTXO_CONSTANTS.MIN_FEE_RATE),
-                normalFee: Math.max(data.halfHourFee || 10, UTXO_CONSTANTS.MIN_FEE_RATE),
-                priorityFee: Math.max(data.fastestFee || 20, UTXO_CONSTANTS.MIN_FEE_RATE),
-                timestamp: Date.now(),
-                source: 'mempool_api'
-            };
-
-            // Validate fee rates are reasonable
-            this._validateFeeRates(feeEstimation);
-
-            // Cache the result
-            this._setCacheItem(cacheKey, feeEstimation);
-
-            return feeEstimation;
-
-        } catch (error) {
-            console.warn('⚠️  Fee estimation API failed, using fallback rates:', error.message);
-            return this._getFallbackFeeRates();
-        }
-    }
-
-    /**
-     * Estimate fee for a specific transaction configuration
-     * 
-     * @param {number} inputCount - Number of transaction inputs
-     * @param {number} outputCount - Number of transaction outputs
-     * @param {string[]} inputTypes - Types of inputs ('p2pkh', 'p2wpkh', 'p2tr', etc.)
-     * @param {string} priority - Fee priority ('economy', 'normal', 'priority')
-     * @returns {Promise<number>} Estimated fee in satoshis
-     */
-    async estimateTransactionFee(inputCount, outputCount, inputTypes = [], priority = 'normal') {
+    async estimateTransactionFee(inputs, outputs, inputTypes = [], priority = 'normal') {
         try {
             const feeRates = await this.getCurrentFeeRates();
-            let feeRate;
+            const feeRate = feeRates[priority + 'Fee'] || feeRates.normalFee;
 
-            switch (priority) {
-                case 'economy':
-                    feeRate = feeRates.economyFee;
-                    break;
-                case 'priority':
-                    feeRate = feeRates.priorityFee;
-                    break;
-                default:
-                    feeRate = feeRates.normalFee;
-            }
-
-            const estimatedWeight = this._calculateTransactionWeight(inputCount, outputCount, inputTypes);
-            const estimatedSize = Math.ceil(estimatedWeight / 4);
+            // Estimate transaction size
+            const estimatedSize = this._estimateTransactionSize(inputs, outputs, inputTypes);
 
             return Math.ceil(estimatedSize * feeRate);
 
         } catch (error) {
-            throw new UTXOManagerError(
-                `Fee estimation failed: ${error.message}`,
-                'FEE_ESTIMATION_FAILED',
-                { originalError: error.message }
-            );
+            console.warn('⚠️  Fee estimation failed, using default:', error.message);
+            const defaultFeeRate = TRANSACTION_CONSTANTS.DEFAULT_FEE_RATE;
+            const estimatedSize = this._estimateTransactionSize(inputs, outputs, inputTypes);
+            return Math.ceil(estimatedSize * defaultFeeRate);
         }
     }
 
     /**
-     * Calculate transaction weight based on input/output types
+     * Get current fee rates from mempool API
      */
-    _calculateTransactionWeight(inputCount, outputCount, inputTypes) {
-        let totalWeight = TRANSACTION_CONSTANTS.BASE_WEIGHT;
+    async getCurrentFeeRates() {
+        const cacheKey = 'current-fees';
+        const cached = this.cache.get(cacheKey);
 
-        // Calculate input weights based on types
-        if (inputTypes.length === inputCount) {
-            for (const type of inputTypes) {
-                switch (type) {
-                    case 'p2pkh':
-                        totalWeight += TRANSACTION_CONSTANTS.LEGACY_INPUT_WEIGHT;
-                        break;
-                    case 'p2wpkh':
-                        totalWeight += TRANSACTION_CONSTANTS.SEGWIT_INPUT_WEIGHT;
-                        break;
-                    case 'p2tr':
-                        totalWeight += TRANSACTION_CONSTANTS.TAPROOT_INPUT_WEIGHT;
-                        break;
-                    default:
-                        totalWeight += TRANSACTION_CONSTANTS.LEGACY_INPUT_WEIGHT; // Conservative estimate
-                }
-            }
-        } else {
-            // Use average weight if types not specified
-            totalWeight += inputCount * TRANSACTION_CONSTANTS.SEGWIT_INPUT_WEIGHT;
+        if (cached && Date.now() - cached.timestamp < UTXO_CONSTANTS.FEE_CACHE_DURATION) {
+            return cached.data;
         }
-
-        // Add output weights
-        totalWeight += outputCount * TRANSACTION_CONSTANTS.OUTPUT_WEIGHT;
-
-        return totalWeight;
-    }
-
-    /**
-     * Fetch with timeout support
-     */
-    async _fetchWithTimeout(url) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
         try {
-            const response = await fetch(url, { signal: controller.signal });
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+            const response = await fetch(this.apiUrl, {
+                signal: controller.signal,
+                headers: { 'Accept': 'application/json' }
+            });
+
             clearTimeout(timeoutId);
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
 
-            return response;
+            const data = await response.json();
+
+            // Validate and normalize fee data
+            const normalizedData = {
+                economyFee: Math.max(data.hourFee || UTXO_CONSTANTS.MIN_FEE_RATE, UTXO_CONSTANTS.MIN_FEE_RATE),
+                normalFee: Math.max(data.halfHourFee || UTXO_CONSTANTS.MIN_FEE_RATE, UTXO_CONSTANTS.MIN_FEE_RATE),
+                priorityFee: Math.max(data.fastestFee || UTXO_CONSTANTS.MIN_FEE_RATE, UTXO_CONSTANTS.MIN_FEE_RATE),
+                timestamp: Date.now(),
+                source: 'mempool-api'
+            };
+
+            this._updateCache(cacheKey, normalizedData);
+            return normalizedData;
+
         } catch (error) {
-            clearTimeout(timeoutId);
-            throw error;
+            console.warn('⚠️  Failed to fetch fee rates:', error.message);
+
+            // Return fallback fees
+            return {
+                economyFee: UTXO_CONSTANTS.MIN_FEE_RATE,
+                normalFee: TRANSACTION_CONSTANTS.DEFAULT_FEE_RATE,
+                priorityFee: TRANSACTION_CONSTANTS.DEFAULT_FEE_RATE * 2,
+                timestamp: Date.now(),
+                source: 'fallback'
+            };
         }
     }
 
     /**
-     * Validate fee rates are within reasonable bounds
+     * Estimate transaction size in virtual bytes
      */
-    _validateFeeRates(feeEstimation) {
-        const rates = [feeEstimation.economyFee, feeEstimation.normalFee, feeEstimation.priorityFee];
+    _estimateTransactionSize(inputs, outputs, inputTypes = []) {
+        let size = 10; // Base transaction overhead
 
-        for (const rate of rates) {
-            if (rate < UTXO_CONSTANTS.MIN_FEE_RATE || rate > UTXO_CONSTANTS.MAX_FEE_RATE) {
-                throw new Error(`Fee rate out of bounds: ${rate}`);
+        // Estimate input sizes
+        for (let i = 0; i < inputs; i++) {
+            const inputType = inputTypes[i] || 'p2wpkh';
+            switch (inputType) {
+                case 'p2pkh':
+                    size += 148; // Legacy input
+                    break;
+                case 'p2wpkh':
+                    size += 68; // Witness input
+                    break;
+                case 'p2tr':
+                    size += 64; // Taproot input
+                    break;
+                default:
+                    size += 68; // Default to witness
             }
         }
 
-        // Ensure ordering is correct
-        if (feeEstimation.economyFee > feeEstimation.normalFee ||
-            feeEstimation.normalFee > feeEstimation.priorityFee) {
-            console.warn('⚠️  Fee rate ordering is incorrect, adjusting...');
+        // Estimate output sizes
+        size += outputs * 34; // Average output size
 
-            feeEstimation.economyFee = Math.min(feeEstimation.economyFee, feeEstimation.normalFee);
-            feeEstimation.priorityFee = Math.max(feeEstimation.normalFee, feeEstimation.priorityFee);
-        }
+        return Math.ceil(size);
     }
 
     /**
-     * Get fallback fee rates when API is unavailable
+     * Update cache with size limit
      */
-    _getFallbackFeeRates() {
-        return {
-            economyFee: TRANSACTION_CONSTANTS.ECONOMY_FEE_RATE,
-            normalFee: TRANSACTION_CONSTANTS.DEFAULT_FEE_RATE,
-            priorityFee: TRANSACTION_CONSTANTS.HIGH_FEE_RATE,
-            timestamp: Date.now(),
-            source: 'fallback'
-        };
-    }
-
-    /**
-     * Set cache item with size management
-     */
-    _setCacheItem(key, value) {
-        // Remove old item if exists
-        if (this.cache.has(key)) {
-            this.cache.delete(key);
+    _updateCache(key, data) {
+        if (this.cacheSize >= UTXO_CONSTANTS.CACHE_SIZE_LIMIT) {
+            // Remove oldest entry
+            const oldestKey = this.cache.keys().next().value;
+            this.cache.delete(oldestKey);
             this.cacheSize--;
         }
 
-        // Clean cache if at limit
-        if (this.cacheSize >= this.maxCacheSize) {
-            const firstKey = this.cache.keys().next().value;
-            this.cache.delete(firstKey);
-            this.cacheSize--;
-        }
-
-        this.cache.set(key, value);
+        this.cache.set(key, data);
         this.cacheSize++;
     }
 
@@ -993,67 +881,46 @@ class UTXOManager {
             if (feeIncrease < UTXO_CONSTANTS.MIN_RBF_FEE_INCREASE) {
                 throw new UTXOManagerError(
                     `Fee increase too small: ${feeIncrease.toFixed(2)}x, minimum ${UTXO_CONSTANTS.MIN_RBF_FEE_INCREASE}x`,
-                    'INSUFFICIENT_FEE_INCREASE',
-                    { currentIncrease: feeIncrease, minimumIncrease: UTXO_CONSTANTS.MIN_RBF_FEE_INCREASE }
+                    'INSUFFICIENT_FEE_INCREASE'
                 );
             }
 
-            // Check RBF attempt limit
-            if (rbfData.attempts >= UTXO_CONSTANTS.MAX_RBF_ATTEMPTS) {
+            // Calculate new transaction fee
+            const newFee = Math.ceil(rbfData.estimatedSize * newFeeRate);
+
+            // Update RBF tracking
+            rbfData.attempts++;
+            rbfData.currentFeeRate = newFeeRate;
+            rbfData.currentFee = newFee;
+            rbfData.lastRbfAt = Date.now();
+
+            if (rbfData.attempts > UTXO_CONSTANTS.MAX_RBF_ATTEMPTS) {
                 throw new UTXOManagerError(
                     `Maximum RBF attempts exceeded: ${rbfData.attempts}`,
                     'MAX_RBF_ATTEMPTS_EXCEEDED'
                 );
             }
 
-            // Calculate new fee
-            const newFee = Math.ceil(rbfData.estimatedSize * newFeeRate);
-            const additionalFee = newFee - rbfData.currentFee;
+            UTXOSecurityUtils.validateSelectionTime(startTime, 'RBF creation');
 
-            // Create RBF transaction data
-            const rbfTransaction = {
-                originalTxid: originalTxid,
-                rbfTxid: this._generateTxid(), // Placeholder
-                newFeeRate: newFeeRate,
-                newFee: newFee,
-                additionalFee: additionalFee,
-                attempt: rbfData.attempts + 1,
-                createdAt: Date.now(),
+            return {
+                txid: this._generateTxid(),
+                originalTxid,
+                newFeeRate,
+                newFee,
+                feeIncrease,
+                attempts: rbfData.attempts,
                 utxos: rbfData.utxos,
                 outputs: rbfData.outputs,
-                metadata: {
-                    ...rbfData.metadata,
-                    rbfHistory: [
-                        ...(rbfData.metadata.rbfHistory || []),
-                        {
-                            attempt: rbfData.attempts + 1,
-                            feeRate: newFeeRate,
-                            fee: newFee,
-                            timestamp: Date.now()
-                        }
-                    ]
-                }
+                metadata: rbfData.metadata
             };
-
-            // Update RBF tracking
-            this.rbfTransactions.set(originalTxid, {
-                ...rbfData,
-                attempts: rbfData.attempts + 1,
-                currentFee: newFee,
-                currentFeeRate: newFeeRate,
-                lastRbfAt: Date.now()
-            });
-
-            UTXOSecurityUtils.validateSelectionTime(startTime, 'RBF transaction creation');
-
-            return rbfTransaction;
 
         } catch (error) {
             if (error instanceof UTXOManagerError || error instanceof ValidationError) {
                 throw error;
             }
             throw new UTXOManagerError(
-                `RBF transaction creation failed: ${error.message}`,
+                `Failed to create RBF transaction: ${error.message}`,
                 'RBF_CREATION_FAILED',
                 { originalError: error.message }
             );
@@ -1061,7 +928,7 @@ class UTXOManager {
     }
 
     /**
-     * Track transaction for RBF capabilities
+     * Track transaction for future RBF operations
      * 
      * @param {string} txid - Transaction ID
      * @param {Object} transactionData - Transaction data for RBF tracking
@@ -1125,7 +992,8 @@ class UTXOManager {
                     spentUtxos: this.spentUtxos.size,
                     pendingUtxos: this.pendingUtxos.size,
                     totalValue: totalValue,
-                    averageValue: spendableUtxos.length > 0 ? Math.round(totalValue / spendableUtxos.length) : 0
+                    averageValue: spendableUtxos.length > 0 ? Math.round(totalValue / spendableUtxos.length) : 0,
+                    medianValue: this._calculateMedian(spendableUtxos.map(u => u.value))
                 },
                 distribution: {
                     byValue: valueDistribution,
@@ -1133,17 +1001,12 @@ class UTXOManager {
                     byType: typeDistribution
                 },
                 privacy: privacyAnalysis,
+                performance: this.selectionMetrics,
                 health: {
                     consolidationNeeded: spendableUtxos.length > UTXO_CONSTANTS.CONSOLIDATION_THRESHOLD,
-                    dustUtxos: spendableUtxos.filter(utxo => utxo.value <= UTXO_CONSTANTS.MIN_UTXO_VALUE).length,
-                    avgPrivacyScore: privacyAnalysis.averageScore,
-                    addressReuseIssues: addressDistribution.reuseIssues
-                },
-                rbf: {
-                    trackedTransactions: this.rbfTransactions.size,
-                    totalAttempts: Array.from(this.rbfTransactions.values()).reduce((sum, rbf) => sum + rbf.attempts, 0)
-                },
-                performance: this.selectionMetrics
+                    dustUtxos: spendableUtxos.filter(u => u.value <= UTXO_CONSTANTS.MIN_UTXO_VALUE).length,
+                    largeUtxos: spendableUtxos.filter(u => u.value > 1000000).length // > 0.01 BTC
+                }
             };
 
         } catch (error) {
@@ -1155,169 +1018,140 @@ class UTXOManager {
         }
     }
 
-    // Private helper methods
-
     /**
      * Get available UTXOs for selection
      */
     _getAvailableUtxos(options = {}) {
-        const allUtxos = Array.from(this.utxos.values());
-
-        return allUtxos.filter(utxo => {
-            // Basic spendability checks
+        const utxos = Array.from(this.utxos.values()).filter(utxo => {
+            // Basic spendability check
             if (!utxo.spendable || utxo.spent || utxo.pending) {
                 return false;
             }
 
-            // Confirmation requirements
+            // Minimum confirmation check
             const minConfirmations = options.minConfirmations || 0;
-            if ((utxo.confirmations || 0) < minConfirmations) {
+            if (utxo.confirmations < minConfirmations) {
                 return false;
             }
 
-            // Type filtering
-            if (options.allowedTypes && !options.allowedTypes.includes(utxo.type)) {
+            // Dust limit check
+            if (utxo.value <= UTXO_CONSTANTS.MIN_UTXO_VALUE) {
                 return false;
             }
 
-            // Privacy filtering
-            if (this.privacyMode && utxo.privacyScore < UTXO_CONSTANTS.PRIVACY_SCORE_THRESHOLD) {
+            // Address filter
+            if (options.excludeAddresses && options.excludeAddresses.includes(utxo.address)) {
                 return false;
             }
 
-            // Value filtering
-            if (options.minValue && utxo.value < options.minValue) {
-                return false;
-            }
-
-            if (options.maxValue && utxo.value > options.maxValue) {
+            // Type filter
+            if (options.includeTypes && !options.includeTypes.includes(utxo.type)) {
                 return false;
             }
 
             return true;
         });
+
+        // Apply maximum UTXO limit
+        if (utxos.length > UTXO_CONSTANTS.MAX_UTXOS_PER_TRANSACTION) {
+            // Sort by value descending and take top UTXOs
+            utxos.sort((a, b) => b.value - a.value);
+            return utxos.slice(0, UTXO_CONSTANTS.MAX_UTXOS_PER_TRANSACTION);
+        }
+
+        return utxos;
     }
 
     /**
      * Select optimal strategy based on context
      */
-    _selectOptimalStrategy(utxos, targetValue, feeEstimate, options) {
+    _selectOptimalStrategy(utxos, targetValue, estimatedFee, options) {
         const strategies = [
-            {
-                name: 'exactBiggest',
-                algorithm: UTXOSelectionStrategies.exactBiggest,
-                privacyScore: 0.9,
-                efficiencyScore: 0.8,
-                suitable: utxos.some(utxo => utxo.value >= targetValue + feeEstimate)
-            },
-            {
-                name: 'branchAndBound',
-                algorithm: UTXOSelectionStrategies.branchAndBound,
-                privacyScore: 0.95,
-                efficiencyScore: 0.95,
-                suitable: utxos.length <= 20 // Performance limit
-            },
-            {
-                name: 'accumBiggest',
-                algorithm: UTXOSelectionStrategies.accumBiggest,
-                privacyScore: 0.6,
-                efficiencyScore: 0.9,
-                suitable: true
-            },
-            {
-                name: 'randomSelection',
-                algorithm: UTXOSelectionStrategies.randomSelection,
-                privacyScore: 0.95,
-                efficiencyScore: 0.5,
-                suitable: this.privacyMode
-            },
-            {
-                name: 'accumSmallest',
-                algorithm: UTXOSelectionStrategies.accumSmallest,
-                privacyScore: 0.4,
-                efficiencyScore: 0.6,
-                suitable: this.consolidationMode
-            }
+            { name: 'exactBiggest', algorithm: UTXOSelectionStrategies.exactBiggest, privacyScore: 0.9, efficiencyScore: 1.0 },
+            { name: 'accumSmallest', algorithm: UTXOSelectionStrategies.accumSmallest, privacyScore: 0.6, efficiencyScore: 0.7 },
+            { name: 'branchAndBound', algorithm: UTXOSelectionStrategies.branchAndBound, privacyScore: 0.8, efficiencyScore: 0.9 },
+            { name: 'privacyAware', algorithm: UTXOSelectionStrategies.privacyAware, privacyScore: 1.0, efficiencyScore: 0.6 }
         ];
 
-        // Filter suitable strategies
-        const suitableStrategies = strategies.filter(s => s.suitable);
-
-        // Use specified strategy if available and suitable
+        // Override with user preference
         if (options.strategy) {
-            const specified = suitableStrategies.find(s => s.name === options.strategy);
-            if (specified) {
-                return specified;
-            }
+            const strategy = strategies.find(s => s.name === options.strategy);
+            if (strategy) return strategy;
         }
 
-        // Select based on mode and context
-        if (this.privacyMode) {
-            return suitableStrategies.sort((a, b) => b.privacyScore - a.privacyScore)[0];
-        } else {
-            return suitableStrategies.sort((a, b) => b.efficiencyScore - a.efficiencyScore)[0];
+        // Privacy mode preference
+        if (this.privacyMode && !options.ignorePrivacy) {
+            return strategies.find(s => s.name === 'privacyAware');
         }
+
+        // Consolidation mode preference
+        if (this.consolidationMode) {
+            return strategies.find(s => s.name === 'accumSmallest');
+        }
+
+        // Default strategy
+        return strategies.find(s => s.name === this.defaultStrategy) || strategies[0];
     }
 
     /**
-     * Execute selection with chosen strategy
+     * Execute UTXO selection with fallback strategies
      */
-    async _executeSelection(strategy, utxos, targetValue, feeEstimate, options) {
-        const selectionResult = strategy.algorithm(utxos, targetValue, feeEstimate);
+    async _executeSelection(strategy, utxos, targetValue, estimatedFee, options) {
+        const totalTarget = targetValue + estimatedFee;
 
-        if (!selectionResult) {
-            throw new UTXOManagerError(
-                `Strategy '${strategy.name}' failed to find suitable UTXOs`,
-                'STRATEGY_FAILED',
-                { strategy: strategy.name, targetValue, feeEstimate }
-            );
-        }
+        try {
+            // Try primary strategy
+            let result = strategy.algorithm(utxos, totalTarget);
 
-        // Recalculate accurate fee with actual input count
-        const inputTypes = selectionResult.utxos.map(utxo => utxo.type);
-        const accurateFee = await this.feeEstimationService.estimateTransactionFee(
-            selectionResult.utxos.length,
-            2, // 1 output + 1 change
-            inputTypes,
-            options.priority || 'normal'
-        );
+            if (!result) {
+                // Try fallback strategies
+                const fallbackStrategies = [
+                    UTXOSelectionStrategies.branchAndBound,
+                    UTXOSelectionStrategies.accumSmallest
+                ];
 
-        // Check if selection still covers accurate fee
-        if (selectionResult.totalValue < targetValue + accurateFee) {
-            // Try to add one more UTXO if available
-            const remainingUtxos = utxos.filter(utxo =>
-                !selectionResult.utxos.includes(utxo)
-            );
+                for (const fallback of fallbackStrategies) {
+                    result = fallback(utxos, totalTarget);
+                    if (result) {
+                        strategy.name += '-fallback';
+                        break;
+                    }
+                }
+            }
 
-            if (remainingUtxos.length > 0) {
-                const additionalUtxo = remainingUtxos.sort((a, b) => a.value - b.value)[0];
-                selectionResult.utxos.push(additionalUtxo);
-                selectionResult.totalValue += additionalUtxo.value;
-            } else {
+            if (!result) {
                 throw new UTXOManagerError(
-                    'Selected UTXOs insufficient to cover accurate fee estimation',
-                    'INSUFFICIENT_FOR_ACCURATE_FEE'
+                    `No suitable UTXO combination found for target: ${totalTarget}`,
+                    'NO_SUITABLE_COMBINATION'
                 );
             }
+
+            // Calculate final metrics
+            const privacyScore = this._calculateSelectionPrivacyScore(result.selectedUtxos);
+            const efficiencyScore = this._calculateEfficiencyScore(result, targetValue, estimatedFee);
+
+            return {
+                selectedUtxos: result.selectedUtxos,
+                totalValue: result.totalValue,
+                changeValue: result.changeValue,
+                estimatedFee,
+                strategy: strategy.name,
+                metrics: {
+                    utxoCount: result.selectedUtxos.length,
+                    privacyScore,
+                    efficiencyScore,
+                    waste: result.changeValue
+                },
+                privacyScore
+            };
+
+        } catch (error) {
+            throw new UTXOManagerError(
+                `Selection execution failed: ${error.message}`,
+                'SELECTION_EXECUTION_FAILED',
+                { strategy: strategy.name, originalError: error.message }
+            );
         }
-
-        const changeValue = selectionResult.totalValue - targetValue - accurateFee;
-        const privacyScore = this._calculateSelectionPrivacyScore(selectionResult.utxos);
-
-        return {
-            selectedUtxos: selectionResult.utxos,
-            totalValue: selectionResult.totalValue,
-            changeValue: Math.max(0, changeValue),
-            estimatedFee: accurateFee,
-            strategy: strategy.name,
-            metrics: {
-                selectionTime: Date.now() - this.selectionMetrics.lastStartTime,
-                efficiency: selectionResult.efficiency || 0.5,
-                utxoCount: selectionResult.utxos.length,
-                averageUtxoValue: Math.round(selectionResult.totalValue / selectionResult.utxos.length)
-            },
-            privacyScore: privacyScore
-        };
     }
 
     /**
@@ -1327,126 +1161,142 @@ class UTXOManager {
         let score = 1.0;
 
         // Address reuse penalty
-        const addressUtxos = Array.from(this.utxos.values()).filter(u => u.address === utxo.address);
-        if (addressUtxos.length > UTXO_CONSTANTS.MAX_ADDRESS_REUSE) {
-            score -= 0.3;
+        const addressUsage = this._getAddressUsageCount(utxo.address);
+        if (addressUsage > 1) {
+            score -= Math.min(0.3, (addressUsage - 1) * 0.1);
         }
 
-        // Value-based privacy (round numbers are less private)
-        if (utxo.value % 100000 === 0) { // 0.001 BTC multiples
-            score -= 0.2;
-        } else if (utxo.value % 10000 === 0) { // 0.0001 BTC multiples
-            score -= 0.1;
-        }
-
-        // Age-based privacy (older UTXOs may be more private)
+        // Age bonus (older UTXOs generally better for privacy)
         const age = Date.now() - (utxo.addedAt || Date.now());
-        const daysSinceAdded = age / (1000 * 60 * 60 * 24);
-        if (daysSinceAdded > 30) {
-            score += 0.1;
+        const ageDays = age / (1000 * 60 * 60 * 24);
+        if (ageDays > 7) {
+            score += Math.min(0.1, ageDays / 100);
+        }
+
+        // Common value penalty (round numbers are less private)
+        if (this._isCommonValue(utxo.value)) {
+            score -= 0.1;
         }
 
         return Math.max(0, Math.min(1, score));
     }
 
     /**
-     * Calculate privacy score for a selection
+     * Calculate selection privacy score
      */
-    _calculateSelectionPrivacyScore(utxos) {
-        if (utxos.length === 0) return 0;
+    _calculateSelectionPrivacyScore(selectedUtxos) {
+        if (selectedUtxos.length === 0) return 0;
 
-        const baseScore = utxos.reduce((sum, utxo) => sum + utxo.privacyScore, 0) / utxos.length;
+        const scores = selectedUtxos.map(utxo => utxo.privacyScore || this._calculatePrivacyScore(utxo));
+        const averageScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
 
-        // Penalty for multiple inputs (reduces privacy)
-        const multiInputPenalty = Math.max(0, (utxos.length - 1) * 0.1);
+        // Penalty for using multiple UTXOs from same address
+        const addresses = new Set(selectedUtxos.map(utxo => utxo.address));
+        const addressReuseRatio = addresses.size / selectedUtxos.length;
 
-        // Bonus for diverse address types
-        const uniqueTypes = new Set(utxos.map(utxo => utxo.type)).size;
-        const diversityBonus = (uniqueTypes - 1) * 0.05;
-
-        return Math.max(0, Math.min(1, baseScore - multiInputPenalty + diversityBonus));
+        return averageScore * addressReuseRatio;
     }
 
     /**
-     * Update selection performance metrics
+     * Calculate efficiency score
+     */
+    _calculateEfficiencyScore(result, targetValue, estimatedFee) {
+        const totalCost = targetValue + estimatedFee;
+        const waste = result.changeValue;
+        const efficiency = 1 - (waste / totalCost);
+
+        return Math.max(0, Math.min(1, efficiency));
+    }
+
+    /**
+     * Update selection metrics
      */
     _updateSelectionMetrics(strategy, startTime, success) {
-        const elapsedTime = Date.now() - startTime;
+        const duration = Date.now() - startTime;
 
         this.selectionMetrics.totalSelections++;
         this.selectionMetrics.averageTime =
-            (this.selectionMetrics.averageTime * (this.selectionMetrics.totalSelections - 1) + elapsedTime) /
-            this.selectionMetrics.totalSelections;
+            (this.selectionMetrics.averageTime * (this.selectionMetrics.totalSelections - 1) + duration)
+            / this.selectionMetrics.totalSelections;
 
         if (success) {
             this.selectionMetrics.successRate =
-                (this.selectionMetrics.successRate * (this.selectionMetrics.totalSelections - 1) + 1) /
-                this.selectionMetrics.totalSelections;
-        } else {
-            this.selectionMetrics.successRate =
-                (this.selectionMetrics.successRate * (this.selectionMetrics.totalSelections - 1)) /
-                this.selectionMetrics.totalSelections;
+                (this.selectionMetrics.successRate * (this.selectionMetrics.totalSelections - 1) + 1)
+                / this.selectionMetrics.totalSelections;
         }
 
-        if (!this.selectionMetrics.strategyUsage[strategy]) {
-            this.selectionMetrics.strategyUsage[strategy] = 0;
-        }
-        this.selectionMetrics.strategyUsage[strategy]++;
-
-        this.selectionMetrics.lastStartTime = startTime;
+        this.selectionMetrics.strategyUsage[strategy] =
+            (this.selectionMetrics.strategyUsage[strategy] || 0) + 1;
     }
 
     /**
-     * Calculate value distribution statistics
+     * Get address usage count
+     */
+    _getAddressUsageCount(address) {
+        let count = 0;
+        for (const utxo of this.utxos.values()) {
+            if (utxo.address === address) count++;
+        }
+        return count;
+    }
+
+    /**
+     * Check if value is commonly used (round numbers)
+     */
+    _isCommonValue(value) {
+        const roundValues = [
+            100000,    // 0.001 BTC
+            1000000,   // 0.01 BTC
+            10000000,  // 0.1 BTC
+            100000000  // 1 BTC
+        ];
+        return roundValues.includes(value) || value % 1000000 === 0;
+    }
+
+    /**
+     * Calculate value distribution
      */
     _calculateValueDistribution(utxos) {
-        if (utxos.length === 0) return {};
-
-        const values = utxos.map(utxo => utxo.value).sort((a, b) => a - b);
-        const total = values.reduce((sum, value) => sum + value, 0);
-
-        return {
-            min: values[0],
-            max: values[values.length - 1],
-            median: values[Math.floor(values.length / 2)],
-            average: Math.round(total / values.length),
-            total: total,
-            dustCount: values.filter(v => v <= UTXO_CONSTANTS.MIN_UTXO_VALUE).length,
-            largeCount: values.filter(v => v >= 100000000).length, // >= 1 BTC
-            distribution: {
-                dust: values.filter(v => v <= UTXO_CONSTANTS.MIN_UTXO_VALUE).length,
-                small: values.filter(v => v > UTXO_CONSTANTS.MIN_UTXO_VALUE && v <= 100000).length,
-                medium: values.filter(v => v > 100000 && v <= 10000000).length,
-                large: values.filter(v => v > 10000000).length
-            }
+        const distribution = {
+            dust: 0,      // <= 546 sats
+            small: 0,     // 547 - 10,000 sats
+            medium: 0,    // 10,001 - 100,000 sats
+            large: 0,     // 100,001 - 1,000,000 sats
+            xlarge: 0     // > 1,000,000 sats
         };
+
+        for (const utxo of utxos) {
+            if (utxo.value <= 546) distribution.dust++;
+            else if (utxo.value <= 10000) distribution.small++;
+            else if (utxo.value <= 100000) distribution.medium++;
+            else if (utxo.value <= 1000000) distribution.large++;
+            else distribution.xlarge++;
+        }
+
+        return distribution;
     }
 
     /**
-     * Calculate address distribution and reuse analysis
+     * Calculate address distribution
      */
     _calculateAddressDistribution(utxos) {
-        const addressCounts = {};
+        const addressCounts = new Map();
         let reuseIssues = 0;
 
         for (const utxo of utxos) {
-            addressCounts[utxo.address] = (addressCounts[utxo.address] || 0) + 1;
-            if (addressCounts[utxo.address] > UTXO_CONSTANTS.MAX_ADDRESS_REUSE) {
+            const count = addressCounts.get(utxo.address) || 0;
+            addressCounts.set(utxo.address, count + 1);
+
+            if (count + 1 > UTXO_CONSTANTS.MAX_ADDRESS_REUSE) {
                 reuseIssues++;
             }
         }
 
-        const uniqueAddresses = Object.keys(addressCounts).length;
-        const maxReuse = Math.max(...Object.values(addressCounts));
-        const avgUtxosPerAddress = utxos.length / uniqueAddresses;
-
         return {
-            uniqueAddresses,
+            uniqueAddresses: addressCounts.size,
             totalUtxos: utxos.length,
-            averageUtxosPerAddress: avgUtxosPerAddress,
-            maxReuseCount: maxReuse,
-            reuseIssues,
-            distribution: addressCounts
+            reuseRatio: utxos.length > 0 ? addressCounts.size / utxos.length : 0,
+            reuseIssues
         };
     }
 
@@ -1454,13 +1304,14 @@ class UTXOManager {
      * Calculate type distribution
      */
     _calculateTypeDistribution(utxos) {
-        const typeCounts = {};
+        const distribution = {};
 
         for (const utxo of utxos) {
-            typeCounts[utxo.type] = (typeCounts[utxo.type] || 0) + 1;
+            const type = utxo.type || 'unknown';
+            distribution[type] = (distribution[type] || 0) + 1;
         }
 
-        return typeCounts;
+        return distribution;
     }
 
     /**
@@ -1500,6 +1351,22 @@ class UTXOManager {
             distribution,
             issues
         };
+    }
+
+    /**
+     * Calculate median value
+     */
+    _calculateMedian(values) {
+        if (values.length === 0) return 0;
+
+        const sorted = [...values].sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+
+        if (sorted.length % 2 === 0) {
+            return Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+        } else {
+            return sorted[mid];
+        }
     }
 
     /**
