@@ -1,151 +1,53 @@
 /**
- * J-Bitcoin - Comprehensive TypeScript definitions
- * 
- * Complete type definitions for Bitcoin cryptocurrency wallet library 
- * with custodial and non-custodial support. Version 2.0.0+ focuses 
- * exclusively on Bitcoin (BTC) for optimal performance and security.
- * 
+ * @fileoverview TypeScript definitions for J-Bitcoin Library
  * @version 2.0.0
+ * @description Type definitions for enterprise-grade Bitcoin library with HD wallets,
+ *              threshold signatures, and full BIP compliance.
  * @author yfbsei
+ * @license ISC
  */
 
 declare module 'j-bitcoin' {
-    // ============================================================================
+    // =============================================================================
     // CORE TYPES AND INTERFACES
-    // ============================================================================
+    // =============================================================================
 
-    /** Network type for Bitcoin */
-    type NetworkType = 'main' | 'test';
+    /** Bitcoin network types */
+    type BitcoinNetwork = 'main' | 'test';
 
-    /** Key derivation type for BIP32 hierarchical deterministic wallets */
-    type KeyType = 'pri' | 'pub';
+    /** Address types supported by the library */
+    type AddressType = 'legacy' | 'segwit' | 'taproot';
 
-    /** Address type for different Bitcoin script formats */
-    type AddressType = 'receiving' | 'change' | 'testnet';
-
-    /** Bech32 encoding type for SegWit addresses */
-    type Bech32Encoding = 'bech32' | 'bech32m';
-
-    /** BIP purpose numbers for different address types */
+    /** Key derivation purposes (BIP44) */
     type BIPPurpose = 44 | 49 | 84 | 86;
 
-    // ============================================================================
-    // BITCOIN CONSTANTS
-    // ============================================================================
+    /** Key type for hierarchical deterministic keys */
+    type KeyType = 'pri' | 'pub';
 
-    /** BIP44 derivation path constants */
-    export const BIP44_CONSTANTS: {
-        PURPOSE: 44;
-        COIN_TYPES: {
-            BITCOIN_MAINNET: 0;
-            BITCOIN_TESTNET: 1;
-        };
-        ACCOUNT: 0;
-        CHANGE: {
-            EXTERNAL: 0;
-            INTERNAL: 1;
-        };
-    };
+    /** Buffer-like types accepted by the library */
+    type BufferLike = Buffer | Uint8Array | ArrayBuffer;
 
-    /** Standard Bitcoin derivation paths */
-    export const DERIVATION_PATHS: {
-        BITCOIN_LEGACY: "m/44'/0'/0'";
-        BITCOIN_TESTNET: "m/44'/1'/0'";
-        BITCOIN_RECEIVING: "m/44'/0'/0'/0";
-        BITCOIN_CHANGE: "m/44'/0'/0'/1";
-        BITCOIN_FIRST_ADDRESS: "m/44'/0'/0'/0/0";
-        BITCOIN_FIRST_CHANGE: "m/44'/0'/0'/1/0";
-        TESTNET_RECEIVING: "m/44'/1'/0'/0";
-        TESTNET_CHANGE: "m/44'/1'/0'/1";
-    };
+    // =============================================================================
+    // NETWORK CONFIGURATION
+    // =============================================================================
 
-    /** Bitcoin network configurations */
-    export const BITCOIN_NETWORKS: {
-        MAINNET: {
-            name: 'Bitcoin';
-            symbol: 'BTC';
-            coinType: 0;
-            addressPrefix: 'bc';
-            legacyPrefix: '1';
-            p2shPrefix: '3';
-            network: 'main';
-        };
-        TESTNET: {
-            name: 'Bitcoin Testnet';
-            symbol: 'BTC';
-            coinType: 1;
-            addressPrefix: 'tb';
-            legacyPrefix: 'm';
-            legacyPrefixAlt: 'n';
-            p2shPrefix: '2';
-            network: 'test';
-        };
-    };
-
-    /** Address format identifiers */
-    export const ADDRESS_FORMATS: {
-        LEGACY: 'legacy';
-        SEGWIT: 'segwit';
-        P2SH: 'p2sh';
-    };
-
-    /** BIP purposes for different address types */
-    export const BIP_PURPOSES: {
-        LEGACY: 44;
-        NESTED_SEGWIT: 49;
-        NATIVE_SEGWIT: 84;
-        TAPROOT: 86;
-    };
-
-    /** Derivation path generation options */
-    interface DerivationPathOptions {
-        purpose?: BIPPurpose;
-        coinType?: 0 | 1;
-        account?: number;
-        change?: 0 | 1;
-        addressIndex?: number;
+    /** Network configuration interface */
+    interface NetworkConfig {
+        /** Human-readable network name */
+        name: string;
+        /** Currency symbol */
+        symbol: string;
+        /** Network identifier */
+        network: BitcoinNetwork;
+        /** Chain ID for identification */
+        chainId: number;
+        /** BIP44 coin type */
+        bip44CoinType: 0 | 1;
     }
 
-    /** Parsed derivation path components */
-    interface ParsedDerivationPath {
-        purpose: number;
-        coinType: number;
-        account: number;
-        change: number;
-        addressIndex: number;
-    }
-
-    /**
-     * Generate a BIP44 derivation path for Bitcoin
-     * @param options Path generation options
-     * @returns Complete BIP44 derivation path
-     */
-    export function generateDerivationPath(options?: DerivationPathOptions): string;
-
-    /**
-     * Parse a derivation path into its components
-     * @param path BIP44 derivation path to parse
-     * @returns Parsed path components
-     */
-    export function parseDerivationPath(path: string): ParsedDerivationPath;
-
-    /**
-     * Validate if a derivation path is valid for Bitcoin
-     * @param path Derivation path to validate
-     * @returns True if path is valid for Bitcoin
-     */
-    export function isValidBitcoinPath(path: string): boolean;
-
-    /**
-     * Get network configuration by coin type
-     * @param coinType BIP44 coin type (0 or 1)
-     * @returns Network configuration
-     */
-    export function getNetworkByCoinType(coinType: 0 | 1): typeof BITCOIN_NETWORKS.MAINNET | typeof BITCOIN_NETWORKS.TESTNET;
-
-    // ============================================================================
-    // WALLET INTERFACES
-    // ============================================================================
+    // =============================================================================
+    // KEY AND ADDRESS INTERFACES
+    // =============================================================================
 
     /** Hierarchical deterministic key pair */
     interface HDKeys {
@@ -163,629 +65,649 @@ declare module 'j-bitcoin' {
         pub: string;
     }
 
-    /** Network configuration interface */
-    interface NetworkConfig {
-        name: string;
-        symbol: string;
-        coinType: number;
-        addressPrefix: string;
-        legacyPrefix: string;
-        p2shPrefix: string;
-        network: string;
-        legacyPrefixAlt?: string;
-    }
-
-    /** Child key information with derivation metadata */
-    interface ChildKeyInfo {
-        /** Derivation depth in the HD tree */
-        depth: number;
-        /** Index of this child key */
-        childIndex: number;
-        /** HD key pair for this child */
-        hdKey: HDKeys;
-        /** Standard key pair for this child */
-        keypair: KeyPair;
-        /** Bitcoin address for this child key */
+    /** Derived child key information */
+    interface DerivedKey {
+        /** Bitcoin address */
         address: string;
-        /** The full BIP32 path used to derive this key */
+        /** Private key in WIF format */
+        privateKey: string;
+        /** Public key in hex format */
+        publicKey: string;
+        /** Derivation path used */
         derivationPath: string;
-        /** Parsed derivation path components */
-        pathInfo: ParsedDerivationPath | { path: string; format: 'custom' };
+        /** Address type */
+        addressType: AddressType;
     }
 
-    /** ECDSA signature result with recovery information */
-    interface ECDSASignatureResult {
-        /** DER-encoded signature bytes */
-        0: Uint8Array;
-        /** Recovery ID for public key recovery (0-3) */
-        1: number;
+    /** Derivation path options */
+    interface DerivationPathOptions {
+        /** BIP purpose (default: 44) */
+        purpose?: BIPPurpose;
+        /** Coin type (0=mainnet, 1=testnet) */
+        coinType?: 0 | 1;
+        /** Account index (default: 0) */
+        account?: number;
+        /** Change type (0=external, 1=internal/change) */
+        change?: 0 | 1;
+        /** Address index (default: 0) */
+        addressIndex?: number;
     }
 
-    /** Threshold signature result with metadata */
+    /** Parsed derivation path components */
+    interface ParsedDerivationPath {
+        purpose: number;
+        coinType: number;
+        account: number;
+        change: number;
+        addressIndex: number;
+    }
+
+    // =============================================================================
+    // SIGNATURE AND CRYPTOGRAPHY INTERFACES
+    // =============================================================================
+
+    /** ECDSA signature result */
+    interface ECDSASignature {
+        /** Signature r component */
+        r: bigint;
+        /** Signature s component */
+        s: bigint;
+        /** Recovery ID */
+        recovery?: number;
+    }
+
+    /** Schnorr signature result */
+    interface SchnorrSignature {
+        /** Signature bytes (64 bytes) */
+        signature: Uint8Array;
+        /** Message hash that was signed */
+        messageHash: Uint8Array;
+    }
+
+    /** Threshold signature result */
     interface ThresholdSignatureResult {
-        /** Signature object with r and s values */
-        sig: {
-            r: bigint;
-            s: bigint;
-        };
-        /** Base64-encoded compact signature format */
-        serialized_sig: string;
-        /** SHA256 hash of the signed message */
-        msgHash: Buffer;
-        /** Recovery ID for public key recovery (0-3) */
-        recovery_id: number;
-    }
-
-    /** BIP39 mnemonic and seed generation result */
-    interface MnemonicResult {
-        /** 12-word mnemonic phrase */
-        mnemonic: string;
-        /** Hex-encoded 64-byte seed derived from mnemonic */
-        seed: string;
-    }
-
-    /** Wallet summary information */
-    interface WalletSummary {
-        network: string;
-        address: string;
-        derivedKeys: number;
-        receivingAddresses: number;
-        changeAddresses: number;
-        testnetAddresses: number;
-    }
-
-    /** Threshold wallet summary information */
-    interface ThresholdWalletSummary {
-        network: string;
-        address: string;
-        thresholdScheme: string;
+        /** Signature r component */
+        r: bigint;
+        /** Signature s component */
+        s: bigint;
+        /** Number of participants */
         participants: number;
-        requiredSigners: number;
-        securityLevel: 'Low' | 'Medium' | 'High';
+        /** Threshold required */
+        threshold: number;
+        /** Signature metadata */
+        metadata: {
+            /** Timestamp of signature creation */
+            timestamp: number;
+            /** Signing algorithm used */
+            algorithm: 'ecdsa' | 'schnorr';
+        };
     }
 
-    // ============================================================================
-    // CUSTODIAL WALLET CLASS
-    // ============================================================================
+    /** Polynomial share for threshold signatures */
+    interface PolynomialShare {
+        /** X-coordinate */
+        x: bigint;
+        /** Y-coordinate (secret share) */
+        y: bigint;
+        /** Share index */
+        index: number;
+    }
+
+    // =============================================================================
+    // TRANSACTION INTERFACES
+    // =============================================================================
+
+    /** UTXO (Unspent Transaction Output) */
+    interface UTXO {
+        /** Transaction ID */
+        txid: string;
+        /** Output index */
+        vout: number;
+        /** Value in satoshis */
+        value: number;
+        /** Locking script */
+        scriptPubKey: string;
+        /** Address associated with UTXO */
+        address?: string;
+    }
+
+    /** Transaction input */
+    interface TransactionInput {
+        /** Previous transaction hash */
+        txid: string;
+        /** Previous output index */
+        vout: number;
+        /** Unlocking script */
+        scriptSig: string;
+        /** Sequence number */
+        sequence?: number;
+    }
+
+    /** Transaction output */
+    interface TransactionOutput {
+        /** Value in satoshis */
+        value: number;
+        /** Locking script */
+        scriptPubKey: string;
+        /** Recipient address */
+        address?: string;
+    }
+
+    /** Bitcoin transaction */
+    interface Transaction {
+        /** Transaction version */
+        version: number;
+        /** Transaction inputs */
+        inputs: TransactionInput[];
+        /** Transaction outputs */
+        outputs: TransactionOutput[];
+        /** Lock time */
+        locktime: number;
+        /** Transaction ID (calculated) */
+        txid?: string;
+    }
+
+    // =============================================================================
+    // TAPROOT INTERFACES
+    // =============================================================================
+
+    /** Taproot control block */
+    interface ControlBlock {
+        /** Leaf version and parity */
+        version: number;
+        /** Internal public key */
+        internalKey: Uint8Array;
+        /** Merkle path */
+        merklePath: Uint8Array[];
+    }
+
+    /** Taproot merkle tree node */
+    interface MerkleNode {
+        /** Node hash */
+        hash: Uint8Array;
+        /** Left child (if internal node) */
+        left?: MerkleNode;
+        /** Right child (if internal node) */
+        right?: MerkleNode;
+        /** Script data (if leaf node) */
+        script?: Uint8Array;
+    }
+
+    // =============================================================================
+    // WALLET CLASSES
+    // =============================================================================
 
     /**
-     * Custodial wallet implementation supporting hierarchical deterministic key derivation
-     * and standard ECDSA signatures. Suitable for single-party control scenarios.
+     * Custodial wallet implementation for managed Bitcoin operations
      */
-    export class Custodial_Wallet {
-        /** Network type ('main' or 'test') */
-        readonly net: NetworkType;
-        /** Bitcoin network configuration */
-        readonly networkConfig: NetworkConfig;
-        /** Hierarchical deterministic key pair */
-        readonly hdKey: HDKeys;
-        /** Standard key pair (WIF private key and hex public key) */
-        readonly keypair: KeyPair;
-        /** Bitcoin address for this wallet */
-        readonly address: string;
-        /** Set of derived child keys */
-        child_keys: Set<ChildKeyInfo>;
-
+    export class CustodialWallet {
         /**
-         * Creates a new Custodial_Wallet instance
-         * @param net Network type ('main' for mainnet, 'test' for testnet)
-         * @param master_keys Master key information
-         * @param serialization_format Internal serialization format for key derivation
+         * Create a new custodial wallet
+         * @param network Bitcoin network to use
+         * @param seed Optional seed for deterministic generation
          */
-        constructor(net: NetworkType, master_keys: any, serialization_format: any);
+        constructor(network: BitcoinNetwork, seed?: BufferLike);
 
         /**
-         * Generates a new random wallet with mnemonic phrase
-         * @param net Network type ('main' or 'test')
-         * @param passphrase Optional passphrase for additional security
-         * @returns Tuple of [mnemonic phrase, wallet instance]
+         * Generate a new address
+         * @param addressType Type of address to generate
+         * @returns Generated address information
          */
-        static fromRandom(net?: NetworkType, passphrase?: string): [string, Custodial_Wallet];
+        generateAddress(addressType: AddressType): DerivedKey;
 
         /**
-         * Creates a wallet from an existing mnemonic phrase
-         * @param net Network type ('main' or 'test')
-         * @param mnemonic 12-word mnemonic phrase
-         * @param passphrase Optional passphrase used during generation
-         * @returns New wallet instance
-         * @throws Error if mnemonic has invalid checksum
-         */
-        static fromMnemonic(net?: NetworkType, mnemonic?: string, passphrase?: string): Custodial_Wallet;
-
-        /**
-         * Creates a wallet from a hex-encoded seed
-         * @param net Network type ('main' or 'test')
-         * @param seed Hex-encoded seed
-         * @returns New wallet instance
-         */
-        static fromSeed(net?: NetworkType, seed?: string): Custodial_Wallet;
-
-        /**
-         * Derives a child key from the current wallet using BIP32 derivation path
-         * @param path BIP32 derivation path (e.g., "m/44'/0'/0'/0/0")
-         * @param keyType Key type to derive ('pri' for private, 'pub' for public)
-         * @returns Returns this wallet instance for method chaining
-         * @throws Error if trying to derive hardened path from public key
-         */
-        derive(path?: string, keyType?: KeyType): this;
-
-        /**
-         * Derives a Bitcoin receiving address using standard BIP44 path
-         * @param addressIndex Address index (0, 1, 2, ...)
-         * @returns Returns this wallet instance for method chaining
-         */
-        deriveReceivingAddress(addressIndex?: number): this;
-
-        /**
-         * Derives a Bitcoin change address using standard BIP44 path
-         * @param addressIndex Address index (0, 1, 2, ...)
-         * @returns Returns this wallet instance for method chaining
-         */
-        deriveChangeAddress(addressIndex?: number): this;
-
-        /**
-         * Derives a testnet address regardless of current wallet network
-         * @param addressIndex Address index (0, 1, 2, ...)
-         * @returns Returns this wallet instance for method chaining
-         */
-        deriveTestnetAddress(addressIndex?: number): this;
-
-        /**
-         * Gets all child keys of a specific address type
-         * @param addressType Type: 'receiving', 'change', or 'testnet'
-         * @returns Array of matching child keys
-         */
-        getChildKeysByType(addressType?: AddressType): ChildKeyInfo[];
-
-        /**
-         * Gets wallet summary information including network details and key counts
-         * @returns Wallet summary object
-         */
-        getSummary(): WalletSummary;
-
-        /**
-         * Signs a message using ECDSA with the wallet's private key
+         * Sign a message with the wallet's private key
          * @param message Message to sign
-         * @returns Tuple of [signature bytes, recovery ID]
+         * @returns Signature result
          */
-        sign(message?: string): ECDSASignatureResult;
+        signMessage(message: string): ECDSASignature;
 
         /**
-         * Verifies an ECDSA signature against a message using the wallet's public key
-         * @param sig Signature to verify
-         * @param msg Original message that was signed
-         * @returns True if signature is valid, false otherwise
+         * Get wallet's master public key
+         * @returns Extended public key
          */
-        verify(sig: Uint8Array | Buffer, msg: string): boolean;
+        getMasterPublicKey(): string;
+
+        /**
+         * Derive a child key at the specified path
+         * @param account Account index
+         * @param change Change type (0=external, 1=internal)
+         * @param addressIndex Address index
+         * @param addressType Address type to generate
+         * @returns Derived key information
+         */
+        deriveChildKey(
+            account: number,
+            change: number,
+            addressIndex: number,
+            addressType: AddressType
+        ): DerivedKey;
     }
 
-    // ============================================================================
-    // NON-CUSTODIAL WALLET CLASS
-    // ============================================================================
-
     /**
-     * Non-custodial wallet implementation using Threshold Signature Scheme (TSS)
-     * for distributed key management. Enables multi-party control without a trusted party.
+     * Non-custodial wallet with threshold signature support
      */
-    export class Non_Custodial_Wallet {
-        /** Network type ('main' or 'test') */
-        readonly net: NetworkType;
-        /** Bitcoin network configuration */
-        readonly networkConfig: NetworkConfig;
-        /** Total number of participants in the threshold scheme */
-        readonly group_size: number;
-        /** Minimum number of participants required to sign */
-        readonly threshold: number;
-        /** Hex-encoded compressed public key */
-        readonly publicKey: string;
-        /** Bitcoin address for this threshold wallet */
-        readonly address: string;
+    export class NonCustodialWallet {
+        /**
+         * Create a new non-custodial wallet
+         * @param network Bitcoin network to use
+         * @param participants Total number of participants
+         * @param threshold Minimum signatures required
+         * @param seed Optional seed for deterministic generation
+         */
+        constructor(
+            network: BitcoinNetwork,
+            participants: number,
+            threshold: number,
+            seed?: BufferLike
+        );
 
         /**
-         * Creates a new Non_Custodial_Wallet instance
-         * @param net Network type ('main' for mainnet, 'test' for testnet)
-         * @param group_size Total number of participants in the threshold scheme
-         * @param threshold Minimum number of participants required to sign
+         * Generate threshold signature shares
+         * @param message Message to sign
+         * @returns Array of signature shares
          */
-        constructor(net: NetworkType, group_size: number, threshold: number);
+        generateSignatureShares(message: string): PolynomialShare[];
 
         /**
-         * Generates a new random threshold wallet
-         * @param net Network type ('main' or 'test')
-         * @param group_size Total number of participants
-         * @param threshold Minimum participants required for signing
-         * @returns New threshold wallet instance
-         * @throws Error if threshold is greater than group_size or less than 2
+         * Combine signature shares into final signature
+         * @param shares Array of signature shares
+         * @returns Complete threshold signature
          */
-        static fromRandom(net?: NetworkType, group_size?: number, threshold?: number): Non_Custodial_Wallet;
+        combineSignatureShares(shares: PolynomialShare[]): ThresholdSignatureResult;
 
         /**
-         * Reconstructs a threshold wallet from existing shares
-         * @param net Network type ('main' or 'test')
-         * @param shares Array of hex-encoded secret shares
-         * @param threshold Minimum participants required for signing
-         * @returns Reconstructed wallet instance
+         * Derive a child key at the specified path
+         * @param account Account index
+         * @param change Change type (0=external, 1=internal)
+         * @param addressIndex Address index
+         * @param addressType Address type to generate
+         * @returns Derived key information
          */
-        static fromShares(net?: NetworkType, shares: string[], threshold?: number): Non_Custodial_Wallet;
+        deriveChildKey(
+            account: number,
+            change: number,
+            addressIndex: number,
+            addressType: AddressType
+        ): DerivedKey;
 
         /**
-         * Gets the secret shares as hex strings for distribution to participants
-         * @returns Array of hex-encoded secret shares
+         * Get threshold configuration
+         * @returns Threshold parameters
          */
-        get _shares(): string[];
-
-        /**
-         * Gets the reconstructed private key in WIF format
-         * @returns WIF-encoded private key
-         */
-        get _privateKey(): string;
-
-        /**
-         * Gets threshold wallet summary information
-         * @returns Threshold wallet summary object
-         */
-        getSummary(): ThresholdWalletSummary;
-
-        /**
-         * Generates a threshold signature for a given message
-         * @param message Message to sign (will be SHA256 hashed)
-         * @returns Complete signature with metadata
-         */
-        sign(message: string): ThresholdSignatureResult;
-
-        /**
-         * Verifies a threshold signature against the original message hash
-         * @param sig Signature object with r and s properties
-         * @param msgHash SHA256 hash of the original message
-         * @returns True if signature is valid, false otherwise
-         */
-        verify(sig: { r: bigint; s: bigint }, msgHash: Buffer): boolean;
+        getThresholdConfig(): { participants: number; threshold: number };
     }
 
-    // ============================================================================
-    // BIP39 MNEMONIC UTILITIES
-    // ============================================================================
-
-    export namespace bip39 {
-        /**
-         * Generates a random 12-word mnemonic phrase using cryptographically secure entropy
-         * @returns Space-separated 12-word mnemonic phrase
-         */
-        function mnemonic(): string;
-
-        /**
-         * Derives a cryptographic seed from a mnemonic phrase using PBKDF2
-         * @param mnemonic Space-separated mnemonic phrase
-         * @param passphrase Optional passphrase for additional security
-         * @returns Hex-encoded 64-byte (512-bit) seed
-         */
-        function seed(mnemonic?: string, passphrase?: string): string;
-
-        /**
-         * Validates the checksum of a BIP39 mnemonic phrase
-         * @param mnemonic Space-separated mnemonic phrase to validate
-         * @returns True if checksum is valid, false otherwise
-         */
-        function checkSum(mnemonic?: string): boolean;
-
-        /**
-         * Generates a random mnemonic with validated checksum and derives its seed
-         * @param passphrase Optional passphrase for seed derivation
-         * @returns Object containing both mnemonic and seed
-         * @throws Error if generated mnemonic fails validation
-         */
-        function random(passphrase?: string): MnemonicResult;
-
-        /**
-         * Converts a mnemonic phrase to a seed with checksum validation
-         * @param mnemonic Space-separated mnemonic phrase
-         * @param passphrase Optional passphrase for additional security
-         * @returns Hex-encoded 64-byte seed
-         * @throws Error if mnemonic validation fails
-         */
-        function mnemonic2seed(mnemonic?: string, passphrase?: string): string;
-    }
-
-    // ============================================================================
-    // SIGNATURE ALGORITHMS
-    // ============================================================================
-
-    export namespace ecdsa {
-        /**
-         * Signs a message using ECDSA with deterministic k-value generation (RFC 6979)
-         * @param private_key WIF-encoded private key
-         * @param msg Message to sign (will be UTF-8 encoded)
-         * @returns Tuple of [signature bytes, recovery ID]
-         */
-        function sign(private_key?: string, msg?: string): ECDSASignatureResult;
-
-        /**
-         * Verifies an ECDSA signature against a message using a public key
-         * @param sig DER-encoded signature bytes
-         * @param msg Original message that was signed
-         * @param public_key Compressed or uncompressed public key
-         * @returns True if signature is valid, false otherwise
-         */
-        function verify(sig: Uint8Array | Buffer, msg?: string, public_key: Uint8Array | Buffer): boolean;
-
-        /**
-         * Recovers the public key from a signature and message using the recovery ID
-         * @param msg Original message that was signed
-         * @param sig DER-encoded signature bytes
-         * @param recovery Recovery ID (0-3) obtained during signing
-         * @returns Compressed public key (33 bytes)
-         */
-        function retrieve_public_key(msg?: string, sig: Uint8Array | Buffer, recovery?: number): Uint8Array;
-    }
-
-    export namespace schnorr_sig {
-        /**
-         * Creates a Schnorr signature for a given message using BIP340 specification
-         * @param private_key WIF-encoded private key
-         * @param msg Message to sign (will be UTF-8 encoded)
-         * @param auxRand 32 bytes of auxiliary randomness for nonce generation
-         * @returns 64-byte Schnorr signature (32-byte R.x + 32-byte s)
-         */
-        function sign(private_key?: string, msg?: string, auxRand?: Uint8Array): Uint8Array;
-
-        /**
-         * Verifies a Schnorr signature against a message and public key
-         * @param sig 64-byte Schnorr signature to verify
-         * @param msg Original message that was signed
-         * @param public_key 32-byte x-only public key (BIP340 format)
-         * @returns True if signature is valid, false otherwise
-         */
-        function verify(sig: Uint8Array | Buffer, msg?: string, public_key: Uint8Array | Buffer): boolean;
-
-        /**
-         * Derives the Schnorr public key from a private key according to BIP340
-         * @param private_key WIF-encoded private key
-         * @returns 32-byte x-only public key for use with Schnorr signatures
-         */
-        function retrieve_public_key(private_key?: string): Uint8Array;
-    }
-
-    // ============================================================================
-    // ADDRESS FORMAT UTILITIES
-    // ============================================================================
-
-    export namespace BECH32 {
-        /**
-         * Converts a legacy Bitcoin address to a P2WPKH (Pay to Witness PubKey Hash) Bech32 address
-         * @param witness_program Legacy P2PKH address to convert
-         * @returns Bech32-encoded P2WPKH address
-         * @throws Error if the legacy address is invalid or has wrong format
-         */
-        function to_P2WPKH(witness_program?: string): string;
-
-        /**
-         * Encodes arbitrary hex data into a Bech32 address with custom prefix
-         * @param prefix Custom Human Readable Part for the address
-         * @param data Hex-encoded data to include in the address
-         * @param encoding Encoding type: 'bech32' or 'bech32m'
-         * @returns Bech32-encoded address with custom prefix and data
-         * @throws Error if the total address length would exceed 90 characters
-         */
-        function data_to_bech32(prefix?: string, data?: string, encoding?: Bech32Encoding): string;
-    }
-
-    // ============================================================================
-    // BIP32 UTILITIES
-    // ============================================================================
+    // =============================================================================
+    // BIP IMPLEMENTATIONS
+    // =============================================================================
 
     /**
-     * Generates BIP32 master keys from a cryptographic seed
-     * @param seed Hex-encoded cryptographic seed (typically 128-512 bits from BIP39)
-     * @param net Network type: 'main' for Bitcoin mainnet, 'test' for testnet
-     * @returns Tuple containing [HD key pair, serialization format]
+     * BIP39 mnemonic phrase utilities
      */
-    export function fromSeed(seed: string, net?: NetworkType): [HDKeys, any];
+    export class BIP39 {
+        /**
+         * Generate a new mnemonic phrase
+         * @param strength Entropy strength in bits (128, 160, 192, 224, 256)
+         * @returns Generated mnemonic phrase
+         */
+        static generate(strength?: 128 | 160 | 192 | 224 | 256): string;
+
+        /**
+         * Validate a mnemonic phrase
+         * @param mnemonic Mnemonic phrase to validate
+         * @returns True if valid, false otherwise
+         */
+        static validate(mnemonic: string): boolean;
+
+        /**
+         * Convert mnemonic to seed
+         * @param mnemonic Mnemonic phrase
+         * @param passphrase Optional passphrase
+         * @returns Seed bytes
+         */
+        static toSeed(mnemonic: string, passphrase?: string): Uint8Array;
+
+        /**
+         * Convert mnemonic to entropy
+         * @param mnemonic Mnemonic phrase
+         * @returns Entropy bytes
+         */
+        static toEntropy(mnemonic: string): Uint8Array;
+
+        /**
+         * Convert entropy to mnemonic
+         * @param entropy Entropy bytes
+         * @returns Mnemonic phrase
+         */
+        static fromEntropy(entropy: BufferLike): string;
+    }
 
     /**
-     * Derives child keys from parent keys using BIP32 hierarchical deterministic algorithm
-     * @param path BIP32 derivation path (e.g., "m/44'/0'/0'/0/0")
-     * @param key Parent extended key in xprv/xpub or tprv/tpub format
-     * @param serialization_format Parent key's serialization metadata
-     * @returns Tuple of [derived keys, child serialization format]
+     * BECH32 address encoding/decoding (BIP173/BIP350)
      */
-    export function derive(path: string, key?: string, serialization_format?: any): [HDKeys, any];
+    export class BECH32 {
+        /**
+         * Encode data using Bech32
+         * @param prefix Human-readable prefix
+         * @param data Data to encode
+         * @returns Bech32 encoded string
+         */
+        static encode(prefix: string, data: Uint8Array): string;
 
-    // ============================================================================
-    // THRESHOLD SIGNATURE COMPONENTS
-    // ============================================================================
+        /**
+         * Decode Bech32 encoded string
+         * @param address Bech32 encoded string
+         * @returns Decoded data with prefix
+         */
+        static decode(address: string): { prefix: string; data: Uint8Array };
+
+        /**
+         * Validate Bech32 address
+         * @param address Address to validate
+         * @returns True if valid, false otherwise
+         */
+        static validate(address: string): boolean;
+    }
+
+    // =============================================================================
+    // CRYPTOGRAPHY CLASSES
+    // =============================================================================
 
     /**
-     * Polynomial class for finite field arithmetic over secp256k1 curve order
+     * ECDSA signature implementation
+     */
+    export class ECDSA {
+        /**
+         * Sign a message hash using ECDSA
+         * @param messageHash Hash to sign
+         * @param privateKey Private key for signing
+         * @returns ECDSA signature
+         */
+        static sign(messageHash: Uint8Array, privateKey: Uint8Array): ECDSASignature;
+
+        /**
+         * Verify an ECDSA signature
+         * @param signature Signature to verify
+         * @param messageHash Original message hash
+         * @param publicKey Public key for verification
+         * @returns True if signature is valid
+         */
+        static verify(
+            signature: ECDSASignature,
+            messageHash: Uint8Array,
+            publicKey: Uint8Array
+        ): boolean;
+
+        /**
+         * Recover public key from signature
+         * @param signature Signature with recovery info
+         * @param messageHash Original message hash
+         * @returns Recovered public key
+         */
+        static recoverPublicKey(
+            signature: ECDSASignature & { recovery: number },
+            messageHash: Uint8Array
+        ): Uint8Array;
+    }
+
+    /**
+     * Schnorr signature implementation (BIP340)
+     */
+    export class SchnorrSignature {
+        /**
+         * Sign a message using Schnorr signatures
+         * @param message Message to sign
+         * @param privateKey Private key for signing
+         * @returns Schnorr signature
+         */
+        static sign(message: Uint8Array, privateKey: Uint8Array): SchnorrSignature;
+
+        /**
+         * Verify a Schnorr signature
+         * @param signature Signature to verify
+         * @param message Original message
+         * @param publicKey Public key for verification
+         * @returns True if signature is valid
+         */
+        static verify(
+            signature: Uint8Array,
+            message: Uint8Array,
+            publicKey: Uint8Array
+        ): boolean;
+
+        /**
+         * Aggregate multiple Schnorr signatures
+         * @param signatures Array of signatures to aggregate
+         * @returns Aggregated signature
+         */
+        static aggregate(signatures: Uint8Array[]): Uint8Array;
+    }
+
+    /**
+     * Polynomial implementation for threshold cryptography
      */
     export class Polynomial {
-        /** Polynomial degree (highest power of x) */
-        readonly order: number;
-        /** Array of polynomial coefficients as BigNumbers */
-        readonly coefficients: any[];
+        /** Polynomial degree */
+        readonly degree: number;
+
+        /** Polynomial coefficients */
+        readonly coefficients: bigint[];
 
         /**
-         * Creates a polynomial with given coefficients
-         * @param coefficients Array of BigNumber coefficients from constant to highest degree
+         * Create a new polynomial
+         * @param coefficients Polynomial coefficients
          */
-        constructor(coefficients: any[]);
+        constructor(coefficients: bigint[]);
 
         /**
-         * Generates a random polynomial of specified degree using cryptographically secure randomness
-         * @param order Degree of the polynomial to generate
-         * @returns New polynomial with random coefficients
+         * Evaluate polynomial at given x value
+         * @param x X-coordinate
+         * @returns Y-coordinate (polynomial evaluation)
          */
-        static fromRandom(order?: number): Polynomial;
+        evaluate(x: bigint): bigint;
 
         /**
-         * Reconstructs a secret using Lagrange interpolation from coordinate points
-         * @param points Array of [x, y] coordinate pairs
-         * @param x Point at which to evaluate the interpolated polynomial
-         * @returns The interpolated value f(x) modulo curve order
+         * Generate shares for secret sharing
+         * @param numShares Number of shares to generate
+         * @returns Array of polynomial shares
          */
-        static interpolate_evaluate(points?: [number, any][], x?: number): any;
+        generateShares(numShares: number): PolynomialShare[];
 
         /**
-         * Evaluates the polynomial at a given point using Horner's method
-         * @param x Point at which to evaluate the polynomial
-         * @returns The polynomial value f(x) modulo curve order
+         * Interpolate polynomial from shares
+         * @param shares Polynomial shares
+         * @returns Reconstructed secret (constant term)
          */
-        evaluate(x?: number): any;
+        static interpolate(shares: PolynomialShare[]): bigint;
 
         /**
-         * Adds two polynomials coefficient-wise
-         * @param other Polynomial to add
-         * @returns New polynomial representing the sum
+         * Generate random polynomial with given secret and degree
+         * @param secret Secret value (constant term)
+         * @param degree Polynomial degree
+         * @returns Random polynomial
          */
-        add(other?: Polynomial): Polynomial;
-
-        /**
-         * Multiplies two polynomials using convolution
-         * @param other Polynomial to multiply
-         * @returns New polynomial representing the product
-         */
-        multiply(other?: Polynomial): Polynomial;
+        static random(secret: bigint, degree: number): Polynomial;
     }
 
     /**
-     * Threshold Signature Scheme implementation for distributed cryptography
+     * Threshold signature implementation
      */
     export class ThresholdSignature {
-        /** Total number of participants */
-        readonly group_size: number;
-        /** Polynomial degree (threshold - 1) */
-        readonly polynomial_order: number;
-        /** Minimum participants needed for operations */
+        /** Number of participants */
+        readonly participants: number;
+
+        /** Minimum threshold required */
         readonly threshold: number;
 
-        /**
-         * Creates a new threshold signature scheme
-         * @param group_size Total number of participants in the scheme
-         * @param threshold Minimum number of participants needed to create signatures
-         */
-        constructor(group_size?: number, threshold?: number);
+        /** Polynomial shares */
+        readonly shares: PolynomialShare[];
 
         /**
-         * Converts share values to coordinate points for polynomial interpolation
-         * @param shares Array of BigNumber share values
-         * @returns Array of [x, y] points for interpolation
+         * Create threshold signature scheme
+         * @param participants Total number of participants
+         * @param threshold Minimum signatures required
+         * @param secret Optional secret key
          */
-        shares_to_points(shares?: any[]): [number, any][];
+        constructor(participants: number, threshold: number, secret?: bigint);
 
         /**
-         * Joint Verifiable Random Secret Sharing (JVRSS) protocol implementation
-         * @returns Tuple of [secret shares array, aggregate public key]
-         */
-        jvrss(): [any[], any];
-
-        /**
-         * Additive Secret Sharing (ADDSS) - combines two sets of shares additively
-         * @param a_shares First set of secret shares
-         * @param b_shares Second set of secret shares
-         * @returns The sum of the two original secrets
-         */
-        addss(a_shares?: any[], b_shares?: any[]): any;
-
-        /**
-         * Multiplicative Secret Sharing (PROSS) - computes product of shared secrets
-         * @param a_shares First set of secret shares
-         * @param b_shares Second set of secret shares
-         * @returns The product of the two original secrets
-         */
-        pross(a_shares?: any[], b_shares?: any[]): any;
-
-        /**
-         * Inverse Secret Sharing (INVSS) - computes modular inverse of shared secret
-         * @param a_shares Shares of the secret to invert
-         * @returns Shares of the modular inverse of the original secret
-         */
-        invss(a_shares?: any[]): any[];
-
-        /**
-         * Reconstructs the private key from secret shares using polynomial interpolation
-         * @param a_shares Secret shares to reconstruct from (defaults to this.shares)
-         * @returns The reconstructed private key
-         */
-        privite_key(a_shares?: any[]): any;
-
-        /**
-         * Generates a threshold signature for a given message
-         * @param message Message to sign (will be SHA256 hashed)
-         * @returns Complete signature with metadata
+         * Generate signature for a message
+         * @param message Message to sign
+         * @returns Threshold signature result
          */
         sign(message: string): ThresholdSignatureResult;
 
         /**
-         * Verifies a threshold signature against a public key and message hash
-         * @param public_key Elliptic curve public key point
-         * @param msgHash SHA256 hash of the original message
-         * @param sig Signature object with r and s components
-         * @returns True if signature is valid, false otherwise
+         * Verify threshold signature
+         * @param publicKey Public key for verification
+         * @param messageHash Message hash
+         * @param signature Signature to verify
+         * @returns True if signature is valid
          */
-        static verify_threshold_signature(public_key: any, msgHash: Buffer, sig: { r: bigint; s: bigint }): boolean;
+        static verifyThresholdSignature(
+            publicKey: any,
+            messageHash: Uint8Array,
+            signature: { r: bigint; s: bigint }
+        ): boolean;
+
+        /**
+         * Combine partial signatures
+         * @param partialSignatures Array of partial signatures
+         * @returns Combined signature
+         */
+        combineSignatures(partialSignatures: PolynomialShare[]): ThresholdSignatureResult;
     }
 
-    // ============================================================================
+    // =============================================================================
     // UTILITY FUNCTIONS
-    // ============================================================================
+    // =============================================================================
 
     /**
-     * Base58Check encoding for Bitcoin addresses and keys
+     * Generate master key from seed (BIP32)
+     * @param seed Seed bytes for key generation
+     * @param network Bitcoin network
+     * @returns Master key pair
+     */
+    export function fromSeed(seed: BufferLike, network?: BitcoinNetwork): HDKeys;
+
+    /**
+     * Alternative name for fromSeed
+     */
+    export const generateMasterKey: typeof fromSeed;
+
+    /**
+     * Derive child key from parent (BIP32)
+     * @param parentKey Parent extended key
+     * @param derivationPath Child derivation path
+     * @param network Bitcoin network
+     * @returns Derived child key
+     */
+    export function derive(
+        parentKey: string,
+        derivationPath: string,
+        network?: BitcoinNetwork
+    ): HDKeys;
+
+    /**
+     * Generate BIP44 derivation path
+     * @param options Path generation options
+     * @returns Complete BIP44 derivation path
+     */
+    export function generateDerivationPath(options?: DerivationPathOptions): string;
+
+    /**
+     * Parse derivation path into components
+     * @param path Derivation path to parse
+     * @returns Parsed path components
+     */
+    export function parseDerivationPath(path: string): ParsedDerivationPath;
+
+    /**
+     * Validate Bitcoin derivation path
+     * @param path Path to validate
+     * @returns True if valid for Bitcoin
+     */
+    export function isValidBitcoinPath(path: string): boolean;
+
+    /**
+     * Get network configuration by coin type
+     * @param coinType BIP44 coin type
+     * @returns Network configuration
+     */
+    export function getNetworkByCoinType(coinType: 0 | 1): NetworkConfig;
+
+    // =============================================================================
+    // ENCODING FUNCTIONS
+    // =============================================================================
+
+    /**
+     * Base58Check encode data
      * @param data Data to encode
      * @returns Base58Check encoded string
      */
-    export function b58encode(data: Buffer): string;
+    export function b58encode(data: BufferLike): string;
 
     /**
-     * Generates hierarchical deterministic keys in standard format
-     * @param keyType 'pri' for private key, 'pub' for public key
-     * @param format Key serialization format
-     * @returns Formatted HD key (xprv/xpub)
+     * Base58Check decode string
+     * @param encoded Encoded string to decode
+     * @returns Decoded data
      */
-    export function hdKey(keyType: KeyType, format: any): string;
+    export function b58decode(encoded: string): Uint8Array;
 
     /**
-     * Generates standard format private/public key pair
-     * @param privKey Private key information
-     * @param pubKey Public key information
-     * @returns Standard key pair {pri, pub}
+     * Generate HD key in standard format
+     * @param keyType Type of key (private or public)
+     * @param keyData Key data and metadata
+     * @returns Formatted HD key
      */
-    export function standardKey(privKey: any, pubKey: any): KeyPair;
+    export function hdKey(keyType: KeyType, keyData: any): string;
 
     /**
-     * Generates Bitcoin address from public key
+     * Generate standard key pair
+     * @param privateKey Private key information
+     * @param publicKey Public key information
+     * @returns Standard key pair
+     */
+    export function standardKey(privateKey: any, publicKey: any): KeyPair;
+
+    /**
+     * Generate Bitcoin address from public key
      * @param versionByte Address version byte
-     * @param pubKey Public key buffer
+     * @param publicKey Public key buffer
      * @returns Bitcoin address
      */
-    export function address(versionByte: number, pubKey: Buffer): string;
+    export function address(versionByte: number, publicKey: BufferLike): string;
 
     /**
-     * RIPEMD160 hash function implementation
+     * RIPEMD160 hash function
      * @param data Data to hash
-     * @returns RIPEMD160 hash result
+     * @returns RIPEMD160 hash
      */
-    export function rmd160(data: Buffer | Uint8Array | ArrayBuffer): Buffer;
+    export function rmd160(data: BufferLike): Uint8Array;
 
     /**
-     * Decodes WIF (Wallet Import Format) private keys
-     * @param priKey WIF-encoded private key
+     * Decode WIF private key
+     * @param wifKey WIF encoded private key
      * @returns Raw private key bytes
      */
-    export function privateKey_decode(priKey?: string): Uint8Array;
+    export function privateKeyDecode(wifKey: string): Uint8Array;
 
     /**
-     * Decodes legacy Bitcoin addresses to extract hash160
-     * @param address Legacy Bitcoin address
+     * Decode legacy Bitcoin address
+     * @param address Legacy address to decode
      * @returns Hash160 bytes
      */
-    export function legacyAddress_decode(address?: string): Uint8Array;
+    export function legacyAddressDecode(address: string): Uint8Array;
 
-    // ============================================================================
-    // CONSTANTS AND FEATURE FLAGS
-    // ============================================================================
+    // =============================================================================
+    // CONFIGURATION CONSTANTS
+    // =============================================================================
 
-    /** Library feature support matrix */
-    export const FEATURES: {
+    /**
+     * Library feature support matrix
+     */
+    export const FEATURES: Readonly<{
         /** Hierarchical Deterministic Wallets (BIP32) */
         HD_WALLETS: boolean;
         /** Threshold Signature Schemes */
@@ -794,28 +716,147 @@ declare module 'j-bitcoin' {
         ECDSA: boolean;
         /** Schnorr Signatures (BIP340) */
         SCHNORR: boolean;
-        /** P2PKH Legacy Addresses */
+        /** Pay-to-Public-Key-Hash (Legacy) */
         P2PKH: boolean;
-        /** P2WPKH SegWit Addresses */
+        /** Pay-to-Witness-Public-Key-Hash (SegWit) */
         P2WPKH: boolean;
-        /** P2SH Script Hash Addresses */
+        /** Pay-to-Script-Hash */
         P2SH: boolean;
-        /** P2WSH SegWit Script Hash */
+        /** Pay-to-Witness-Script-Hash */
         P2WSH: boolean;
-        /** Transaction Building */
+        /** Pay-to-Taproot (BIP341) */
+        P2TR: boolean;
+        /** Transaction Building and Broadcasting */
         TRANSACTIONS: boolean;
-        /** SPV (Simplified Payment Verification) */
+        /** Simplified Payment Verification */
         SPV: boolean;
+        /** Lightning Network */
+        LIGHTNING: boolean;
+    }>;
+
+    /**
+     * Supported Bitcoin networks
+     */
+    export const NETWORKS: Readonly<{
+        /** Bitcoin Mainnet */
+        BTC_MAIN: NetworkConfig;
+        /** Bitcoin Testnet */
+        BTC_TEST: NetworkConfig;
+    }>;
+
+    /**
+     * Library version and metadata
+     */
+    export const LIBRARY_INFO: Readonly<{
+        name: string;
+        version: string;
+        description: string;
+        author: string;
+        license: string;
+        repository: string;
+    }>;
+
+    /**
+     * BIP compliance matrix
+     */
+    export const BIP_COMPLIANCE: Readonly<{
+        /** Hierarchical Deterministic Wallets */
+        BIP32: boolean;
+        /** Mnemonic code for generating deterministic keys */
+        BIP39: boolean;
+        /** Multi-Account Hierarchy for Deterministic Wallets */
+        BIP44: boolean;
+        /** Derivation scheme for P2WPKH-nested-in-P2SH */
+        BIP49: boolean;
+        /** Derivation scheme for P2WPKH */
+        BIP84: boolean;
+        /** Key Derivation for Single Key P2TR Outputs */
+        BIP86: boolean;
+        /** Segregated Witness (Consensus layer) */
+        BIP141: boolean;
+        /** Transaction Signature Verification for Version 0 Witness Program */
+        BIP143: boolean;
+        /** Base32 address format for native v0-16 witness outputs */
+        BIP173: boolean;
+        /** Schnorr Signatures for secp256k1 */
+        BIP340: boolean;
+        /** Taproot: SegWit version 1 spending rules */
+        BIP341: boolean;
+        /** Validation of Taproot Scripts */
+        BIP342: boolean;
+        /** Base32 address format for native v1+ witness outputs */
+        BIP350: boolean;
+    }>;
+
+    // =============================================================================
+    // LEGACY ALIASES (DEPRECATED)
+    // =============================================================================
+
+    /**
+     * @deprecated Use CustodialWallet instead
+     */
+    export const Custodial_Wallet: typeof CustodialWallet;
+
+    /**
+     * @deprecated Use NonCustodialWallet instead
+     */
+    export const Non_Custodial_Wallet: typeof NonCustodialWallet;
+
+    /**
+     * @deprecated Use ECDSA instead
+     */
+    export const ecdsa: typeof ECDSA;
+
+    /**
+     * @deprecated Use SchnorrSignature instead
+     */
+    export const schnorr_sig: typeof SchnorrSignature;
+
+    // =============================================================================
+    // DEFAULT EXPORT
+    // =============================================================================
+
+    /**
+     * Default export containing all major components
+     */
+    const JBitcoin: {
+        // Wallets
+        CustodialWallet: typeof CustodialWallet;
+        NonCustodialWallet: typeof NonCustodialWallet;
+
+        // Cryptography
+        ECDSA: typeof ECDSA;
+        SchnorrSignature: typeof SchnorrSignature;
+        Polynomial: typeof Polynomial;
+        ThresholdSignature: typeof ThresholdSignature;
+
+        // BIP implementations
+        BIP39: typeof BIP39;
+        BECH32: typeof BECH32;
+        fromSeed: typeof fromSeed;
+        derive: typeof derive;
+
+        // Configuration
+        FEATURES: typeof FEATURES;
+        NETWORKS: typeof NETWORKS;
+        LIBRARY_INFO: typeof LIBRARY_INFO;
+        BIP_COMPLIANCE: typeof BIP_COMPLIANCE;
     };
 
-    /** Supported cryptocurrency networks */
-    export const NETWORKS: {
-        /** Bitcoin mainnet */
-        BTC_MAIN: { name: string; symbol: string; network: string };
-        /** Bitcoin testnet */
-        BTC_TEST: { name: string; symbol: string; network: string };
-    };
+    export default JBitcoin;
 }
 
-export = j_bitcoin;
-export as namespace j_bitcoin;
+// =============================================================================
+// GLOBAL DECLARATIONS
+// =============================================================================
+
+declare global {
+    namespace JBitcoin {
+        export type Network = BitcoinNetwork;
+        export type Address = AddressType;
+        export type Purpose = BIPPurpose;
+    }
+}
+
+export = JBitcoin;
+export as namespace JBitcoin;
