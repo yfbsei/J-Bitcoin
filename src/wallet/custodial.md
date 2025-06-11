@@ -1,68 +1,81 @@
 # Custodial Wallet
 
-A comprehensive Bitcoin custodial wallet implementation with full support for Legacy, SegWit, and Taproot addresses, featuring enhanced security, proper signature algorithms, and advanced transaction management.
+A modern, secure Bitcoin custodial wallet implementation with hierarchical deterministic (HD) key derivation, comprehensive transaction support, and advanced cryptographic features. Built for modern Bitcoin standards with SegWit and Taproot support only.
 
 ## Table of Contents
 
 - [Features](#features)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [Modern Bitcoin Standards](#modern-bitcoin-standards)
 - [Address Types](#address-types)
+- [Transaction Support](#transaction-support)
 - [Examples](#examples)
 - [API Reference](#api-reference)
 - [Security Features](#security-features)
 - [Error Handling](#error-handling)
-- [Contributing](#contributing)
+- [Best Practices](#best-practices)
 
 ## Features
 
-### 🔐 **Multi-Address Type Support**
-- **Legacy (P2PKH)** - BIP44 compatible with maximum compatibility
-- **Nested SegWit (P2SH-P2WPKH)** - BIP49 for backward compatibility
-- **Native SegWit (P2WPKH)** - BIP84 for optimal fees
-- **Taproot (P2TR)** - BIP86 for maximum privacy and efficiency
+### 🔐 **Hierarchical Deterministic (HD) Wallets**
+- **BIP32/BIP39/BIP44** - Full HD wallet implementation with mnemonic support
+- **Deterministic Address Generation** - Reproducible addresses from seed phrases
+- **Multi-Account Support** - Organize funds across multiple accounts
+- **Change Address Management** - Automatic change address generation
+
+### 🏛️ **Modern Address Types**
+- **Native SegWit (P2WPKH)** - BIP84 compliant with reduced fees
+- **Taproot (P2TR)** - BIP86 with enhanced privacy and efficiency
+- **No Legacy Support** - Clean, modern implementation without legacy bloat
 
 ### 🔏 **Advanced Signature Support**
-- **ECDSA Signatures** for Legacy and SegWit inputs
-- **Schnorr Signatures** for Taproot inputs (BIP340)
-- **Mixed Transactions** with automatic algorithm detection
-- **Script Path Spending** with merkle tree support
+- **ECDSA Signatures** - Standard Bitcoin signatures for SegWit inputs
+- **Schnorr Signatures** - BIP340 compliant for Taproot inputs (64-byte efficiency)
+- **Algorithm Detection** - Automatic selection based on address type
+- **Mixed Transactions** - Support for both signature types in same transaction
+
+### ⚡ **Comprehensive Transaction Support**
+- **Transaction Builder** - Fluent API for building complex transactions
+- **Taproot Transactions** - Full BIP341 support with script path spending
+- **Batch Payments** - Efficient multi-recipient transactions
+- **Fee Estimation** - Smart fee calculation with Taproot optimizations
+- **UTXO Management** - Integrated UTXO tracking and validation
 
 ### 🛡️ **Security Features**
-- Rate limiting and DoS protection
-- Secure memory management
-- Entropy validation
-- Input sanitization
-- Timing attack prevention
-
-### ⚡ **Transaction Management**
-- Integrated UTXO management
-- Fee estimation and optimization
-- Replace-by-Fee (RBF) support
-- Batch transaction creation
-- Transaction size estimation
+- **Secure Memory Management** - Automatic cleanup of sensitive data
+- **Input Validation** - Comprehensive validation throughout
+- **Error Handling** - Standardized error codes and detailed context
+- **Production Warnings** - Security alerts for sensitive operations
 
 ## Installation
 
 ```bash
-npm install custodial-wallet
+npm install j-bitcoin
 ```
+
+**Requirements:**
+- Node.js 16.0.0 or higher
+- ES modules support
 
 ## Quick Start
 
 ### Creating a New Wallet
 
 ```javascript
-import { CustodialWalletFactory } from 'custodial-wallet';
+import { CustodialWalletFactory } from 'j-bitcoin/wallet/custodial';
 
-// Generate a new random wallet
-const { wallet, mnemonic } = CustodialWalletFactory.generateRandom('main', {
-    wordCount: 12,
-    storeMnemonic: true
-});
-
+// Generate new wallet with mnemonic
+const [mnemonic, wallet] = CustodialWalletFactory.generateRandom('main');
 console.log('Mnemonic:', mnemonic);
-console.log('Wallet created for:', wallet.network);
+console.log('Master Address:', wallet.masterKeys.address);
+
+// Derive addresses
+const segwitAddr = wallet.deriveReceivingAddress(0, 'segwit');
+const taprootAddr = wallet.deriveReceivingAddress(0, 'taproot');
+
+console.log('SegWit Address:', segwitAddr.address);
+console.log('Taproot Address:', taprootAddr.address);
 ```
 
 ### Restoring from Mnemonic
@@ -70,285 +83,192 @@ console.log('Wallet created for:', wallet.network);
 ```javascript
 // Restore wallet from existing mnemonic
 const wallet = CustodialWalletFactory.fromMnemonic(
-    'main', 
+    'main',
     'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
-    { passphrase: 'optional_passphrase' }
+    { passphrase: '' }
 );
+
+console.log('Wallet restored successfully');
+console.log('Network:', wallet.network);
+console.log('Features:', wallet.features);
 ```
 
-### Generating Addresses
+## Modern Bitcoin Standards
+
+### Supported BIP Standards
+
+| BIP | Description | Status |
+|-----|-------------|--------|
+| **BIP32** | Hierarchical Deterministic Wallets | ✅ Full Support |
+| **BIP39** | Mnemonic Seed Phrases | ✅ Full Support |
+| **BIP44** | Multi-Account HD Wallets | ✅ Full Support |
+| **BIP84** | Native SegWit Derivation | ✅ Full Support |
+| **BIP86** | Taproot Derivation | ✅ Full Support |
+| **BIP141** | Segregated Witness | ✅ Full Support |
+| **BIP340** | Schnorr Signatures | ✅ Full Support |
+| **BIP341** | Taproot Script Spending | ✅ Full Support |
+
+### Address Type Comparison
 
 ```javascript
-// Generate different address types
-const addresses = {
-    legacy: wallet.deriveChildKey(0, 0, 0, 'legacy'),
-    segwit: wallet.deriveChildKey(0, 0, 1, 'segwit'),
-    taproot: wallet.deriveChildKey(0, 0, 2, 'taproot')
-};
+// Fee efficiency comparison
+const feeComparison = wallet.transactionManager.estimateTransaction(2, 2, 'taproot');
+console.log('Taproot Input Size:', feeComparison.inputSize, 'bytes'); // 57 bytes
+console.log('SegWit Input Size:', 68, 'bytes'); // 11 bytes savings per input
 
-console.log('Legacy:', addresses.legacy.address);   // 1...
-console.log('SegWit:', addresses.segwit.address);   // bc1q...
-console.log('Taproot:', addresses.taproot.address); // bc1p...
+// Address generation
+const addresses = {
+    segwit: wallet.deriveChildKey(0, 0, 0, 'segwit'),   // bc1q...
+    taproot: wallet.deriveChildKey(0, 0, 0, 'taproot')  // bc1p...
+};
 ```
 
 ## Address Types
 
-### Legacy (P2PKH) - BIP44
+### SegWit (P2WPKH) - Default
+
 ```javascript
-const legacy = wallet.deriveChildKey(0, 0, 0, 'legacy');
-// Address: 1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2
-// Purpose: 44' (BIP44)
-// Signature: ECDSA
-// Fees: Highest
+// Generate SegWit address
+const segwitAddr = wallet.deriveReceivingAddress(0, 'segwit');
+console.log({
+    address: segwitAddr.address,     // bc1q...
+    type: segwitAddr.type,           // 'p2wpkh'
+    path: segwitAddr.path,           // m/44'/0'/0'/0/0
+    witnessProgram: segwitAddr.witnessProgram
+});
 ```
 
-### Nested SegWit (P2SH-P2WPKH) - BIP49
+### Taproot (P2TR) - Most Efficient
+
 ```javascript
-const nestedSegwit = wallet.deriveChildKey(0, 0, 0, 'nested-segwit');
-// Address: 3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy
-// Purpose: 49' (BIP49)
-// Signature: ECDSA
-// Fees: Medium
+// Generate Taproot address
+const taprootAddr = wallet.deriveReceivingAddress(0, 'taproot');
+console.log({
+    address: taprootAddr.address,         // bc1p...
+    type: taprootAddr.type,               // 'p2tr'
+    tweakedPublicKey: taprootAddr.tweakedPublicKey
+});
+
+// Generate Taproot with script path
+const scriptAddr = wallet.deriveTaprootAddress(0, 0, 1, [
+    Buffer.from('multisig script'),
+    Buffer.from('timelock script')
+]);
+console.log('Script Commitment:', scriptAddr.scriptCommitment.toString('hex'));
 ```
 
-### Native SegWit (P2WPKH) - BIP84
-```javascript
-const segwit = wallet.deriveChildKey(0, 0, 0, 'segwit');
-// Address: bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4
-// Purpose: 84' (BIP84)
-// Signature: ECDSA
-// Fees: Low
-```
+## Transaction Support
 
-### Taproot (P2TR) - BIP86
-```javascript
-const taproot = wallet.deriveChildKey(0, 0, 0, 'taproot');
-// Address: bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297
-// Purpose: 86' (BIP86)
-// Signature: Schnorr
-// Fees: Lowest
-```
-
-## Examples
-
-### Basic Transaction to Taproot Address
+### Simple Payment Transaction
 
 ```javascript
-import { CustodialWalletFactory, TransactionManager } from 'custodial-wallet';
-
-async function sendToTaproot() {
-    // Create wallet
-    const { wallet } = CustodialWalletFactory.generateRandom('main');
+async function createPayment() {
+    // Create transaction builder
+    const tx = wallet.createTransaction({ feeRate: 15 });
     
-    // Generate addresses
-    const sender = wallet.deriveChildKey(0, 0, 0, 'segwit');
-    const recipient = 'bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297';
-    
-    // Create UTXO (normally from blockchain)
-    const utxos = [{
-        txid: 'a1b2c3d4e5f6789012345678901234567890123456789012345678901234567890',
+    // Add inputs
+    tx.addInput({
+        txid: 'abc123...',
         vout: 0,
-        value: 100000000, // 1 BTC
-        address: sender.address,
-        derivationPath: sender.path,
-        type: 'p2wpkh',
-        scriptPubKey: Buffer.from('0014' + sender.publicKey.toString('hex').slice(2), 'hex')
-    }];
-    
-    // Build transaction
-    const txBuilder = wallet.createTransaction({
-        version: 2,
-        feeRate: 15,
-        rbf: true
-    });
-    
-    // Add input
-    txBuilder.addInput({
-        txid: utxos[0].txid,
-        vout: utxos[0].vout,
-        value: utxos[0].value,
-        scriptPubKey: utxos[0].scriptPubKey,
-        type: utxos[0].type
+        value: 100000,
+        addressType: 'segwit'
     });
     
     // Add outputs
-    const sendAmount = 50000000; // 0.5 BTC
-    const fee = 5000;
-    const changeAmount = utxos[0].value - sendAmount - fee;
-    
-    txBuilder.addOutput({
-        address: recipient,
-        value: sendAmount
-    });
-    
-    txBuilder.addOutput({
-        address: sender.address,
-        value: changeAmount
-    });
+    tx.addOutput('bc1q...recipient...', 50000);
     
     // Build and sign
-    const unsignedTx = txBuilder.build();
-    const signedTx = await wallet.signTransaction(unsignedTx, utxos);
+    const unsignedTx = tx.build();
+    const signedTx = await wallet.signTransaction(unsignedTx, [utxo]);
     
-    console.log('Transaction signed successfully!');
-    console.log('Signature algorithms used:', signedTx.signingDetails.map(d => d.algorithm));
+    console.log('Transaction signed successfully');
+    return signedTx;
+}
+```
+
+### Taproot Transaction with Schnorr
+
+```javascript
+async function createTaprootTransaction() {
+    // Build Taproot transaction
+    const tx = wallet.createTransaction();
+    
+    tx.addInput({
+        txid: 'def456...',
+        vout: 0,
+        value: 200000,
+        addressType: 'taproot'
+    });
+    
+    tx.addOutput('bc1p...recipient...', 180000);
+    
+    const unsignedTx = tx.build();
+    
+    // Sign with Schnorr signatures (BIP340/341)
+    const signedTx = await wallet.signTaprootTransaction(unsignedTx, [taprootUtxo], {
+        sighashType: 0x00, // SIGHASH_DEFAULT for Taproot
+    });
+    
+    console.log('Taproot transaction signed with Schnorr signatures');
+    return signedTx;
+}
+```
+
+### Batch Payment Transaction
+
+```javascript
+async function createBatchPayment() {
+    const recipients = [
+        { address: 'bc1q...alice...', amount: 25000 },
+        { address: 'bc1p...bob...', amount: 30000 },
+        { address: 'bc1q...charlie...', amount: 20000 }
+    ];
+    
+    const batchTx = wallet.transactionManager.buildBatchTransaction(
+        utxos,
+        recipients,
+        { 
+            feeRate: 20,
+            changeAddressType: 'taproot' 
+        }
+    );
+    
+    const signedTx = await wallet.signTransaction(batchTx, utxos);
+    
+    console.log(`Batch payment to ${recipients.length} recipients`);
+    console.log(`Total sent: ${recipients.reduce((sum, r) => sum + r.amount, 0)} sats`);
     
     return signedTx;
 }
 ```
 
-### Advanced Taproot with Script Paths
+### Advanced Taproot Script Path
 
 ```javascript
-async function taprootWithScripts() {
-    const { wallet } = CustodialWalletFactory.generateRandom('main');
-    
+async function createScriptPathSpending() {
     // Create script leaves
     const scripts = [
-        // Time-lock script
-        Buffer.from([
-            0x04, 0x80, 0x51, 0x03, 0x00, // 6 months
-            0xb1, 0x75, // OP_CHECKLOCKTIMEVERIFY OP_DROP
-            0x21, ...Buffer.from(wallet.deriveChildKey(0, 0, 0).publicKey),
-            0xac // OP_CHECKSIG
-        ]),
-        
-        // Multi-sig script
-        Buffer.from([
-            0x52, // OP_2
-            0x21, ...Buffer.from(wallet.deriveChildKey(0, 0, 1).publicKey),
-            0x21, ...Buffer.from(wallet.deriveChildKey(0, 0, 2).publicKey),
-            0x21, ...Buffer.from(wallet.deriveChildKey(0, 0, 3).publicKey),
-            0x53, 0xae // OP_3 OP_CHECKMULTISIG
-        ])
+        Buffer.from('OP_CHECKSIG script'),
+        Buffer.from('2-of-2 multisig script'),
+        Buffer.from('timelock script')
     ];
     
-    // Generate Taproot address with script commitment
-    const taprootWithScripts = wallet.generateTaprootAddress(0, 0, 0, scripts);
+    // Generate script commitment address
+    const scriptAddr = wallet.deriveTaprootAddress(0, 0, 1, scripts);
     
-    console.log('Taproot address with scripts:', taprootWithScripts.address);
-    console.log('Merkle root:', taprootWithScripts.merkleRoot.toString('hex'));
-    console.log('Available spending paths:');
-    console.log('- Key path (single signature)');
-    console.log('- Script path 1: Time-locked spend');
-    console.log('- Script path 2: Multi-signature spend');
+    // Create merkle tree
+    const merkleTree = wallet.createTaprootMerkleTree(scripts);
     
-    return taprootWithScripts;
-}
-```
-
-### Batch Transaction to Multiple Addresses
-
-```javascript
-async function batchTransaction() {
-    const { wallet } = CustodialWalletFactory.generateRandom('main');
+    console.log('Script Address:', scriptAddr.address);
+    console.log('Merkle Root:', merkleTree.getRoot().toString('hex'));
     
-    // Generate multiple recipients
-    const recipients = [
-        { address: 'bc1p...', amount: 10000000, label: 'Recipient 1' },
-        { address: 'bc1q...', amount: 20000000, label: 'Recipient 2' },
-        { address: '3...', amount: 15000000, label: 'Recipient 3' }
-    ];
-    
-    // Create source UTXO
-    const sourceUtxo = {
-        txid: 'batch123456789012345678901234567890123456789012345678901234567890',
-        vout: 0,
-        value: 200000000, // 2 BTC
-        address: wallet.deriveChildKey(0, 0, 0, 'segwit').address,
-        derivationPath: wallet.deriveChildKey(0, 0, 0, 'segwit').path,
-        type: 'p2wpkh'
-    };
-    
-    // Build batch transaction
-    const txBuilder = wallet.createTransaction({ feeRate: 20 });
-    
-    // Add input
-    txBuilder.addInput({
-        txid: sourceUtxo.txid,
-        vout: sourceUtxo.vout,
-        value: sourceUtxo.value,
-        type: sourceUtxo.type
+    // Later: spend using script path
+    const scriptSpendTx = await wallet.signTaprootTransaction(tx, [scriptUtxo], {
+        scriptPath: scripts[0],
+        leafHash: merkleTree.getLeafHash(0)
     });
     
-    // Add all recipient outputs
-    let totalSent = 0;
-    recipients.forEach(recipient => {
-        txBuilder.addOutput({
-            address: recipient.address,
-            value: recipient.amount
-        });
-        totalSent += recipient.amount;
-    });
-    
-    // Add change output
-    const estimatedFee = 25000;
-    const changeAmount = sourceUtxo.value - totalSent - estimatedFee;
-    
-    if (changeAmount > 1000) {
-        const changeAddress = wallet.deriveChildKey(0, 1, 0, 'segwit');
-        txBuilder.addOutput({
-            address: changeAddress.address,
-            value: changeAmount
-        });
-    }
-    
-    // Build and sign
-    const unsignedTx = txBuilder.build();
-    const signedTx = await wallet.signTransaction(unsignedTx, [sourceUtxo]);
-    
-    console.log(`Batch transaction created for ${recipients.length} recipients`);
-    console.log(`Total sent: ${totalSent / 100000000} BTC`);
-    
-    return signedTx;
-}
-```
-
-### Fee Optimization Comparison
-
-```javascript
-async function feeComparison() {
-    const { wallet } = CustodialWalletFactory.generateRandom('main');
-    
-    const addressTypes = ['legacy', 'segwit', 'taproot'];
-    const feeComparisons = [];
-    
-    for (const addressType of addressTypes) {
-        // Estimate transaction size
-        const sizeEstimate = TransactionManager.estimateTransactionSize(
-            2, // inputs
-            2, // outputs
-            addressType === 'legacy' ? 'p2pkh' : 
-            addressType === 'segwit' ? 'p2wpkh' : 'p2tr'
-        );
-        
-        const feeEstimate = TransactionManager.calculateFee(
-            sizeEstimate.vsize,
-            15, // sat/vbyte
-            'normal'
-        );
-        
-        feeComparisons.push({
-            type: addressType,
-            vsize: sizeEstimate.vsize,
-            fee: feeEstimate.totalFee,
-            address: wallet.deriveChildKey(0, 0, 0, addressType).address
-        });
-    }
-    
-    console.log('Fee Comparison:');
-    feeComparisons.forEach(comparison => {
-        console.log(`${comparison.type.toUpperCase()}: ${comparison.fee} sats (${comparison.vsize} vbytes)`);
-    });
-    
-    const legacyFee = feeComparisons.find(c => c.type === 'legacy').fee;
-    const taprootFee = feeComparisons.find(c => c.type === 'taproot').fee;
-    const savings = legacyFee - taprootFee;
-    const savingsPercent = ((savings / legacyFee) * 100).toFixed(1);
-    
-    console.log(`Taproot saves ${savings} sats (${savingsPercent}%) compared to Legacy`);
-    
-    return feeComparisons;
+    return scriptSpendTx;
 }
 ```
 
@@ -359,100 +279,95 @@ async function feeComparison() {
 #### Constructor
 
 ```javascript
-new CustodialWallet(network, masterKeys, serializationFormat)
+new CustodialWallet(network, masterKeys, options)
 ```
 
 **Parameters:**
 - `network` (string): Network type ('main' or 'test')
 - `masterKeys` (Object): Master key information containing hdKey, keypair, and address
-- `serializationFormat` (Object): Optional serialization format configuration
+- `options` (Object): Optional configuration
 
-#### Methods
+#### Core Methods
 
 ##### `deriveChildKey(account, change, index, addressType)`
 
 Derives a child key using BIP44 hierarchical deterministic derivation.
 
 **Parameters:**
-- `account` (number|string): Account index (default: 0)
-- `change` (number): Change index - 0 for receiving, 1 for change (default: 0)
-- `index` (number): Address index (default: 0)
-- `addressType` (string): Address type - 'legacy', 'nested-segwit', 'segwit', 'taproot' (default: 'segwit')
+- `account` (number): Account index (typically 0)
+- `change` (number): Change index (0=external, 1=internal)
+- `index` (number): Address index
+- `addressType` (string): 'segwit' or 'taproot'
 
-**Returns:** Object containing:
-- `path` (string): BIP44 derivation path
-- `privateKey` (Buffer): Private key
-- `publicKey` (Buffer): Public key
-- `address` (string): Bitcoin address
-- `extendedKeys` (Object): Extended key information
+**Returns:** Object with derived key information
 
 **Example:**
 ```javascript
 const key = wallet.deriveChildKey(0, 0, 5, 'taproot');
-console.log('Address:', key.address);
-console.log('Path:', key.path); // m/86'/0'/0'/0/5
+console.log(key.path);      // m/44'/0'/0'/0/5
+console.log(key.address);   // bc1p...
+console.log(key.type);      // p2tr
 ```
 
-##### `generateReceiveAddress(account, index)`
+##### `deriveReceivingAddress(index, addressType)`
 
-Generates a new receiving address (change = 0).
-
-**Parameters:**
-- `account` (number|string): Account index (default: 0)
-- `index` (number): Address index (default: 0)
-
-**Returns:** Object with address information
-
-##### `generateChangeAddress(account, index)`
-
-Generates a new change address (change = 1).
+Convenience method to derive receiving addresses (change=0).
 
 **Parameters:**
-- `account` (number|string): Account index (default: 0)  
 - `index` (number): Address index (default: 0)
+- `addressType` (string): 'segwit' or 'taproot' (default: 'segwit')
 
-**Returns:** Object with address information
+**Returns:** Derived address object
+
+##### `deriveChangeAddress(index, addressType)`
+
+Convenience method to derive change addresses (change=1).
+
+**Parameters:**
+- `index` (number): Address index (default: 0)
+- `addressType` (string): 'segwit' or 'taproot' (default: 'segwit')
+
+**Returns:** Derived address object
 
 ##### `createTransaction(options)`
 
-Creates a new transaction builder instance.
+Creates a transaction builder configured for this wallet.
 
 **Parameters:**
-- `options` (Object): Transaction options
-  - `version` (number): Transaction version (default: 2)
-  - `feeRate` (number): Fee rate in sat/vbyte (default: 10)
-  - `rbf` (boolean): Enable Replace-by-Fee (default: true)
-  - `priority` (string): Priority level - 'low', 'normal', 'high' (default: 'normal')
+- `options` (Object): Transaction builder options
+  - `feeRate` (number): Fee rate in sat/vbyte
+  - `rbfEnabled` (boolean): Enable Replace-by-Fee
 
 **Returns:** TransactionBuilder instance
 
-##### `signTransaction(transaction, utxos)`
+##### `signTransaction(transaction, utxos, options)`
 
-Signs a transaction with appropriate signature algorithms.
+Signs a complete transaction with all its inputs.
 
 **Parameters:**
-- `transaction` (Object): Unsigned transaction object
-- `utxos` (Array): Array of UTXO objects with metadata
+- `transaction` (Object): Transaction to sign
+- `utxos` (Array): UTXOs being spent
+- `options` (Object): Signing options
 
-**Returns:** Promise resolving to signed transaction object
+**Returns:** Promise resolving to signed transaction
 
-**UTXO Object Structure:**
-```javascript
-{
-    txid: 'string',           // Transaction ID
-    vout: 'number',           // Output index
-    value: 'number',          // Value in satoshis
-    address: 'string',        // Address
-    derivationPath: 'string', // BIP44 path
-    type: 'string',           // 'p2pkh', 'p2wpkh', 'p2tr', etc.
-    scriptPubKey: 'Buffer',   // Script public key
-    sighashType: 'number'     // Optional sighash type for Taproot
-}
-```
+##### `signTaprootTransaction(transaction, utxos, options)`
 
-##### `generateTaprootAddress(account, change, index, scripts)`
+Signs a Taproot transaction with Schnorr signatures (BIP340/341).
 
-Generates a Taproot address with optional script tree commitment.
+**Parameters:**
+- `transaction` (Object): Taproot transaction to sign
+- `utxos` (Array): Taproot UTXOs being spent
+- `options` (Object): Taproot signing options
+  - `sighashType` (number): Signature hash type (default: 0x00)
+  - `scriptPath` (Buffer): Script path for spending (optional)
+  - `leafHash` (Buffer): Leaf hash for script validation (optional)
+
+**Returns:** Promise resolving to signed Taproot transaction
+
+##### `deriveTaprootAddress(account, change, index, scripts)`
+
+Creates a Taproot address with optional script path for complex spending.
 
 **Parameters:**
 - `account` (number): Account index
@@ -499,10 +414,17 @@ Generates a new random wallet with mnemonic.
 - `network` (string): 'main' or 'test'
 - `options` (Object):
   - `wordCount` (number): 12, 15, 18, 21, or 24 (default: 12)
-  - `storeMnemonic` (boolean): Store mnemonic in wallet (default: false)
-  - `storeSeed` (boolean): Store seed in wallet (default: false)
+  - `passphrase` (string): Optional BIP39 passphrase
 
-**Returns:** Object with wallet instance and mnemonic
+**Returns:** Array with [mnemonic, wallet]
+
+**Example:**
+```javascript
+const [mnemonic, wallet] = CustodialWalletFactory.generateRandom('main', {
+    wordCount: 12,
+    passphrase: 'my-secure-passphrase'
+});
+```
 
 #### `fromMnemonic(network, mnemonic, options)`
 
@@ -513,8 +435,6 @@ Creates wallet from BIP39 mnemonic phrase.
 - `mnemonic` (string): BIP39 mnemonic phrase
 - `options` (Object):
   - `passphrase` (string): Optional BIP39 passphrase
-  - `storeMnemonic` (boolean): Store mnemonic in wallet
-  - `storeSeed` (boolean): Store seed in wallet
 
 **Returns:** CustodialWallet instance
 
@@ -529,15 +449,59 @@ Creates wallet from master private key.
 
 **Returns:** CustodialWallet instance
 
-#### `fromBackup(backupData, options)`
+### TransactionManager Class
 
-Restores wallet from backup data.
+Handles transaction building and fee estimation.
+
+#### `estimateTransaction(inputCount, outputCount, inputType)`
+
+Estimates transaction size and fees for different address types.
 
 **Parameters:**
-- `backupData` (Object): Backup data containing mnemonic, privateKey, or extendedKey
-- `options` (Object): Restoration options
+- `inputCount` (number): Number of inputs
+- `outputCount` (number): Number of outputs
+- `inputType` (string): 'segwit' or 'taproot'
 
-**Returns:** CustodialWallet instance
+**Returns:** Object with size estimation details
+
+**Example:**
+```javascript
+const estimate = wallet.transactionManager.estimateTransaction(2, 2, 'taproot');
+console.log('Virtual Size:', estimate.vsize);
+console.log('Taproot Savings:', 68 - estimate.inputSize, 'bytes per input');
+```
+
+#### `calculateFee(vsize, feeRate)`
+
+Calculates transaction fee based on virtual size.
+
+**Parameters:**
+- `vsize` (number): Virtual size in bytes
+- `feeRate` (number): Fee rate in sat/vbyte
+
+**Returns:** Object with fee calculation details
+
+#### `buildPaymentTransaction(utxos, outputs, options)`
+
+Builds a simple payment transaction with automatic change handling.
+
+**Parameters:**
+- `utxos` (Array): Input UTXOs
+- `outputs` (Array): Output destinations
+- `options` (Object): Transaction options
+
+**Returns:** Built transaction object
+
+#### `buildBatchTransaction(utxos, recipients, options)`
+
+Builds a batch payment transaction for multiple recipients.
+
+**Parameters:**
+- `utxos` (Array): Input UTXOs
+- `recipients` (Array): Array of {address, amount} objects
+- `options` (Object): Transaction options
+
+**Returns:** Built batch transaction object
 
 ### SignatureManager Class
 
@@ -550,89 +514,66 @@ Signs a transaction input with appropriate algorithm.
 **Parameters:**
 - `messageHash` (Buffer): 32-byte message hash
 - `privateKey` (Buffer): 32-byte private key
-- `inputType` (string): Input type ('p2pkh', 'p2wpkh', 'p2tr', etc.)
+- `inputType` (string): Input type ('segwit', 'taproot')
 - `options` (Object): Additional options for Taproot
 
 **Returns:** Promise resolving to signature object
 
 #### `signECDSA(messageHash, privateKey)`
 
-Signs with ECDSA (Legacy/SegWit inputs).
+Signs with ECDSA (SegWit inputs).
 
 #### `signSchnorr(messageHash, privateKey, options)`
 
 Signs with Schnorr (Taproot inputs).
 
-#### `signTaprootTransaction(transaction, inputIndex, privateKey, options)`
-
-Signs a complete Taproot transaction with proper BIP341 signature hash.
-
-#### `verifySignature(messageHash, signature, publicKey, signatureType)`
+#### `verify(signature, messageHash, publicKey, signatureType)`
 
 Verifies a signature with appropriate algorithm.
 
-### TransactionManager Class
-
-Utilities for transaction management and fee estimation.
-
-#### `createBuilder(network, options)`
-
-Creates a configured TransactionBuilder instance.
-
-#### `estimateTransactionSize(inputCount, outputCount, inputType)`
-
-Estimates transaction size for fee calculation.
-
-**Parameters:**
-- `inputCount` (number): Number of inputs
-- `outputCount` (number): Number of outputs
-- `inputType` (string): Input type for size calculation
-
-**Returns:** Object with size estimation details
-
-#### `calculateFee(vsize, feeRate, priority)`
-
-Calculates transaction fee.
-
-**Parameters:**
-- `vsize` (number): Virtual transaction size
-- `feeRate` (number): Fee rate in sat/vbyte
-- `priority` (string): Priority level
-
-**Returns:** Object with fee calculation details
-
 ## Security Features
 
-### 🛡️ Rate Limiting
-Prevents DoS attacks with configurable rate limits:
-- Maximum 500 validations per second
-- Automatic cleanup of old entries
-- Operation-specific limits
+### Memory Management
 
-### 🔒 Memory Security
-Secure handling of sensitive data:
-- Multi-pass memory clearing (3 passes)
-- Secure buffer overwriting
-- Automatic cleanup on wallet destruction
+```javascript
+// Automatic cleanup when done
+try {
+    const wallet = CustodialWalletFactory.generateRandom('main');
+    // Use wallet...
+} finally {
+    wallet.cleanup(); // Secure memory cleanup
+}
+```
 
-### 🎲 Entropy Validation
-Ensures cryptographic quality:
-- Shannon entropy calculation
-- Minimum entropy threshold (0.7)
-- Validation of random data sources
+### Error Handling
 
-### ⏱️ Timing Attack Prevention
-Constant-time operations where applicable:
-- Safe comparison functions
-- Timing-safe validation
-- DoS protection timeouts
+```javascript
+// Comprehensive error handling
+try {
+    const key = wallet.deriveChildKey(0, 0, 1, 'taproot');
+} catch (error) {
+    switch (error.code) {
+        case 'DERIVATION_FAILED':
+            // Handle derivation errors
+            break;
+        case 'UNSUPPORTED_ADDRESS_TYPE':
+            // Handle unsupported address type
+            break;
+        default:
+            // Handle other errors
+            break;
+    }
+}
+```
 
-### 🔍 Input Validation
-Comprehensive input sanitization:
-- Network parameter validation
-- Address format verification
-- Private key validation
-- Derivation path checking
+### Production Warnings
+
+```javascript
+// Security warnings in development
+if (process.env.NODE_ENV !== 'production') {
+    console.warn('⚠️  Custodial wallet created - ensure proper key management');
+}
+```
 
 ## Error Handling
 
@@ -641,18 +582,16 @@ Comprehensive input sanitization:
 The library uses standardized error codes for different failure types:
 
 ```javascript
-const ERROR_CODES = {
+export const ERROR_CODES = {
     INVALID_NETWORK: 'INVALID_NETWORK',
-    INVALID_MASTER_KEYS: 'INVALID_MASTER_KEYS',
-    VALIDATION_FAILED: 'VALIDATION_FAILED',
-    RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
-    OPERATION_TIMEOUT: 'OPERATION_TIMEOUT',
-    INSUFFICIENT_ENTROPY: 'INSUFFICIENT_ENTROPY',
-    MEMORY_CLEAR_FAILED: 'MEMORY_CLEAR_FAILED',
-    DERIVATION_ERROR: 'DERIVATION_ERROR',
-    SIGNATURE_ERROR: 'SIGNATURE_ERROR',
-    TRANSACTION_ERROR: 'TRANSACTION_ERROR',
-    TAPROOT_SIGNING_ERROR: 'TAPROOT_SIGNING_ERROR'
+    INVALID_MNEMONIC: 'INVALID_MNEMONIC',
+    DERIVATION_FAILED: 'DERIVATION_FAILED',
+    SIGNING_FAILED: 'SIGNING_FAILED',
+    TRANSACTION_BUILD_FAILED: 'TRANSACTION_BUILD_FAILED',
+    TRANSACTION_SIGNING_FAILED: 'TRANSACTION_SIGNING_FAILED',
+    UTXO_VALIDATION_FAILED: 'UTXO_VALIDATION_FAILED',
+    TAPROOT_SIGNING_ERROR: 'TAPROOT_SIGNING_ERROR',
+    UNSUPPORTED_ADDRESS_TYPE: 'UNSUPPORTED_ADDRESS_TYPE'
 };
 ```
 
@@ -662,7 +601,7 @@ All library errors inherit from `CustodialWalletError`:
 
 ```javascript
 try {
-    const wallet = CustodialWalletFactory.fromMnemonic('main', 'invalid mnemonic');
+    const wallet = CustodialWalletFactory.generateRandom('invalid-network');
 } catch (error) {
     if (error instanceof CustodialWalletError) {
         console.log('Error code:', error.code);
@@ -673,169 +612,110 @@ try {
 }
 ```
 
-### Common Error Handling Patterns
+## Best Practices
+
+### Address Generation
 
 ```javascript
-// Rate limit handling
-try {
-    const key = wallet.deriveChildKey(0, 0, 100, 'taproot');
-} catch (error) {
-    if (error.code === 'RATE_LIMIT_EXCEEDED') {
-        console.log('Too many requests, waiting...');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        // Retry operation
-    }
-}
+// ✅ Use Taproot for new transactions (most efficient)
+const taprootAddr = wallet.deriveReceivingAddress(0, 'taproot');
 
-// Signature error handling
-try {
-    const signedTx = await wallet.signTransaction(tx, utxos);
-} catch (error) {
-    if (error.code === 'TAPROOT_SIGNING_ERROR') {
-        console.log('Taproot signing failed:', error.details);
-        // Handle Taproot-specific error
-    } else if (error.code === 'SIGNATURE_ERROR') {
-        console.log('General signing error:', error.message);
-        // Handle general signature error
-    }
-}
-```
+// ✅ Use SegWit for compatibility
+const segwitAddr = wallet.deriveReceivingAddress(0, 'segwit');
 
-## Configuration
-
-### Security Configuration
-
-```javascript
-const SECURITY_CONFIG = {
-    MAX_VALIDATIONS_PER_SECOND: 500,
-    MAX_CHILD_KEYS: 1000,
-    MAX_DERIVATION_DEPTH: 10,
-    VALIDATION_TIMEOUT_MS: 5000,
-    MEMORY_CLEAR_PASSES: 3,
-    MIN_ENTROPY_THRESHOLD: 0.7,
-    MIN_CHANGE_AMOUNT: 546,
-    RATE_LIMIT_CLEANUP_INTERVAL: 60000
+// ✅ Organize addresses by purpose
+const addresses = {
+    receiving: wallet.deriveReceivingAddress(index, 'taproot'),
+    change: wallet.deriveChangeAddress(index, 'taproot')
 };
 ```
 
-### Network Configuration
+### Transaction Building
 
-The wallet automatically configures network-specific parameters:
-
-**Mainnet:**
-- Legacy addresses start with '1'
-- P2SH addresses start with '3'
-- SegWit addresses start with 'bc1q'
-- Taproot addresses start with 'bc1p'
-
-**Testnet:**
-- Legacy addresses start with 'm' or 'n'
-- P2SH addresses start with '2'
-- SegWit addresses start with 'tb1q'
-- Taproot addresses start with 'tb1p'
-
-## Performance Considerations
-
-### Memory Usage
-- Derived keys are cached for performance
-- Automatic cleanup prevents memory leaks
-- Configurable cache limits
-
-### Transaction Signing
-- ECDSA signing: ~1-5ms per input
-- Schnorr signing: ~2-8ms per input
-- Batch operations are optimized
-
-### Fee Optimization
-- Taproot provides ~11% size reduction
-- SegWit provides ~40% reduction vs Legacy
-- Batch transactions optimize per-output costs
-
-## Best Practices
-
-### 1. Mnemonic Storage
-```javascript
-// ❌ Don't store mnemonics in plain text
-const wallet = CustodialWalletFactory.fromMnemonic('main', mnemonic, {
-    storeMnemonic: true // Dangerous in production
-});
-
-// ✅ Use secure storage or don't store at all
-const wallet = CustodialWalletFactory.fromMnemonic('main', mnemonic, {
-    storeMnemonic: false // Secure approach
-});
-```
-
-### 2. Address Type Selection
-```javascript
-// ✅ Use Taproot for new applications
-const addr = wallet.deriveChildKey(0, 0, 0, 'taproot');
-
-// ✅ Use SegWit for compatibility
-const addr = wallet.deriveChildKey(0, 0, 0, 'segwit');
-
-// ⚠️ Only use Legacy if absolutely necessary
-const addr = wallet.deriveChildKey(0, 0, 0, 'legacy');
-```
-
-### 3. Fee Management
 ```javascript
 // ✅ Use appropriate fee rates
 const feeRates = {
-    urgent: 50,   // High priority
-    normal: 15,   // Standard
-    economy: 5    // Low priority
+    low: 5,      // Low priority (1-6 hours)
+    normal: 15,  // Normal priority (30-60 minutes)
+    high: 50     // High priority (next block)
 };
 
-const txBuilder = wallet.createTransaction({
-    feeRate: feeRates.normal
-});
+// ✅ Estimate fees before building
+const estimate = wallet.transactionManager.estimateTransaction(2, 2, 'taproot');
+const fee = wallet.transactionManager.calculateFee(estimate.vsize, feeRates.normal);
+
+// ✅ Handle change addresses properly
+const changeAddr = wallet.deriveChangeAddress(0, 'taproot');
 ```
 
-### 4. Error Handling
+### Security
+
 ```javascript
-// ✅ Always handle specific errors
+// ✅ Always cleanup sensitive data
+function handleWallet() {
+    const [mnemonic, wallet] = CustodialWalletFactory.generateRandom('main');
+    
+    try {
+        // Use wallet operations...
+        return results;
+    } finally {
+        wallet.cleanup(); // Always cleanup
+    }
+}
+
+// ✅ Validate inputs
 try {
-    const signedTx = await wallet.signTransaction(tx, utxos);
+    const key = wallet.deriveChildKey(account, change, index, type);
 } catch (error) {
-    switch (error.code) {
-        case 'RATE_LIMIT_EXCEEDED':
-            // Handle rate limiting
-            break;
-        case 'TAPROOT_SIGNING_ERROR':
-            // Handle Taproot issues
-            break;
-        default:
-            // Handle other errors
-            break;
+    if (error.code === 'VALIDATION_FAILED') {
+        console.error('Invalid parameters:', error.details);
+    }
+}
+
+// ✅ Use proper error handling
+async function signTransaction(tx, utxos) {
+    try {
+        return await wallet.signTransaction(tx, utxos);
+    } catch (error) {
+        switch (error.code) {
+            case 'UTXO_VALIDATION_FAILED':
+                console.error('Invalid UTXO data');
+                break;
+            case 'TRANSACTION_SIGNING_FAILED':
+                console.error('Signing failed:', error.message);
+                break;
+            default:
+                console.error('Unexpected error:', error);
+        }
+        throw error;
     }
 }
 ```
 
-### 5. Resource Cleanup
+### Performance
+
 ```javascript
-// ✅ Always cleanup when done
-try {
-    // Use wallet...
-} finally {
-    wallet.cleanup(); // Secure memory cleanup
+// ✅ Cache derived addresses
+const addressCache = new Map();
+function getCachedAddress(account, change, index, type) {
+    const key = `${account}-${change}-${index}-${type}`;
+    if (!addressCache.has(key)) {
+        addressCache.set(key, wallet.deriveChildKey(account, change, index, type));
+    }
+    return addressCache.get(key);
 }
+
+// ✅ Use batch operations for multiple recipients
+const batchTx = wallet.transactionManager.buildBatchTransaction(utxos, recipients);
+
+// ✅ Prefer Taproot for efficiency
+const taprootEstimate = wallet.transactionManager.estimateTransaction(2, 2, 'taproot');
+const segwitEstimate = wallet.transactionManager.estimateTransaction(2, 2, 'segwit');
+const savings = segwitEstimate.inputSize - taprootEstimate.inputSize;
+console.log(`Taproot saves ${savings} bytes per input`);
 ```
 
 ## Compatibility
-
-### BIP Standards
-- **BIP32**: Hierarchical Deterministic Wallets
-- **BIP39**: Mnemonic code for generating deterministic keys
-- **BIP44**: Multi-Account Hierarchy for Deterministic Wallets
-- **BIP49**: Derivation scheme for P2WPKH-nested-in-P2SH
-- **BIP84**: Derivation scheme for P2WPKH
-- **BIP86**: Key Derivation for Single Key P2TR Outputs
-- **BIP141**: Segregated Witness (Consensus layer)
-- **BIP143**: Transaction Signature Verification for Version 0 Witness Program
-- **BIP340**: Schnorr Signatures for secp256k1
-- **BIP341**: Taproot: SegWit version 1 spending rules
-- **BIP342**: Validation of Taproot Scripts
 
 ### Node.js Compatibility
 - Node.js 16.0.0 or higher
@@ -865,53 +745,6 @@ The library maintains >95% test coverage across:
 - Security features
 - BIP compliance
 
-## Contributing
-
-### Development Setup
-```bash
-git clone https://github.com/your-org/custodial-wallet.git
-cd custodial-wallet
-npm install
-npm run build
-npm test
-```
-
-### Code Style
-- ESLint configuration provided
-- Prettier for formatting
-- JSDoc for documentation
-- TypeScript definitions included
-
-### Security Review
-All contributions undergo security review:
-- Static analysis with CodeQL
-- Dependency vulnerability scanning
-- Manual security review for crypto operations
-- Test vector validation
-
 ## License
 
-MIT License - see LICENSE file for details.
-
-## Support
-
-<!-- ### Documentation
-- API Documentation: [docs/api.md](docs/api.md)
-- Examples: [examples/](examples/)
-- Security Guide: [docs/security.md](docs/security.md) -->
-
-### Community
-- GitHub Issues: Bug reports and feature requests
-- Discussions: Design and implementation questions
-- Security Issues: security@your-domain.com
-
-### Professional Support
-Enterprise support available for:
-- Custom integration assistance
-- Security auditing
-- Performance optimization
-- Training and consultation
-
----
-
-**⚠️ Security Notice:** This is cryptographic software handling financial keys. Always review the code, use in testnet first, and follow security best practices. The authors are not responsible for any financial losses.
+ISC License - see LICENSE file for details.
