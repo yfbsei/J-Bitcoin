@@ -25,8 +25,9 @@ import {
 } from '../core/constants.js';
 
 // BIP implementations
-import { generate as generateMnemonic, validate as validateMnemonic, toSeed } from '../core/bip39.js';
-import { fromSeed, derive } from '../core/bip32.js';
+import { BIP39 } from '../bip/bip39/mnemonic.js';
+import { derive } from '../bip/bip32/derive.js';
+import { generateMasterKey } from '../bip/bip32/master-key.js';
 
 // Encoding utilities would be imported here when implementing proper address generation
 
@@ -44,7 +45,7 @@ import { TaprootMerkleTree } from '../core/taproot/merkle-tree.js';
 /**
  * Custodial wallet error codes
  */
-export const ERROR_CODES = Object.freeze({
+const ERROR_CODES = Object.freeze({
     INVALID_NETWORK: 'INVALID_NETWORK',
     INVALID_MNEMONIC: 'INVALID_MNEMONIC',
     INVALID_SEED: 'INVALID_SEED',
@@ -64,7 +65,7 @@ export const ERROR_CODES = Object.freeze({
 /**
  * Enhanced custodial wallet error class
  */
-export class CustodialWalletError extends Error {
+class CustodialWalletError extends Error {
     constructor(message, code, details = {}) {
         super(message);
         this.name = 'CustodialWalletError';
@@ -137,7 +138,7 @@ class SecurityUtils {
  * A hierarchical deterministic (HD) wallet implementation following modern Bitcoin
  * standards with support for SegWit and Taproot addresses only.
  */
-export class CustodialWallet {
+class CustodialWallet {
     /**
      * Create a new custodial wallet instance
      * 
@@ -922,7 +923,7 @@ export class CustodialWallet {
 /**
  * Transaction manager for custodial wallet operations
  */
-export class TransactionManager {
+class TransactionManager {
     constructor(wallet) {
         this.wallet = wallet;
         this.network = wallet.network;
@@ -1114,7 +1115,7 @@ export class TransactionManager {
 /**
  * Enhanced signature manager for different address types and algorithms
  */
-export class SignatureManager {
+class SignatureManager {
     constructor(wallet) {
         this.wallet = wallet;
     }
@@ -1222,7 +1223,7 @@ export class SignatureManager {
 /**
  * Factory class for creating CustodialWallet instances from various sources
  */
-export class CustodialWalletFactory {
+class CustodialWalletFactory {
     /**
      * Generate a new random wallet with mnemonic
      * 
@@ -1236,10 +1237,10 @@ export class CustodialWalletFactory {
             const passphrase = options.passphrase || '';
 
             // Generate mnemonic
-            const mnemonic = generateMnemonic(wordCount * 11); // 11 bits per word
+            const mnemonic = BIP39.generate(wordCount * 11); // 11 bits per word
 
             // Validate mnemonic
-            if (!validateMnemonic(mnemonic)) {
+            if (!BIP39.validate(mnemonic)) {
                 throw new CustodialWalletError(
                     'Generated mnemonic is invalid',
                     ERROR_CODES.INVALID_MNEMONIC
@@ -1274,7 +1275,7 @@ export class CustodialWalletFactory {
     static fromMnemonic(network, mnemonic, options = {}) {
         try {
             // Validate mnemonic
-            if (!validateMnemonic(mnemonic)) {
+            if (!BIP39.validate(mnemonic)) {
                 throw new CustodialWalletError(
                     'Invalid mnemonic phrase',
                     ERROR_CODES.INVALID_MNEMONIC
@@ -1283,10 +1284,10 @@ export class CustodialWalletFactory {
 
             // Generate seed from mnemonic
             const passphrase = options.passphrase || '';
-            const seed = toSeed(mnemonic, passphrase);
+            const seed = BIP39.toSeed(mnemonic, passphrase);
 
             // Create master key from seed
-            const masterKey = fromSeed(seed, network);
+            const masterKey = generateMasterKey(seed, network);
 
             // Create master keys object
             const masterKeys = {
@@ -1334,7 +1335,7 @@ export class CustodialWalletFactory {
             }
 
             // Create master key from private key
-            const masterKey = fromSeed(privKey, network);
+            const masterKey = generateMasterKey(privKey, network);
 
             const masterKeys = {
                 hdKey: masterKey,
@@ -1357,7 +1358,7 @@ export class CustodialWalletFactory {
     }
 }
 
-// Named exports only - no legacy compatibility
+// Named exports
 export {
     CustodialWallet,
     CustodialWalletFactory,

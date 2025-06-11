@@ -21,7 +21,7 @@ import {
 	BIP32_CONSTANTS,
 	CRYPTO_CONSTANTS,
 	validateAndGetNetwork
-} from '../../constants.js';
+} from '../../core/constants.js';
 import BN from 'bn.js';
 
 /**

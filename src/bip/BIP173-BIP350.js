@@ -18,7 +18,7 @@
  * @version 2.1.1
  */
 
-import base32_encode from '../encoding/base32.js';
+import { base32_encode } from '../encoding/base32.js';
 
 /**
  * Unified error class for all Bech32/Bech32m operations

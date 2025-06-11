@@ -17,7 +17,7 @@
 
 import { createHash, randomBytes, pbkdf2Sync, timingSafeEqual } from 'node:crypto';
 // FIXED: Remove incorrect import and use string.normalize() method instead
-import ENGLISH_WORDLIST from './wordlist-en.js';
+import ENGLISH_WORDLIST from './wordList_en.js';
 
 /**
  * Unicode normalization helper function

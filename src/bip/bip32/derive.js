@@ -19,7 +19,7 @@ import { secp256k1 } from '@noble/curves/secp256k1';
 import BN from 'bn.js';
 import rmd160 from '../../core/crypto/hash/ripemd160.js';
 import { encodeExtendedKey } from '../../encoding/address/encode.js';
-import { CRYPTO_CONSTANTS } from '../../constants.js';
+import { CRYPTO_CONSTANTS } from '../../core/constants.js';
 
 /**
  * Enhanced derivation security utilities with fixed functions
