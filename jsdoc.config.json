@@ -3,27 +3,41 @@
     "include": [
       "./src/",
       "./index.js",
-      "./README.md"
+      "./README.md",
+      "./CHANGELOG.md"
     ],
-    "includePattern": "\\.(js|jsx)$",
+    "includePattern": "\\.(js|jsx|md)$",
     "exclude": [
       "node_modules/",
       "test/",
       "docs/",
       "examples/",
-      "benchmarks/"
+      "benchmarks/",
+      "coverage/",
+      ".github/",
+      ".vscode/",
+      "dist/",
+      "build/"
     ]
   },
+  "sourceType": "module",
   "opts": {
     "destination": "./docs/",
     "recurse": true,
     "readme": "./README.md",
     "package": "./package.json",
-    "template": "node_modules/docdash"
+    "template": "node_modules/docdash",
+    "encoding": "utf8",
+    "private": false,
+    "lenient": true
   },
   "plugins": [
     "plugins/markdown"
   ],
+  "markdown": {
+    "hardwrap": false,
+    "idInHeadings": true
+  },
   "docdash": {
     "static": true,
     "sort": true,
@@ -31,20 +45,69 @@
     "collapse": true,
     "typedefs": true,
     "removeQuotes": "none",
+    "wrap": true,
+    "private": false,
+    "commonjs": false,
     "scripts": [],
+    "style": [],
+    "title": "J-Bitcoin v2.0.0 API Documentation",
+    "meta": {
+      "title": "J-Bitcoin - Bitcoin Wallet Library",
+      "description": "Comprehensive JavaScript/TypeScript Bitcoin wallet library with custodial and threshold signature support",
+      "keyword": "bitcoin, cryptocurrency, wallet, javascript, typescript, threshold signatures"
+    },
     "menu": {
-      "GitHub": {
+      "🏠 Home": {
         "href": "https://github.com/yfbsei/J-Bitcoin",
         "target": "_blank",
-        "class": "menu-item",
+        "class": "menu-item home-link",
+        "id": "home-link"
+      },
+      "📚 GitHub": {
+        "href": "https://github.com/yfbsei/J-Bitcoin",
+        "target": "_blank",
+        "class": "menu-item github-link",
         "id": "github-link"
       },
-      "NPM": {
+      "📦 NPM": {
         "href": "https://www.npmjs.com/package/j-bitcoin",
         "target": "_blank",
-        "class": "menu-item",
+        "class": "menu-item npm-link",
         "id": "npm-link"
+      },
+      "🔧 Examples": {
+        "href": "https://github.com/yfbsei/J-Bitcoin/tree/main/examples",
+        "target": "_blank",
+        "class": "menu-item examples-link",
+        "id": "examples-link"
+      },
+      "📊 Changelog": {
+        "href": "https://github.com/yfbsei/J-Bitcoin/blob/main/CHANGELOG.md",
+        "target": "_blank",
+        "class": "menu-item changelog-link",
+        "id": "changelog-link"
       }
-    }
+    },
+    "footer": "Copyright © 2024 yfbsei. Bitcoin-focused cryptocurrency wallet library."
+  },
+  "tags": {
+    "allowUnknownTags": [
+      "api",
+      "bitcoin",
+      "threshold",
+      "custodial",
+      "security",
+      "crypto"
+    ],
+    "dictionaries": [
+      "jsdoc",
+      "closure"
+    ]
+  },
+  "templates": {
+    "cleverLinks": false,
+    "monospaceLinks": false,
+    "useLongnameInNav": false,
+    "showInheritedInNav": true
   }
 }

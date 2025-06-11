@@ -1,30 +1,226 @@
 {
   "env": {
     "browser": true,
-    "es2021": true,
-    "node": true
+    "es2022": true,
+    "node": true,
+    "mocha": true
   },
   "extends": [
-    "eslint:recommended"
+    "eslint:recommended",
+    "prettier"
+  ],
+  "plugins": [
+    "jsdoc",
+    "security"
   ],
   "parserOptions": {
     "ecmaVersion": "latest",
-    "sourceType": "module"
+    "sourceType": "module",
+    "ecmaFeatures": {
+      "impliedStrict": true
+    }
   },
   "rules": {
-    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+    "no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "destructuredArrayIgnorePattern": "^_"
+      }
+    ],
     "no-console": "off",
     "prefer-const": "warn",
     "no-var": "error",
     "no-eval": "error",
     "no-implied-eval": "error",
-    "no-new-func": "error"
+    "no-new-func": "error",
+    "no-undef": "error",
+    "no-unused-expressions": "warn",
+    "no-unreachable": "error",
+    "no-duplicate-imports": "error",
+    "prefer-template": "warn",
+    "template-curly-spacing": [
+      "error",
+      "never"
+    ],
+    "object-shorthand": "warn",
+    "arrow-spacing": "error",
+    "space-before-blocks": "error",
+    "keyword-spacing": "error",
+    "comma-dangle": [
+      "error",
+      "es5"
+    ],
+    "quotes": [
+      "error",
+      "single",
+      {
+        "allowTemplateLiterals": true
+      }
+    ],
+    "semi": [
+      "error",
+      "always"
+    ],
+    "indent": [
+      "error",
+      2,
+      {
+        "SwitchCase": 1
+      }
+    ],
+    "max-len": [
+      "warn",
+      {
+        "code": 100,
+        "tabWidth": 2,
+        "ignoreUrls": true,
+        "ignoreStrings": true,
+        "ignoreTemplateLiterals": true,
+        "ignoreRegExpLiterals": true
+      }
+    ],
+    "eqeqeq": [
+      "error",
+      "always"
+    ],
+    "curly": [
+      "error",
+      "all"
+    ],
+    "brace-style": [
+      "error",
+      "1tbs"
+    ],
+    "no-trailing-spaces": "error",
+    "eol-last": "error",
+    "no-multiple-empty-lines": [
+      "error",
+      {
+        "max": 2,
+        "maxEOF": 1
+      }
+    ],
+    // Security rules
+    "security/detect-eval-with-expression": "error",
+    "security/detect-non-literal-fs-filename": "warn",
+    "security/detect-non-literal-regexp": "warn",
+    "security/detect-non-literal-require": "warn",
+    "security/detect-possible-timing-attacks": "warn",
+    "security/detect-pseudoRandomBytes": "error",
+    // JSDoc rules for documentation quality
+    "jsdoc/check-alignment": "warn",
+    "jsdoc/check-indentation": "warn",
+    "jsdoc/check-param-names": "error",
+    "jsdoc/check-syntax": "error",
+    "jsdoc/check-tag-names": "error",
+    "jsdoc/check-types": "warn",
+    "jsdoc/newline-after-description": "warn",
+    "jsdoc/no-undefined-types": "warn",
+    "jsdoc/require-description": "warn",
+    "jsdoc/require-description-complete-sentence": "warn",
+    "jsdoc/require-param": "error",
+    "jsdoc/require-param-description": "warn",
+    "jsdoc/require-param-name": "error",
+    "jsdoc/require-param-type": "error",
+    "jsdoc/require-returns": "error",
+    "jsdoc/require-returns-description": "warn",
+    "jsdoc/require-returns-type": "error",
+    "jsdoc/valid-types": "error",
+    // Bitcoin/Crypto specific rules
+    "no-magic-numbers": [
+      "warn",
+      {
+        "ignore": [
+          0,
+          1,
+          2,
+          16,
+          32,
+          64,
+          128,
+          256
+        ],
+        "ignoreArrayIndexes": true,
+        "enforceConst": true
+      }
+    ],
+    "no-bitwise": "off",
+    "no-mixed-operators": [
+      "error",
+      {
+        "allowSamePrecedence": true
+      }
+    ]
   },
+  "overrides": [
+    {
+      "files": [
+        "test/**/*.js"
+      ],
+      "env": {
+        "mocha": true
+      },
+      "rules": {
+        "no-unused-expressions": "off",
+        "max-len": "off",
+        "jsdoc/require-jsdoc": "off",
+        "jsdoc/require-param": "off",
+        "jsdoc/require-returns": "off"
+      }
+    },
+    {
+      "files": [
+        "examples/**/*.js"
+      ],
+      "rules": {
+        "no-console": "off",
+        "jsdoc/require-jsdoc": "off"
+      }
+    },
+    {
+      "files": [
+        "benchmarks/**/*.js"
+      ],
+      "rules": {
+        "no-console": "off",
+        "jsdoc/require-jsdoc": "off",
+        "max-len": "off"
+      }
+    }
+  ],
   "ignorePatterns": [
     "node_modules/",
     "docs/",
     "dist/",
     "build/",
-    "*.min.js"
-  ]
+    "coverage/",
+    "*.min.js",
+    "*.bundle.js",
+    ".github/",
+    ".vscode/",
+    "*.config.js"
+  ],
+  "globals": {
+    "Buffer": "readonly",
+    "process": "readonly",
+    "__dirname": "readonly",
+    "__filename": "readonly",
+    "global": "readonly"
+  },
+  "settings": {
+    "jsdoc": {
+      "mode": "jsdoc",
+      "preferredTypes": {
+        "object": "Object",
+        "array": "Array",
+        "function": "Function"
+      },
+      "tagNamePreference": {
+        "returns": "returns",
+        "param": "param"
+      }
+    }
+  }
 }
