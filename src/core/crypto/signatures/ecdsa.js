@@ -50,7 +50,7 @@ const SIGHASH_TYPES = {
  * Curve order for secp256k1 (for signature validation)
  */
 const CURVE_ORDER = new BN(CRYPTO_CONSTANTS.SECP256K1_ORDER, 'hex');
-const CURVE_HALF_ORDER = CURVE_ORDER.shln(-1); // n/2 for low-S enforcement (fixed division)
+const CURVE_HALF_ORDER = CURVE_ORDER.shrn(1); // n/2 for low-S enforcement (fixed division)
 
 /**
  * Bitcoin message signing prefix

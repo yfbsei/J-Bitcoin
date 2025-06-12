@@ -268,19 +268,6 @@ export const BIP_COMPLIANCE = Object.freeze({
 });
 
 // =============================================================================
-// CONVENIENCE ALIASES
-// =============================================================================
-
-/**
- * Legacy aliases for backwards compatibility
- * @deprecated Use the new naming convention instead
- */
-export const Custodial_Wallet = CustodialWallet;
-export const Non_Custodial_Wallet = NonCustodialWallet;
-export const ecdsa = ECDSA;
-export const schnorr_sig = SchnorrSignature;
-
-// =============================================================================
 // DEFAULT EXPORT
 // =============================================================================
 

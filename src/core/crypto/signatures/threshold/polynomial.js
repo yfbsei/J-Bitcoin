@@ -39,7 +39,7 @@ const CURVE_ORDER = new BN(CRYPTO_CONSTANTS.SECP256K1_ORDER, "hex");
  * Half of curve order for canonical signature enforcement
  * @constant {BN}
  */
-const HALF_CURVE_ORDER = CURVE_ORDER.shln(-1);
+const HALF_CURVE_ORDER = CURVE_ORDER.shrn(1);
 
 /**
  * Enhanced security constants for polynomial operations
