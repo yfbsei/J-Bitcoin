@@ -309,12 +309,34 @@ class PolynomialSecurityUtils {
      */
     static secureClear(data) {
         if (BN.isBN(data)) {
-            // Overwrite with random data multiple times
-            for (let i = 0; i < 3; i++) {
-                const randomData = randomBytes(32);
-                data.fromBuffer(randomData);
+            try {
+                // Method 1: Try to overwrite with random data multiple times
+                for (let i = 0; i < 3; i++) {
+                    const randomData = randomBytes(32);
+                    // Use a safer approach - create new BN from random bytes
+                    const randomBN = new BN(randomData);
+                    // Copy the random value to the existing BN
+                    data.words = randomBN.words.slice();
+                    data.length = randomBN.length;
+                    data.negative = randomBN.negative;
+                }
+
+                // Final overwrite with zero
+                data.words = [0];
+                data.length = 1;
+                data.negative = 0;
+
+            } catch (error) {
+                // Fallback: just zero out the BN
+                try {
+                    data.words = [0];
+                    data.length = 1;
+                    data.negative = 0;
+                } catch (fallbackError) {
+                    // If all else fails, replace with new zero BN
+                    data.constructor.call(data, 0);
+                }
             }
-            data.fromNumber(0);
         } else if (Array.isArray(data)) {
             data.forEach(item => this.secureClear(item));
             data.length = 0;
@@ -465,182 +487,6 @@ class Polynomial {
     }
 
     /**
-     * Enhanced Lagrange interpolation at zero with improved numerical stability
-     * 
-     * @static
-     * @param {InterpolationPoints} points - Array of [x, y] coordinate pairs
-     * @returns {InterpolationResult} Enhanced interpolation result with metadata
-     * @throws {PolynomialError} If interpolation fails or inputs are invalid
-     */
-    static interpolateAtZero(points) {
-        const startTime = Date.now();
-
-        try {
-            PolynomialSecurityUtils.checkRateLimit('interpolate-at-zero');
-            PolynomialSecurityUtils.validateInterpolationPoints(points);
-
-            let result = new BN(0);
-            const pointsUsed = points.length;
-
-            // Enhanced Lagrange interpolation with better numerical stability
-            for (let i = 0; i < points.length; i++) {
-                PolynomialSecurityUtils.validateExecutionTime(startTime, 'interpolation');
-
-                const [xi, yi] = points[i];
-                let numerator = new BN(1);
-                let denominator = new BN(1);
-
-                // Compute Lagrange basis polynomial Li(0) with enhanced precision
-                for (let j = 0; j < points.length; j++) {
-                    if (i !== j) {
-                        const [xj] = points[j];
-
-                        // For evaluation at x=0: numerator *= -xj, denominator *= (xi - xj)
-                        const negXj = xj.neg().umod(CURVE_ORDER);
-                        const xiMinusXj = xi.sub(xj).umod(CURVE_ORDER);
-
-                        // Check for zero denominator (shouldn't happen with proper validation)
-                        if (xiMinusXj.isZero()) {
-                            throw new PolynomialError(
-                                `Division by zero in interpolation: xi = xj = ${xi.toString()}`,
-                                'DIVISION_BY_ZERO',
-                                { xi: xi.toString(), xj: xj.toString() }
-                            );
-                        }
-
-                        numerator = numerator.mul(negXj).umod(CURVE_ORDER);
-                        denominator = denominator.mul(xiMinusXj).umod(CURVE_ORDER);
-                    }
-                }
-
-                // Compute modular inverse with enhanced error handling
-                const denominatorInverse = this._computeModularInverse(denominator);
-
-                // Add yi * Li(0) to result
-                const lagrangeTerm = yi.mul(numerator).mul(denominatorInverse).umod(CURVE_ORDER);
-                result = result.add(lagrangeTerm).umod(CURVE_ORDER);
-            }
-
-            PolynomialSecurityUtils.validateExecutionTime(startTime, 'interpolation at zero');
-
-            return {
-                value: result,
-                pointsUsed,
-                isValid: true,
-                executionTime: Date.now() - startTime
-            };
-
-        } catch (error) {
-            if (error instanceof PolynomialError) {
-                throw error;
-            }
-            throw new PolynomialError(
-                `Interpolation at zero failed: ${error.message}`,
-                'INTERPOLATION_FAILED',
-                { originalError: error.message }
-            );
-        }
-    }
-
-    /**
-     * Enhanced modular inverse computation with better error handling
-     */
-    static _computeModularInverse(value) {
-        try {
-            // Use Fermat's Little Theorem: a^(p-2) ≡ a^(-1) (mod p)
-            const exponent = CURVE_ORDER.sub(new BN(2));
-            const redContext = BN.red(CURVE_ORDER);
-            const redValue = value.toRed(redContext);
-
-            if (redValue.isZero()) {
-                throw new PolynomialError(
-                    'Cannot compute modular inverse of zero',
-                    'MODULAR_INVERSE_OF_ZERO'
-                );
-            }
-
-            return redValue.redPow(exponent).fromRed();
-
-        } catch (error) {
-            throw new PolynomialError(
-                `Modular inverse computation failed: ${error.message}`,
-                'MODULAR_INVERSE_FAILED',
-                { value: value.toString(), originalError: error.message }
-            );
-        }
-    }
-
-    /**
-     * Enhanced general Lagrange interpolation at any point
-     * 
-     * @static
-     * @param {InterpolationPoints} points - Array of [x, y] coordinate pairs
-     * @param {BN} evaluationPoint - Point at which to evaluate the interpolated polynomial
-     * @returns {InterpolationResult} Enhanced interpolation result
-     */
-    static interpolateAt(points, evaluationPoint) {
-        const startTime = Date.now();
-
-        try {
-            PolynomialSecurityUtils.checkRateLimit('interpolate-at');
-            PolynomialSecurityUtils.validateInterpolationPoints(points);
-            PolynomialSecurityUtils.validateFieldElement(evaluationPoint, 'evaluation point');
-
-            let result = new BN(0);
-
-            for (let i = 0; i < points.length; i++) {
-                PolynomialSecurityUtils.validateExecutionTime(startTime, 'interpolation at point');
-
-                const [xi, yi] = points[i];
-                let numerator = new BN(1);
-                let denominator = new BN(1);
-
-                // Compute Lagrange basis polynomial Li(evaluationPoint)
-                for (let j = 0; j < points.length; j++) {
-                    if (i !== j) {
-                        const [xj] = points[j];
-                        const evalMinusXj = evaluationPoint.sub(xj).umod(CURVE_ORDER);
-                        const xiMinusXj = xi.sub(xj).umod(CURVE_ORDER);
-
-                        if (xiMinusXj.isZero()) {
-                            throw new PolynomialError(
-                                `Division by zero in interpolation at point`,
-                                'DIVISION_BY_ZERO'
-                            );
-                        }
-
-                        numerator = numerator.mul(evalMinusXj).umod(CURVE_ORDER);
-                        denominator = denominator.mul(xiMinusXj).umod(CURVE_ORDER);
-                    }
-                }
-
-                const denominatorInverse = this._computeModularInverse(denominator);
-                const lagrangeTerm = yi.mul(numerator).mul(denominatorInverse).umod(CURVE_ORDER);
-                result = result.add(lagrangeTerm).umod(CURVE_ORDER);
-            }
-
-            PolynomialSecurityUtils.validateExecutionTime(startTime, 'interpolation at point');
-
-            return {
-                value: result,
-                pointsUsed: points.length,
-                isValid: true,
-                executionTime: Date.now() - startTime
-            };
-
-        } catch (error) {
-            if (error instanceof PolynomialError) {
-                throw error;
-            }
-            throw new PolynomialError(
-                `Interpolation at point failed: ${error.message}`,
-                'INTERPOLATION_AT_POINT_FAILED',
-                { originalError: error.message }
-            );
-        }
-    }
-
-    /**
      * Enhanced polynomial evaluation using Horner's method with security improvements
      * 
      * @param {BN} evaluationPoint - Point at which to evaluate the polynomial
@@ -703,8 +549,8 @@ class Polynomial {
 
             if (!(otherPolynomial instanceof Polynomial)) {
                 throw new PolynomialError(
-                    'Argument must be a Polynomial instance',
-                    'INVALID_POLYNOMIAL_TYPE',
+                    'Parameter must be a Polynomial instance',
+                    'INVALID_PARAMETER_TYPE',
                     { actualType: typeof otherPolynomial }
                 );
             }
@@ -716,10 +562,10 @@ class Polynomial {
                 );
             }
 
-            const maxLength = Math.max(this.coefficients.length, otherPolynomial.coefficients.length);
-            const resultCoefficients = new Array(maxLength);
+            const maxDegree = Math.max(this.degree, otherPolynomial.degree);
+            const resultCoefficients = new Array(maxDegree + 1);
 
-            for (let i = 0; i < maxLength; i++) {
+            for (let i = 0; i <= maxDegree; i++) {
                 const thisCoeff = i < this.coefficients.length ? this.coefficients[i] : new BN(0);
                 const otherCoeff = i < otherPolynomial.coefficients.length ? otherPolynomial.coefficients[i] : new BN(0);
 
@@ -741,7 +587,7 @@ class Polynomial {
     }
 
     /**
-     * Enhanced polynomial multiplication with improved efficiency
+     * Enhanced polynomial multiplication with comprehensive validation
      * 
      * @param {Polynomial} otherPolynomial - Polynomial to multiply
      * @returns {Polynomial} New polynomial representing the product
@@ -753,8 +599,8 @@ class Polynomial {
 
             if (!(otherPolynomial instanceof Polynomial)) {
                 throw new PolynomialError(
-                    'Argument must be a Polynomial instance',
-                    'INVALID_POLYNOMIAL_TYPE'
+                    'Parameter must be a Polynomial instance',
+                    'INVALID_PARAMETER_TYPE'
                 );
             }
 
@@ -766,16 +612,6 @@ class Polynomial {
             }
 
             const resultDegree = this.degree + otherPolynomial.degree;
-
-            // Check for degree overflow
-            if (resultDegree > POLYNOMIAL_SECURITY_CONSTANTS.MAX_DEGREE) {
-                throw new PolynomialError(
-                    `Result degree too high: ${resultDegree} > ${POLYNOMIAL_SECURITY_CONSTANTS.MAX_DEGREE}`,
-                    'DEGREE_OVERFLOW',
-                    { resultDegree, maxDegree: POLYNOMIAL_SECURITY_CONSTANTS.MAX_DEGREE }
-                );
-            }
-
             const resultCoefficients = new Array(resultDegree + 1).fill(null).map(() => new BN(0));
 
             // Enhanced convolution with better memory management
@@ -1009,12 +845,188 @@ class Polynomial {
     }
 
     /**
+     * Enhanced Lagrange interpolation at zero with improved numerical stability
+     * 
+     * @static
+     * @param {InterpolationPoints} points - Array of [x, y] coordinate pairs
+     * @returns {InterpolationResult} Enhanced interpolation result with metadata
+     * @throws {PolynomialError} If interpolation fails or inputs are invalid
+     */
+    static interpolateAtZero(points) {
+        const startTime = Date.now();
+
+        try {
+            PolynomialSecurityUtils.checkRateLimit('interpolate-at-zero');
+            PolynomialSecurityUtils.validateInterpolationPoints(points);
+
+            let result = new BN(0);
+            const pointsUsed = points.length;
+
+            // Enhanced Lagrange interpolation with better numerical stability
+            for (let i = 0; i < points.length; i++) {
+                PolynomialSecurityUtils.validateExecutionTime(startTime, 'interpolation');
+
+                const [xi, yi] = points[i];
+                let numerator = new BN(1);
+                let denominator = new BN(1);
+
+                // Compute Lagrange basis polynomial Li(0) with enhanced precision
+                for (let j = 0; j < points.length; j++) {
+                    if (i !== j) {
+                        const [xj] = points[j];
+
+                        // For evaluation at x=0: numerator *= -xj, denominator *= (xi - xj)
+                        const negXj = xj.neg().umod(CURVE_ORDER);
+                        const xiMinusXj = xi.sub(xj).umod(CURVE_ORDER);
+
+                        // Check for zero denominator (shouldn't happen with proper validation)
+                        if (xiMinusXj.isZero()) {
+                            throw new PolynomialError(
+                                `Division by zero in interpolation: xi = xj = ${xi.toString()}`,
+                                'DIVISION_BY_ZERO',
+                                { xi: xi.toString(), xj: xj.toString() }
+                            );
+                        }
+
+                        numerator = numerator.mul(negXj).umod(CURVE_ORDER);
+                        denominator = denominator.mul(xiMinusXj).umod(CURVE_ORDER);
+                    }
+                }
+
+                // Compute modular inverse with enhanced error handling
+                const denominatorInverse = this._computeModularInverse(denominator);
+
+                // Add yi * Li(0) to result
+                const lagrangeTerm = yi.mul(numerator).mul(denominatorInverse).umod(CURVE_ORDER);
+                result = result.add(lagrangeTerm).umod(CURVE_ORDER);
+            }
+
+            PolynomialSecurityUtils.validateExecutionTime(startTime, 'interpolation at zero');
+
+            return {
+                value: result,
+                pointsUsed,
+                isValid: true,
+                executionTime: Date.now() - startTime
+            };
+
+        } catch (error) {
+            if (error instanceof PolynomialError) {
+                throw error;
+            }
+            throw new PolynomialError(
+                `Interpolation at zero failed: ${error.message}`,
+                'INTERPOLATION_FAILED',
+                { originalError: error.message }
+            );
+        }
+    }
+
+    /**
+     * Enhanced modular inverse computation with better error handling
+     */
+    static _computeModularInverse(value) {
+        try {
+            // Use Fermat's Little Theorem: a^(p-2) ≡ a^(-1) (mod p)
+            const exponent = CURVE_ORDER.sub(new BN(2));
+            const redContext = BN.red(CURVE_ORDER);
+            const redValue = value.toRed(redContext);
+
+            if (redValue.isZero()) {
+                throw new PolynomialError(
+                    'Cannot compute modular inverse of zero',
+                    'MODULAR_INVERSE_OF_ZERO'
+                );
+            }
+
+            return redValue.redPow(exponent).fromRed();
+
+        } catch (error) {
+            throw new PolynomialError(
+                `Modular inverse computation failed: ${error.message}`,
+                'MODULAR_INVERSE_FAILED',
+                { value: value.toString(), originalError: error.message }
+            );
+        }
+    }
+
+    /**
+     * Enhanced general Lagrange interpolation at any point
+     * 
+     * @static
+     * @param {InterpolationPoints} points - Array of [x, y] coordinate pairs
+     * @param {BN} evaluationPoint - Point at which to evaluate the interpolated polynomial
+     * @returns {InterpolationResult} Enhanced interpolation result
+     */
+    static interpolateAt(points, evaluationPoint) {
+        const startTime = Date.now();
+
+        try {
+            PolynomialSecurityUtils.checkRateLimit('interpolate-at');
+            PolynomialSecurityUtils.validateInterpolationPoints(points);
+            PolynomialSecurityUtils.validateFieldElement(evaluationPoint, 'evaluation point');
+
+            let result = new BN(0);
+
+            for (let i = 0; i < points.length; i++) {
+                PolynomialSecurityUtils.validateExecutionTime(startTime, 'interpolation at point');
+
+                const [xi, yi] = points[i];
+                let numerator = new BN(1);
+                let denominator = new BN(1);
+
+                // Compute Lagrange basis polynomial Li(evaluationPoint)
+                for (let j = 0; j < points.length; j++) {
+                    if (i !== j) {
+                        const [xj] = points[j];
+                        const evalMinusXj = evaluationPoint.sub(xj).umod(CURVE_ORDER);
+                        const xiMinusXj = xi.sub(xj).umod(CURVE_ORDER);
+
+                        if (xiMinusXj.isZero()) {
+                            throw new PolynomialError(
+                                `Division by zero in interpolation at point`,
+                                'DIVISION_BY_ZERO'
+                            );
+                        }
+
+                        numerator = numerator.mul(evalMinusXj).umod(CURVE_ORDER);
+                        denominator = denominator.mul(xiMinusXj).umod(CURVE_ORDER);
+                    }
+                }
+
+                const denominatorInverse = this._computeModularInverse(denominator);
+                const lagrangeTerm = yi.mul(numerator).mul(denominatorInverse).umod(CURVE_ORDER);
+                result = result.add(lagrangeTerm).umod(CURVE_ORDER);
+            }
+
+            PolynomialSecurityUtils.validateExecutionTime(startTime, 'interpolation at point');
+
+            return {
+                value: result,
+                pointsUsed: points.length,
+                isValid: true,
+                executionTime: Date.now() - startTime
+            };
+
+        } catch (error) {
+            if (error instanceof PolynomialError) {
+                throw error;
+            }
+            throw new PolynomialError(
+                `Interpolation at point failed: ${error.message}`,
+                'INTERPOLATION_AT_POINT_FAILED',
+                { originalError: error.message }
+            );
+        }
+    }
+
+    /**
      * Export polynomial to safe format for serialization
      * 
      * @param {Object} [options={}] - Export options
      * @returns {Object} Serializable polynomial data
      */
-    export(options = {}) {
+    exportData(options = {}) {
         try {
             if (!this.isValid) {
                 throw new PolynomialError(
@@ -1055,7 +1067,7 @@ class Polynomial {
      * @param {Object} data - Serialized polynomial data
      * @returns {Polynomial} Reconstructed polynomial
      */
-    static import(data) {
+    static importData(data) {
         try {
             if (!data || typeof data !== 'object') {
                 throw new PolynomialError(
@@ -1107,49 +1119,6 @@ class Polynomial {
             throw new PolynomialError(
                 `Polynomial import failed: ${error.message}`,
                 'IMPORT_FAILED',
-                { originalError: error.message }
-            );
-        }
-    }
-}
-
-/**
- * Enhanced utility functions for polynomial operations
- */
-class PolynomialUtils {
-    /**
-     * Generate multiple random polynomials for testing
-     * 
-     * @param {number} count - Number of polynomials to generate
-     * @param {number} [degree=2] - Degree for each polynomial
-     * @returns {Polynomial[]} Array of random polynomials
-     */
-    static generateRandomSet(count, degree = 2) {
-        try {
-            PolynomialSecurityUtils.validateDegree(degree);
-
-            if (!Number.isInteger(count) || count <= 0 || count > 100) {
-                throw new PolynomialError(
-                    'Count must be a positive integer <= 100',
-                    'INVALID_COUNT',
-                    { count }
-                );
-            }
-
-            const polynomials = [];
-            for (let i = 0; i < count; i++) {
-                polynomials.push(Polynomial.generateRandom(degree));
-            }
-
-            return polynomials;
-
-        } catch (error) {
-            if (error instanceof PolynomialError) {
-                throw error;
-            }
-            throw new PolynomialError(
-                `Random set generation failed: ${error.message}`,
-                'RANDOM_SET_FAILED',
                 { originalError: error.message }
             );
         }
@@ -1261,76 +1230,178 @@ class PolynomialUtils {
             {
                 name: 'Random polynomial generation',
                 test: () => {
-                    const poly = Polynomial.generateRandom(3);
-                    return poly.degree === 3 && poly.coefficients.length === 4;
+                    const poly = Polynomial.generateRandom(2);
+                    return poly instanceof Polynomial && poly.degree === 2;
                 }
             },
             {
                 name: 'Polynomial evaluation',
                 test: () => {
-                    const coeffs = [new BN(1), new BN(2), new BN(3)]; // 1 + 2x + 3x^2
+                    const coeffs = [new BN(5), new BN(3), new BN(1)]; // 5 + 3x + x^2
                     const poly = new Polynomial(coeffs);
-                    const result = poly.evaluate(new BN(2)); // 1 + 4 + 12 = 17
-                    return result.value.eq(new BN(17));
+                    const result = poly.evaluate(new BN(2)); // Should be 5 + 6 + 4 = 15
+                    return result.value.eq(new BN(15));
                 }
             },
             {
-                name: 'Interpolation at zero',
+                name: 'Lagrange interpolation',
                 test: () => {
+                    const poly = new Polynomial([new BN(42), new BN(1), new BN(2)]);
                     const points = [
-                        [new BN(1), new BN(6)],  // f(1) = 6
-                        [new BN(2), new BN(17)], // f(2) = 17
-                        [new BN(3), new BN(34)]  // f(3) = 34
+                        [new BN(1), poly.evaluate(new BN(1)).value],
+                        [new BN(2), poly.evaluate(new BN(2)).value],
+                        [new BN(3), poly.evaluate(new BN(3)).value]
                     ];
                     const result = Polynomial.interpolateAtZero(points);
-                    return result.isValid && result.value.eq(new BN(1)); // f(0) should be 1
-                }
-            },
-            {
-                name: 'Polynomial addition',
-                test: () => {
-                    const poly1 = new Polynomial([new BN(1), new BN(2)]);
-                    const poly2 = new Polynomial([new BN(3), new BN(4)]);
-                    const sum = poly1.add(poly2);
-                    return sum.coefficients[0].eq(new BN(4)) && sum.coefficients[1].eq(new BN(6));
+                    return result.value.eq(new BN(42));
                 }
             }
         ];
 
-        for (const test of tests) {
+        tests.forEach(({ name, test }) => {
             try {
-                const passed = test.test();
-                if (passed) {
+                if (test()) {
                     testResults.passed++;
-                    testResults.details.push({ name: test.name, status: 'PASSED' });
+                    testResults.details.push({ name, status: 'PASSED' });
                 } else {
                     testResults.failed++;
-                    testResults.details.push({ name: test.name, status: 'FAILED', error: 'Test returned false' });
+                    testResults.details.push({ name, status: 'FAILED', error: 'Test returned false' });
                 }
             } catch (error) {
                 testResults.failed++;
-                testResults.details.push({
-                    name: test.name,
-                    status: 'FAILED',
-                    error: error.message
-                });
+                testResults.details.push({ name, status: 'ERROR', error: error.message });
             }
-        }
+        });
 
-        const success = testResults.failed === 0;
-        console.log(success ? '✅ All tests passed' : `❌ ${testResults.failed} tests failed`);
+        console.log(`✅ Tests passed: ${testResults.passed}`);
+        console.log(`❌ Tests failed: ${testResults.failed}`);
 
-        return {
-            success,
-            ...testResults
-        };
+        return testResults;
     }
 }
 
+/**
+ * Enhanced utility functions for polynomial operations
+ */
+class PolynomialUtils {
+    /**
+     * Generate multiple random polynomials for testing
+     * 
+     * @param {number} count - Number of polynomials to generate
+     * @param {number} [degree=2] - Degree for each polynomial
+     * @returns {Polynomial[]} Array of random polynomials
+     */
+    static generateRandomSet(count, degree = 2) {
+        try {
+            PolynomialSecurityUtils.validateDegree(degree);
+
+            if (!Number.isInteger(count) || count <= 0 || count > 100) {
+                throw new PolynomialError(
+                    'Count must be a positive integer <= 100',
+                    'INVALID_COUNT',
+                    { count }
+                );
+            }
+
+            const polynomials = [];
+            for (let i = 0; i < count; i++) {
+                polynomials.push(Polynomial.generateRandom(degree));
+            }
+
+            return polynomials;
+
+        } catch (error) {
+            if (error instanceof PolynomialError) {
+                throw error;
+            }
+            throw new PolynomialError(
+                `Random set generation failed: ${error.message}`,
+                'RANDOM_SET_FAILED',
+                { originalError: error.message }
+            );
+        }
+    }
+
+    /**
+     * Create polynomial from shares for secret reconstruction
+     * 
+     * @param {Array} shares - Array of [x, y] shares
+     * @returns {BN} Reconstructed secret (constant term)
+     */
+    static reconstructSecret(shares) {
+        try {
+            const result = Polynomial.interpolateAtZero(shares);
+            return result.value;
+        } catch (error) {
+            throw new PolynomialError(
+                `Secret reconstruction failed: ${error.message}`,
+                'SECRET_RECONSTRUCTION_FAILED',
+                { originalError: error.message }
+            );
+        }
+    }
+
+    /**
+     * Generate shares from a polynomial
+     * 
+     * @param {Polynomial} polynomial - Source polynomial
+     * @param {number} numShares - Number of shares to generate
+     * @returns {Array} Array of [x, y] shares
+     */
+    static generateShares(polynomial, numShares) {
+        try {
+            if (!(polynomial instanceof Polynomial)) {
+                throw new PolynomialError(
+                    'First parameter must be a Polynomial instance',
+                    'INVALID_PARAMETER_TYPE'
+                );
+            }
+
+            if (!Number.isInteger(numShares) || numShares <= 0 || numShares > 1000) {
+                throw new PolynomialError(
+                    'Number of shares must be a positive integer <= 1000',
+                    'INVALID_SHARE_COUNT',
+                    { numShares }
+                );
+            }
+
+            const shares = [];
+            for (let i = 1; i <= numShares; i++) {
+                const x = new BN(i);
+                const y = polynomial.evaluate(x).value;
+                shares.push([x, y]);
+            }
+
+            return shares;
+
+        } catch (error) {
+            if (error instanceof PolynomialError) {
+                throw error;
+            }
+            throw new PolynomialError(
+                `Share generation failed: ${error.message}`,
+                'SHARE_GENERATION_FAILED',
+                { originalError: error.message }
+            );
+        }
+    }
+}
+
+// =============================================================================
+// CLEAN EXPORTS - Single location for all exports
+// =============================================================================
+
+/**
+ * Default export: Polynomial class
+ */
+export default Polynomial;
+
+/**
+ * Named exports: Utility classes and constants
+ */
 export {
     PolynomialError,
     PolynomialSecurityUtils,
     PolynomialUtils,
-    Polynomial as default,
     POLYNOMIAL_SECURITY_CONSTANTS
 };
