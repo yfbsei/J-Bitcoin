@@ -450,7 +450,7 @@ class TapscriptExecutionContext {
  */
 class TapscriptInterpreter {
     constructor() {
-        this.schnorrValidator = new Schnorr.Enhanced();
+        this.schnorrValidator = new Schnorr();
     }
 
     /**
