@@ -694,12 +694,12 @@ class EnhancedSchnorr {
      * FIX #9: Complete BIP340 verification implementation
      */
     async verify(signature, message, publicKey) {
-        try {
-            // Validate inputs
-            const sigValidated = SchnorrValidator.validateSignature(signature);
-            const messageBuffer = SchnorrValidator.validateMessage(message);
-            const pubKeyBuffer = SchnorrValidator.validatePublicKey(publicKey);
+        // ✅ FIX: Don't catch validation errors - let them throw for malformed inputs
+        const sigValidated = SchnorrValidator.validateSignature(signature);
+        const messageBuffer = SchnorrValidator.validateMessage(message);
+        const pubKeyBuffer = SchnorrValidator.validatePublicKey(publicKey);
 
+        try {
             // Extract r and s from signature
             const rx = sigValidated.buffer.slice(0, 32);
             const s = sigValidated.s;
@@ -709,7 +709,7 @@ class EnhancedSchnorr {
             try {
                 R = SchnorrValidator.liftX(rx);
             } catch (error) {
-                // Invalid r coordinate
+                // Invalid r coordinate - this is a verification failure, not validation error
                 return false;
             }
 
@@ -718,7 +718,7 @@ class EnhancedSchnorr {
             try {
                 P = SchnorrValidator.liftX(pubKeyBuffer);
             } catch (error) {
-                // Invalid public key
+                // Invalid public key - this is a verification failure, not validation error
                 return false;
             }
 
@@ -731,19 +731,24 @@ class EnhancedSchnorr {
             try {
                 return schnorr.verify(sigValidated.buffer, messageBuffer, pubKeyBuffer);
             } catch (error) {
+                // Cryptographic verification failure - return false
                 return false;
             }
 
         } catch (error) {
-            if (error instanceof SchnorrError) {
-                // For validation errors, return false rather than throwing
-                return false;
+            // ✅ FIX: Only catch non-validation errors
+            // If it's a SchnorrError from validation, it should have already been thrown above
+            // This catch block is only for unexpected errors during verification process
+            if (error instanceof SchnorrError &&
+                (error.code.includes('INVALID_') ||
+                    error.code.includes('MISSING_') ||
+                    error.code.includes('DECODE_FAILED'))) {
+                // Re-throw validation errors
+                throw error;
             }
-            throw new SchnorrError(
-                'Schnorr verification failed',
-                'VERIFY_FAILED',
-                { originalError: error.message }
-            );
+
+            // For cryptographic verification failures, return false
+            return false;
         }
     }
 
