@@ -1,11 +1,11 @@
 /**
  * @fileoverview Base58Check encoding implementation for Bitcoin
- * @version 2.1.0
+ * @version 1.0.0
  * @author yfbsei
  * @license ISC
  */
 
-import { createHash, timingSafeEqual } from 'node:crypto';
+import { createHash } from 'node:crypto';
 
 const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const CHECKSUM_LENGTH = 4;

@@ -1,6 +1,6 @@
 /**
  * @fileoverview PSBT (Partially Signed Bitcoin Transaction) implementation
- * @version 2.1.0
+ * @version 1.0.0
  * @author yfbsei
  * @license ISC
  */

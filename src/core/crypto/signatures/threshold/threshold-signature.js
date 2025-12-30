@@ -1,241 +1,395 @@
 /**
- * @fileoverview Threshold signature implementation with JVRSS and Feldman commitments
- * @version 2.1.0
+ * @fileoverview Threshold Signature Scheme implementation
+ * @description Full implementation of the nChain Threshold Signature protocol
+ *              as specified in Section 4 of the whitepaper.
+ * @version 1.0.0
  * @author yfbsei
  * @license ISC
+ * @see Threshold-Signatures-whitepaper-nchain.pdf Section 4
  */
 
-import { randomBytes, createHash } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { secp256k1 } from '@noble/curves/secp256k1';
 import BN from 'bn.js';
 import { Polynomial, CURVE_ORDER } from './polynomial.js';
-import { CRYPTO_CONSTANTS, THRESHOLD_CONSTANTS } from '../../../constants.js';
+import { JVRSS } from './jvrss.js';
+import { INVSS } from './mpc-operations.js';
 
-class ThresholdError extends Error {
+
+/** secp256k1 generator point G */
+const G = secp256k1.ProjectivePoint.BASE;
+
+/**
+ * Error class for threshold signature operations
+ */
+class ThresholdSignatureError extends Error {
   constructor(message, code, details = {}) {
     super(message);
-    this.name = 'ThresholdError';
+    this.name = 'ThresholdSignatureError';
     this.code = code;
     this.details = details;
   }
 }
 
-const G = secp256k1.ProjectivePoint.BASE;
-
-class FeldmanCommitments {
-  constructor(polynomial) {
-    this.commitments = [];
-
-    for (const coeff of polynomial.getCoefficients()) {
-      const coeffBuffer = coeff.toBuffer('be', 32);
-      const commitment = G.multiply(BigInt('0x' + coeffBuffer.toString('hex')));
-      this.commitments.push(commitment);
-    }
-  }
-
-  verifyShare(share) {
-    const { x, y } = share;
-    const xBN = x instanceof BN ? x : new BN(x);
-    const yBN = y instanceof BN ? y : new BN(y);
-
-    let expectedPoint = this.commitments[0];
-    let xPower = xBN.clone();
-
-    for (let i = 1; i < this.commitments.length; i++) {
-      const term = this.commitments[i].multiply(BigInt('0x' + xPower.toString('hex')));
-      expectedPoint = expectedPoint.add(term);
-      xPower = xPower.mul(xBN).umod(CURVE_ORDER);
-    }
-
-    const yBuffer = yBN.toBuffer('be', 32);
-    const actualPoint = G.multiply(BigInt('0x' + yBuffer.toString('hex')));
-
-    return expectedPoint.equals(actualPoint);
-  }
-
-  getCommitments() {
-    return this.commitments.map(c => Buffer.from(c.toRawBytes(true)));
-  }
-}
-
-class ThresholdSignature {
-  constructor(threshold, participants) {
-    if (threshold < THRESHOLD_CONSTANTS.MIN_THRESHOLD) {
-      throw new ThresholdError(
-        `Threshold must be at least ${THRESHOLD_CONSTANTS.MIN_THRESHOLD}`,
-        'INVALID_THRESHOLD'
+/**
+ * Threshold Signature Scheme class
+ * 
+ * Implements a (t+1, n) threshold signature scheme where:
+ * - n participants hold key shares
+ * - t+1 participants can reconstruct the secret (but we don't)
+ * - 2t+1 participants are required to create a signature (due to INVSS)
+ * 
+ * This follows the nChain whitepaper's protocol exactly.
+ */
+class ThresholdSignatureScheme {
+  /**
+   * Create a threshold signature scheme
+   * @param {number} n - Total participants (N)
+   * @param {number} t - Threshold degree (t+1 shares to reconstruct, 2t+1 to sign)
+   */
+  constructor(n, t) {
+    // Validate: need 2t+1 <= n for signing
+    if (2 * t + 1 > n) {
+      throw new ThresholdSignatureError(
+        `Signing requires 2t+1=${2 * t + 1} participants, but n=${n}`,
+        'INSUFFICIENT_PARTICIPANTS'
       );
     }
 
-    if (participants > THRESHOLD_CONSTANTS.MAX_PARTICIPANTS) {
-      throw new ThresholdError(
-        `Participants cannot exceed ${THRESHOLD_CONSTANTS.MAX_PARTICIPANTS}`,
-        'TOO_MANY_PARTICIPANTS'
-      );
-    }
+    this.n = n;
+    this.t = t;
+    this.signingThreshold = 2 * t + 1;
+    this.reconstructionThreshold = t + 1;
 
-    if (threshold > participants) {
-      throw new ThresholdError(
-        'Threshold cannot exceed number of participants',
-        'THRESHOLD_EXCEEDS_PARTICIPANTS'
-      );
-    }
+    // Private key JVRSS instance
+    this.privateKeyJVRSS = null;
 
-    this.threshold = threshold;
-    this.participants = participants;
-    this.polynomial = null;
-    this.shares = [];
-    this.commitments = null;
-    this.publicKey = null;
+    // Shared public key (a · G)
+    this.sharedPublicKey = null;
+
+    // Private key shares (a_i for each participant)
+    this.privateKeyShares = [];
+
+    // Pre-computed ephemeral keys: [{r, inverseKShares, kJVRSS, bJVRSS}, ...]
+    this.ephemeralKeys = [];
   }
 
-  generateShares(secret = null) {
-    this.polynomial = new Polynomial(this.threshold - 1, secret);
-    this.shares = this.polynomial.generateShares(this.participants);
-    this.commitments = new FeldmanCommitments(this.polynomial);
+  /**
+   * Section 4.1: Generate shared private key using JVRSS
+   * All participants run JVRSS to create shared private key a
+   * @returns {Buffer} Shared public key
+   */
+  generateSharedPrivateKey() {
+    this.privateKeyJVRSS = new JVRSS(this.n, this.t);
+    const result = this.privateKeyJVRSS.runProtocol();
 
-    const secretBuffer = this.polynomial.getSecret().toBuffer('be', 32);
-    this.publicKey = Buffer.from(
-      secp256k1.getPublicKey(secretBuffer, true)
-    );
+    this.sharedPublicKey = result.publicKey;
+    this.privateKeyShares = result.shares;
+
+    return this.sharedPublicKey;
+  }
+
+  /**
+   * Section 4.2: Generate ephemeral key shares
+   * Pre-compute (r, k_i^-1) tuples for efficient signing
+   * @param {number} count - Number of ephemeral keys to generate
+   */
+  generateEphemeralKeys(count = 1) {
+    for (let i = 0; i < count; i++) {
+      // Generate ephemeral key k using JVRSS
+      const kJVRSS = new JVRSS(this.n, this.t);
+      kJVRSS.runProtocol();
+      const kShares = kJVRSS.getSharesForInterpolation();
+
+      // Generate blinding value b using JVRSS
+      const bJVRSS = new JVRSS(this.n, this.t);
+      bJVRSS.runProtocol();
+      const bShares = bJVRSS.getSharesForInterpolation();
+
+      // Calculate k^-1 shares using INVSS
+      const { inverseShares: inverseKShares } = INVSS(kShares, bShares, this.t);
+
+      // Calculate r from k·G using obfuscated coefficients
+      // (x, y) = Σ (k_i0 · G)
+      let kG = null;
+      for (let j = 1; j <= this.n; j++) {
+        const coeffs = kJVRSS.obfuscatedCoefficients.get(j);
+        const zerothCoeff = secp256k1.ProjectivePoint.fromHex(coeffs[0]);
+
+        if (kG === null) {
+          kG = zerothCoeff;
+        } else {
+          kG = kG.add(zerothCoeff);
+        }
+      }
+
+      // r = x mod n
+      const affine = kG.toAffine();
+      const r = new BN(affine.x.toString(16), 'hex').umod(CURVE_ORDER);
+
+      // Check r is non-zero (very unlikely but must check)
+      if (r.isZero()) {
+        // Regenerate (recursive, but extremely rare)
+        i--;
+        continue;
+      }
+
+      this.ephemeralKeys.push({
+        r,
+        inverseKShares,
+        used: false
+      });
+    }
+  }
+
+  /**
+   * Get next unused ephemeral key
+   * @returns {{r: BN, inverseKShares: Array}|null} Next ephemeral key
+   */
+  getNextEphemeralKey() {
+    const key = this.ephemeralKeys.find(k => !k.used);
+    if (key) {
+      key.used = true;
+      return { r: key.r, inverseKShares: key.inverseKShares };
+    }
+    return null;
+  }
+
+  /**
+   * Section 4.3: Generate threshold signature
+   * 
+   * @param {Buffer|string} messageHash - 32-byte message hash (e)
+   * @param {number[]} participantIndices - Indices of signing participants (1-indexed)
+   * @returns {{r: string, s: string, signature: Buffer}} Signature
+   */
+  sign(messageHash, participantIndices = null) {
+    // Default to first 2t+1 participants
+    if (!participantIndices) {
+      participantIndices = [];
+      for (let i = 1; i <= this.signingThreshold; i++) {
+        participantIndices.push(i);
+      }
+    }
+
+    if (participantIndices.length < this.signingThreshold) {
+      throw new ThresholdSignatureError(
+        `Need ${this.signingThreshold} participants (2t+1), got ${participantIndices.length}`,
+        'INSUFFICIENT_SIGNERS'
+      );
+    }
+
+    // Get message hash as BN
+    let e;
+    if (typeof messageHash === 'string') {
+      e = new BN(messageHash, 'hex');
+    } else {
+      e = new BN(messageHash);
+    }
+
+    // Step 2: Get ephemeral key (auto-generate if needed)
+    let ephemeralKey = this.getNextEphemeralKey();
+    if (!ephemeralKey) {
+      this.generateEphemeralKeys(1);
+      ephemeralKey = this.getNextEphemeralKey();
+    }
+
+    const { r, inverseKShares } = ephemeralKey;
+
+    // Step 4: Each participant generates signature share
+    // s_i = k_i^-1 * (e + a_i * r)
+    const signatureShares = [];
+
+    for (const idx of participantIndices) {
+      // Get private key share a_i
+      const shareData = this.privateKeyShares.find(s => s.index === idx);
+      if (!shareData) {
+        throw new ThresholdSignatureError(
+          `No key share for participant ${idx}`,
+          'MISSING_KEY_SHARE'
+        );
+      }
+      const a_i = shareData.keyShare;
+
+      // Get inverse ephemeral share k_i^-1
+      const kInvShare = inverseKShares.find(s => s.x.eqn(idx));
+      if (!kInvShare) {
+        throw new ThresholdSignatureError(
+          `No ephemeral share for participant ${idx}`,
+          'MISSING_EPHEMERAL_SHARE'
+        );
+      }
+      const k_i_inv = kInvShare.y;
+
+      // s_i = k_i^-1 * (e + a_i * r) mod n
+      const aiR = a_i.mul(r).umod(CURVE_ORDER);
+      const ePlusAiR = e.add(aiR).umod(CURVE_ORDER);
+      const s_i = k_i_inv.mul(ePlusAiR).umod(CURVE_ORDER);
+
+      signatureShares.push({
+        x: new BN(idx),
+        y: s_i,
+        index: idx
+      });
+    }
+
+    // Step 6: Combine signature shares via Lagrange interpolation
+    // s = interpolate(s_1, ..., s_{2t+1})
+    const s = Polynomial.interpolate(signatureShares, new BN(0));
+
+    // Enforce low-S (BIP-62)
+    let sFinal = s;
+    const halfOrder = CURVE_ORDER.shrn(1);
+    if (s.gt(halfOrder)) {
+      sFinal = CURVE_ORDER.sub(s);
+    }
+
+    // Create signature buffer
+    const rBuffer = r.toArrayLike(Buffer, 'be', 32);
+    const sBuffer = sFinal.toArrayLike(Buffer, 'be', 32);
+    const signature = Buffer.concat([rBuffer, sBuffer]);
 
     return {
-      shares: this.shares.map(s => ({
-        x: s.x.toString('hex'),
-        y: s.y.toString('hex'),
-        index: s.index
-      })),
-      commitments: this.commitments.getCommitments(),
-      publicKey: this.publicKey
+      r: r.toString('hex').padStart(64, '0'),
+      s: sFinal.toString('hex').padStart(64, '0'),
+      signature
     };
   }
 
-  verifyShare(share) {
-    if (!this.commitments) {
-      throw new ThresholdError('Commitments not initialized', 'NO_COMMITMENTS');
+  /**
+   * Verify a signature using standard ECDSA verification
+   * @param {Buffer|string} messageHash - 32-byte message hash
+   * @param {{r: string, s: string}|Buffer} signature - Signature to verify
+   * @param {Buffer} publicKey - Public key (optional, uses shared key if not provided)
+   * @returns {boolean} True if signature is valid
+   */
+  verify(messageHash, signature, publicKey = null) {
+    const pubKey = publicKey || this.sharedPublicKey;
+    if (!pubKey) {
+      throw new ThresholdSignatureError('No public key available', 'NO_PUBLIC_KEY');
     }
 
-    return this.commitments.verifyShare({
-      x: new BN(share.x, 'hex'),
-      y: new BN(share.y, 'hex')
-    });
-  }
-
-  static generatePartialSignature(share, messageHash) {
-    const k = new BN(randomBytes(32)).umod(CURVE_ORDER);
-    const kBuffer = k.toBuffer('be', 32);
-    const R = G.multiply(BigInt('0x' + kBuffer.toString('hex')));
-    const r = new BN(R.toAffine().x.toString(16), 'hex').umod(CURVE_ORDER);
-
-    if (r.isZero()) {
-      throw new ThresholdError('Invalid nonce generated', 'ZERO_R');
-    }
-
-    const shareY = share.y instanceof BN ? share.y : new BN(share.y, 'hex');
-    const hash = new BN(messageHash, 'hex');
-
-    const s = k.invm(CURVE_ORDER)
-      .mul(hash.add(r.mul(shareY)))
-      .umod(CURVE_ORDER);
-
-    return {
-      r: r.toString('hex'),
-      s: s.toString('hex'),
-      R: Buffer.from(R.toRawBytes(true)),
-      index: share.index
-    };
-  }
-
-  static combinePartialSignatures(partialSigs, threshold) {
-    if (partialSigs.length < threshold) {
-      throw new ThresholdError(
-        `Need at least ${threshold} signatures, got ${partialSigs.length}`,
-        'INSUFFICIENT_SIGNATURES'
-      );
-    }
-
-    const selectedSigs = partialSigs.slice(0, threshold);
-    const xCoords = selectedSigs.map(s => new BN(s.index));
-
-    let combinedS = new BN(0);
-
-    for (let i = 0; i < selectedSigs.length; i++) {
-      const li = Polynomial.lagrangeCoefficient(i, xCoords, new BN(0));
-      const si = new BN(selectedSigs[i].s, 'hex');
-      combinedS = combinedS.add(si.mul(li)).umod(CURVE_ORDER);
-    }
-
-    const r = new BN(selectedSigs[0].r, 'hex');
-
-    return {
-      r: r.toString('hex'),
-      s: combinedS.toString('hex'),
-      signature: Buffer.concat([
-        r.toBuffer('be', 32),
-        combinedS.toBuffer('be', 32)
-      ])
-    };
-  }
-
-  static verifyThresholdSignature(publicKey, messageHash, signature) {
     try {
-      const r = signature.r instanceof BN ? signature.r : new BN(signature.r, 'hex');
-      const s = signature.s instanceof BN ? signature.s : new BN(signature.s, 'hex');
+      let r, s;
 
-      const hash = new BN(messageHash, 'hex');
+      if (Buffer.isBuffer(signature) && signature.length === 64) {
+        r = new BN(signature.slice(0, 32));
+        s = new BN(signature.slice(32, 64));
+      } else if (signature.r && signature.s) {
+        r = new BN(signature.r, 'hex');
+        s = new BN(signature.s, 'hex');
+      } else {
+        return false;
+      }
+
+      // Get message hash as BN
+      let e;
+      if (typeof messageHash === 'string') {
+        e = new BN(messageHash, 'hex');
+      } else {
+        e = new BN(messageHash);
+      }
+
+      // ECDSA verification:
+      // 1. Calculate s^-1
       const sInv = s.invm(CURVE_ORDER);
 
-      const u1 = hash.mul(sInv).umod(CURVE_ORDER);
-      const u2 = r.mul(sInv).umod(CURVE_ORDER);
+      // 2. j1 = e * s^-1 mod n
+      const j1 = e.mul(sInv).umod(CURVE_ORDER);
 
-      const u1Buffer = u1.toBuffer('be', 32);
-      const u2Buffer = u2.toBuffer('be', 32);
+      // 3. j2 = r * s^-1 mod n
+      const j2 = r.mul(sInv).umod(CURVE_ORDER);
 
-      const point1 = G.multiply(BigInt('0x' + u1Buffer.toString('hex')));
-      const pubKeyPoint = secp256k1.ProjectivePoint.fromHex(publicKey);
-      const point2 = pubKeyPoint.multiply(BigInt('0x' + u2Buffer.toString('hex')));
+      // 4. Q = j1·G + j2·(a·G)
+      const j1Buffer = j1.toArrayLike(Buffer, 'be', 32);
+      const j2Buffer = j2.toArrayLike(Buffer, 'be', 32);
 
-      const R = point1.add(point2);
-      const recoveredR = new BN(R.toAffine().x.toString(16), 'hex').umod(CURVE_ORDER);
+      const point1 = G.multiply(BigInt('0x' + j1Buffer.toString('hex')));
+      const pubKeyPoint = secp256k1.ProjectivePoint.fromHex(pubKey);
+      const point2 = pubKeyPoint.multiply(BigInt('0x' + j2Buffer.toString('hex')));
 
-      return r.eq(recoveredR);
+      const Q = point1.add(point2);
+
+      // 5. Check Q != O (point at infinity)
+      if (Q.equals(secp256k1.ProjectivePoint.ZERO)) {
+        return false;
+      }
+
+      // 6. u = Q.x mod n, verify u == r
+      const u = new BN(Q.toAffine().x.toString(16), 'hex').umod(CURVE_ORDER);
+      return r.eq(u);
     } catch {
       return false;
     }
   }
 
-  sign(messageHash) {
-    if (!this.shares || this.shares.length < this.threshold) {
-      throw new ThresholdError('Insufficient shares for signing', 'INSUFFICIENT_SHARES');
-    }
+  /**
+   * Sign a message (with Bitcoin message prefix and double SHA256)
+   * @param {string|Buffer} message - Message to sign
+   * @param {number[]} participantIndices - Signing participants
+   * @returns {Object} Signature
+   */
+  signMessage(message, participantIndices = null) {
+    const messageBuffer = typeof message === 'string' ? Buffer.from(message, 'utf8') : message;
+    const prefix = Buffer.from('\x18Bitcoin Signed Message:\n', 'utf8');
+    const lengthBuffer = Buffer.from([messageBuffer.length]);
 
-    const partialSigs = this.shares
-      .slice(0, this.threshold)
-      .map(share => ThresholdSignature.generatePartialSignature(share, messageHash));
+    const fullMessage = Buffer.concat([prefix, lengthBuffer, messageBuffer]);
+    const messageHash = createHash('sha256')
+      .update(createHash('sha256').update(fullMessage).digest())
+      .digest();
 
-    return ThresholdSignature.combinePartialSignatures(partialSigs, this.threshold);
+    return this.sign(messageHash, participantIndices);
   }
 
+  /**
+   * Get the shared public key
+   * @returns {Buffer} Shared public key
+   */
   getPublicKey() {
-    return this.publicKey;
+    return this.sharedPublicKey;
   }
 
-  getThresholdConfig() {
+  /**
+   * Get configuration details
+   * @returns {Object} Configuration
+   */
+  getConfig() {
     return {
-      threshold: this.threshold,
-      participants: this.participants
+      n: this.n,
+      t: this.t,
+      reconstructionThreshold: this.reconstructionThreshold,
+      signingThreshold: this.signingThreshold,
+      availableEphemeralKeys: this.ephemeralKeys.filter(k => !k.used).length
     };
   }
 
+  /**
+   * Clear all sensitive data
+   */
   clear() {
-    if (this.polynomial) {
-      this.polynomial.clear();
+    if (this.privateKeyJVRSS) {
+      this.privateKeyJVRSS.clear();
     }
-    this.shares = [];
-    this.commitments = null;
-    this.publicKey = null;
+    this.privateKeyShares = [];
+    this.ephemeralKeys = [];
+    this.sharedPublicKey = null;
   }
 }
 
-export { ThresholdSignature, FeldmanCommitments, ThresholdError };
-export default ThresholdSignature;
+/**
+ * Create and initialize a threshold signature scheme
+ * Convenience function for quick setup
+ * @param {number} n - Total participants
+ * @param {number} t - Threshold degree
+ * @param {number} ephemeralKeyCount - Number of ephemeral keys to pre-generate
+ * @returns {ThresholdSignatureScheme} Initialized scheme
+ */
+function createThresholdScheme(n, t, ephemeralKeyCount = 5) {
+  const scheme = new ThresholdSignatureScheme(n, t);
+  scheme.generateSharedPrivateKey();
+  scheme.generateEphemeralKeys(ephemeralKeyCount);
+  return scheme;
+}
+
+export { ThresholdSignatureScheme, ThresholdSignatureError, createThresholdScheme };
+export default ThresholdSignatureScheme;

@@ -1,19 +1,25 @@
 /**
  * @fileoverview Non-Custodial Wallet with Threshold Signature Scheme
- * @version 2.0.0
+ * @description Implements a non-custodial wallet using the nChain TSS protocol
+ *              for distributed key management and threshold signing.
+ * @version 1.0.0
  * @author yfbsei
  * @license ISC
  */
 
-import { createHash, randomBytes } from 'node:crypto';
+
 import { secp256k1 } from '@noble/curves/secp256k1';
 import BN from 'bn.js';
-import { ThresholdSignature, FeldmanCommitments } from '../core/crypto/signatures/threshold/threshold-signature.js';
-import { Polynomial } from '../core/crypto/signatures/threshold/polynomial.js';
-import { Schnorr } from '../core/crypto/signatures/schnorr-BIP340.js';
-import { ECDSA } from '../core/crypto/signatures/ecdsa.js';
+import {
+  ThresholdSignatureScheme,
+  createThresholdScheme,
+  Polynomial,
+  CURVE_ORDER
+} from '../core/crypto/signatures/threshold/index.js';
+
+
 import { BECH32 } from '../bip/BIP173-BIP350.js';
-import { CRYPTO_CONSTANTS, THRESHOLD_CONSTANTS } from '../core/constants.js';
+import { THRESHOLD_CONSTANTS } from '../core/constants.js';
 
 class NonCustodialWalletError extends Error {
   constructor(message, solution = 'Check threshold configuration') {
@@ -24,122 +30,204 @@ class NonCustodialWalletError extends Error {
   }
 }
 
+/**
+ * Represents a participant's key share for export/import
+ */
 class ParticipantShare {
-  constructor(index, x, y, publicKey = null) {
+  constructor(index, keyShare, publicKeyShare = null) {
     this.index = index;
-    this.x = x instanceof BN ? x : new BN(x, 'hex');
-    this.y = y instanceof BN ? y : new BN(y, 'hex');
-    this.publicKey = publicKey;
+    this.keyShare = keyShare instanceof BN ? keyShare : new BN(keyShare, 'hex');
+    this.publicKeyShare = publicKeyShare;
   }
 
   toJSON() {
     return {
       index: this.index,
-      x: this.x.toString('hex'),
-      y: this.y.toString('hex'),
-      publicKey: this.publicKey ? this.publicKey.toString('hex') : null
+      keyShare: this.keyShare.toString('hex'),
+      publicKeyShare: this.publicKeyShare ? this.publicKeyShare.toString('hex') : null
     };
   }
 
   static fromJSON(json) {
     return new ParticipantShare(
       json.index,
-      json.x,
-      json.y,
-      json.publicKey ? Buffer.from(json.publicKey, 'hex') : null
+      json.keyShare,
+      json.publicKeyShare ? Buffer.from(json.publicKeyShare, 'hex') : null
     );
   }
 }
 
+/**
+ * Non-Custodial Wallet using nChain Threshold Signature Scheme
+ * 
+ * This wallet distributes key management across multiple participants,
+ * requiring a threshold number to sign transactions.
+ * 
+ * Parameters:
+ * - n: Total number of participants
+ * - t: Threshold polynomial degree (t+1 to reconstruct, 2t+1 to sign)
+ * 
+ * Common configurations:
+ * - 2-of-3: n=3, t=1 (3 participants, 3 needed to sign)
+ * - 3-of-5: n=5, t=2 (5 participants, 5 needed to sign)
+ * 
+ * Note: Due to the INVSS protocol, signing requires 2t+1 participants.
+ */
 class NonCustodialWallet {
-  constructor(network, participants, threshold) {
-    if (threshold < THRESHOLD_CONSTANTS.MIN_THRESHOLD) {
+  /**
+   * Create a new non-custodial wallet
+   * @param {string} network - 'main' or 'test'
+   * @param {number} n - Total number of participants
+   * @param {number} t - Threshold polynomial degree
+   */
+  constructor(network, n, t) {
+    // Validate parameters
+    if (n < 2) {
       throw new NonCustodialWalletError(
-        `Threshold must be at least ${THRESHOLD_CONSTANTS.MIN_THRESHOLD}`,
-        'Increase threshold value'
+        'Need at least 2 participants',
+        'Increase participant count'
       );
     }
 
-    if (participants > THRESHOLD_CONSTANTS.MAX_PARTICIPANTS) {
+    if (t < 1) {
+      throw new NonCustodialWalletError(
+        'Threshold degree must be at least 1',
+        'Increase threshold'
+      );
+    }
+
+    // Signing requires 2t+1 participants
+    if (2 * t + 1 > n) {
+      throw new NonCustodialWalletError(
+        `Signing requires ${2 * t + 1} participants (2t+1), but only ${n} available`,
+        'Increase participants or decrease threshold'
+      );
+    }
+
+    if (n > THRESHOLD_CONSTANTS.MAX_PARTICIPANTS) {
       throw new NonCustodialWalletError(
         `Participants cannot exceed ${THRESHOLD_CONSTANTS.MAX_PARTICIPANTS}`,
         'Reduce participant count'
       );
     }
 
-    if (threshold > participants) {
-      throw new NonCustodialWalletError(
-        'Threshold cannot exceed participants',
-        'Adjust threshold or participant count'
-      );
-    }
-
     this.network = network === 'main' ? 'main' : 'test';
-    this.participants = participants;
-    this.threshold = threshold;
-    this.shares = [];
+    this.n = n;
+    this.t = t;
+    this.signingThreshold = 2 * t + 1;
+    this.reconstructionThreshold = t + 1;
+
+    // TSS scheme instance
+    this.scheme = null;
+
+    // Exported shares for backup/distribution
+    this.exportedShares = [];
+
+    // Aggregate public key
     this.aggregatePublicKey = null;
-    this.commitments = null;
-    this.version = '2.0.0';
+
+    this.version = '1.0.0';
     this.created = Date.now();
   }
 
-  static createNew(network = 'main', participants = 3, threshold = 2) {
-    const wallet = new NonCustodialWallet(network, participants, threshold);
-    wallet.generateShares();
-    return { wallet, shares: wallet.getShares() };
+  /**
+   * Create a new wallet with fresh key generation
+   * @param {string} network - Network type
+   * @param {number} n - Total participants (default 3)
+   * @param {number} t - Threshold degree (default 1, meaning 3-of-3 for signing)
+   * @param {number} ephemeralKeyCount - Pre-generated ephemeral keys
+   * @returns {{wallet: NonCustodialWallet, shares: Array}} Wallet and shares
+   */
+  static createNew(network = 'main', n = 3, t = 1, ephemeralKeyCount = 10) {
+    const wallet = new NonCustodialWallet(network, n, t);
+    wallet.initialize(ephemeralKeyCount);
+    return {
+      wallet,
+      shares: wallet.getShares(),
+      config: wallet.getThresholdConfig()
+    };
   }
 
-  static fromShares(network, shares, threshold) {
-    const participants = shares.length;
-    const wallet = new NonCustodialWallet(network, participants, threshold);
+  /**
+   * Initialize the wallet with TSS key generation
+   * @param {number} ephemeralKeyCount - Number of ephemeral keys to pre-generate
+   */
+  initialize(ephemeralKeyCount = 10) {
+    // Create and initialize the threshold scheme
+    this.scheme = createThresholdScheme(this.n, this.t, ephemeralKeyCount);
+    this.aggregatePublicKey = this.scheme.getPublicKey();
 
-    wallet.shares = shares.map(s =>
+    // Export shares for distribution
+    this._exportShares();
+  }
+
+  /**
+   * Export shares from the internal scheme for backup
+   */
+  _exportShares() {
+    if (!this.scheme) return;
+
+    this.exportedShares = this.scheme.privateKeyShares.map(share =>
+      new ParticipantShare(
+        share.index,
+        share.keyShare,
+        share.publicKeyShare
+      )
+    );
+  }
+
+  /**
+   * Restore wallet from exported shares (limited functionality)
+   * Note: Full signing requires the complete JVRSS state
+   * @param {string} network - Network type
+   * @param {Array} shares - Exported shares
+   * @param {number} t - Threshold degree
+   * @returns {NonCustodialWallet} Restored wallet
+   */
+  static fromShares(network, shares, t) {
+    const n = shares.length;
+    const wallet = new NonCustodialWallet(network, n, t);
+
+    wallet.exportedShares = shares.map(s =>
       s instanceof ParticipantShare ? s : ParticipantShare.fromJSON(s)
     );
 
+    // Reconstruct public key from shares
     wallet._reconstructPublicKey();
+
     return wallet;
   }
 
-  generateShares(secret = null) {
-    const thresholdSig = new ThresholdSignature(this.threshold, this.participants);
-    const result = thresholdSig.generateShares(secret);
-
-    this.shares = result.shares.map(s => new ParticipantShare(
-      s.index,
-      s.x,
-      s.y
-    ));
-
-    this.commitments = result.commitments;
-    this.aggregatePublicKey = result.publicKey;
-
-    return this.shares;
-  }
-
+  /**
+   * Reconstruct the aggregate public key from shares
+   */
   _reconstructPublicKey() {
-    if (this.shares.length < this.threshold) {
+    if (this.exportedShares.length < this.reconstructionThreshold) {
       throw new NonCustodialWalletError(
-        `Need at least ${this.threshold} shares to reconstruct`,
+        `Need at least ${this.reconstructionThreshold} shares to reconstruct`,
         'Provide more shares'
       );
     }
 
-    const selectedShares = this.shares.slice(0, this.threshold);
+    const selectedShares = this.exportedShares.slice(0, this.reconstructionThreshold);
     const secret = Polynomial.reconstructSecret(
-      selectedShares.map(s => ({ x: s.x, y: s.y }))
+      selectedShares.map(s => ({ x: new BN(s.index), y: s.keyShare }))
     );
 
-    const secretBuffer = secret.toBuffer('be', 32);
+    const secretBuffer = secret.toArrayLike(Buffer, 'be', 32);
     this.aggregatePublicKey = Buffer.from(
       secp256k1.getPublicKey(secretBuffer, true)
     );
   }
 
+  /**
+   * Get wallet address
+   * @param {string} type - 'segwit' or 'taproot'
+   * @returns {string} Bitcoin address
+   */
   getAddress(type = 'segwit') {
     if (!this.aggregatePublicKey) {
-      this._reconstructPublicKey();
+      throw new NonCustodialWalletError('Wallet not initialized');
     }
 
     const publicKeyHex = this.aggregatePublicKey.toString('hex');
@@ -154,123 +242,205 @@ class NonCustodialWallet {
     }
   }
 
+  /**
+   * Get all shares for distribution to participants
+   * @returns {Array} Array of share objects
+   */
   getShares() {
-    return this.shares.map(s => s.toJSON());
+    return this.exportedShares.map(s => s.toJSON());
   }
 
+  /**
+   * Get a specific participant's share
+   * @param {number} index - Participant index (1-indexed)
+   * @returns {Object} Share data
+   */
   getShare(index) {
-    const share = this.shares.find(s => s.index === index);
+    const share = this.exportedShares.find(s => s.index === index);
     if (!share) {
       throw new NonCustodialWalletError(`Share ${index} not found`);
     }
     return share.toJSON();
   }
 
-  verifyShare(share) {
-    if (!this.commitments) {
-      throw new NonCustodialWalletError('Commitments not available');
+  /**
+   * Sign a message hash using threshold signature
+   * @param {Buffer|string} messageHash - 32-byte message hash
+   * @param {number[]} participantIndices - Indices of signing participants
+   * @returns {Object} Signature {r, s, signature}
+   */
+  sign(messageHash, participantIndices = null) {
+    if (!this.scheme) {
+      throw new NonCustodialWalletError(
+        'Full signing requires initialized scheme',
+        'Use createNew() to create a signable wallet'
+      );
     }
 
-    const feldman = new FeldmanCommitments({ getCoefficients: () => [] });
-    feldman.commitments = this.commitments.map(c =>
-      secp256k1.ProjectivePoint.fromHex(c)
-    );
+    // Default to first signingThreshold participants
+    const indices = participantIndices ||
+      Array.from({ length: this.signingThreshold }, (_, i) => i + 1);
 
-    return feldman.verifyShare({
-      x: new BN(share.x, 'hex'),
-      y: new BN(share.y, 'hex')
-    });
-  }
-
-  async signMessage(messageHash, participantIndices = null) {
-    const indices = participantIndices || this.shares.slice(0, this.threshold).map(s => s.index);
-
-    if (indices.length < this.threshold) {
+    if (indices.length < this.signingThreshold) {
       throw new NonCustodialWalletError(
-        `Need at least ${this.threshold} participants to sign`,
+        `Need at least ${this.signingThreshold} participants to sign (2t+1)`,
         'Provide more participant indices'
       );
     }
 
-    const selectedShares = indices.map(i => {
-      const share = this.shares.find(s => s.index === i);
-      if (!share) {
-        throw new NonCustodialWalletError(`Share ${i} not found`);
+    return this.scheme.sign(messageHash, indices);
+  }
+
+  /**
+   * Sign a message (with Bitcoin message prefix)
+   * @param {string|Buffer} message - Message to sign
+   * @param {number[]} participantIndices - Signing participants
+   * @returns {Object} Signature
+   */
+  signMessage(message, participantIndices = null) {
+    if (!this.scheme) {
+      throw new NonCustodialWalletError(
+        'Full signing requires initialized scheme',
+        'Use createNew() to create a signable wallet'
+      );
+    }
+
+    return this.scheme.signMessage(message, participantIndices);
+  }
+
+  /**
+   * Verify a signature
+   * @param {Buffer|string} messageHash - Message hash
+   * @param {Object|Buffer} signature - Signature to verify
+   * @returns {boolean} True if valid
+   */
+  verify(messageHash, signature) {
+    if (!this.aggregatePublicKey) {
+      throw new NonCustodialWalletError('Wallet not initialized');
+    }
+
+    if (this.scheme) {
+      return this.scheme.verify(messageHash, signature);
+    }
+
+    // Manual verification if scheme not available
+    try {
+      let r, s;
+      if (Buffer.isBuffer(signature) && signature.length === 64) {
+        r = new BN(signature.slice(0, 32));
+        s = new BN(signature.slice(32, 64));
+      } else if (signature.r && signature.s) {
+        r = new BN(signature.r, 'hex');
+        s = new BN(signature.s, 'hex');
+      } else {
+        return false;
       }
-      return share;
-    });
 
-    const partialSigs = selectedShares.map(share =>
-      ThresholdSignature.generatePartialSignature(
-        { y: share.y, index: share.index },
-        messageHash
-      )
-    );
+      const sig = new secp256k1.Signature(
+        BigInt('0x' + r.toString('hex')),
+        BigInt('0x' + s.toString('hex'))
+      );
 
-    return ThresholdSignature.combinePartialSignatures(partialSigs, this.threshold);
-  }
+      let hash;
+      if (typeof messageHash === 'string') {
+        hash = Buffer.from(messageHash, 'hex');
+      } else {
+        hash = messageHash;
+      }
 
-  async verifySignature(messageHash, signature) {
-    if (!this.aggregatePublicKey) {
-      this._reconstructPublicKey();
+      return secp256k1.verify(sig, hash, this.aggregatePublicKey);
+    } catch {
+      return false;
     }
-
-    return ThresholdSignature.verifyThresholdSignature(
-      this.aggregatePublicKey,
-      messageHash,
-      signature
-    );
   }
 
+  /**
+   * Get the aggregate public key
+   * @returns {Buffer} Compressed public key
+   */
   getPublicKey() {
-    if (!this.aggregatePublicKey) {
-      this._reconstructPublicKey();
-    }
     return this.aggregatePublicKey;
   }
 
+  /**
+   * Get threshold configuration
+   * @returns {Object} Configuration details
+   */
   getThresholdConfig() {
     return {
-      threshold: this.threshold,
-      participants: this.participants,
-      sharesAvailable: this.shares.length
+      n: this.n,
+      t: this.t,
+      reconstructionThreshold: this.reconstructionThreshold,
+      signingThreshold: this.signingThreshold,
+      sharesAvailable: this.exportedShares.length,
+      ephemeralKeysAvailable: this.scheme?.getConfig()?.availableEphemeralKeys || 0
     };
   }
 
+  /**
+   * Generate more ephemeral keys for signing
+   * @param {number} count - Number of keys to generate
+   */
+  generateEphemeralKeys(count = 10) {
+    if (!this.scheme) {
+      throw new NonCustodialWalletError('Scheme not initialized');
+    }
+    this.scheme.generateEphemeralKeys(count);
+  }
+
+  /**
+   * Export wallet for serialization
+   * @returns {Object} Serialized wallet data
+   */
   toJSON() {
     return {
       network: this.network,
       version: this.version,
       created: this.created,
-      threshold: this.threshold,
-      participants: this.participants,
+      n: this.n,
+      t: this.t,
+      signingThreshold: this.signingThreshold,
+      reconstructionThreshold: this.reconstructionThreshold,
       aggregatePublicKey: this.aggregatePublicKey?.toString('hex'),
-      sharesCount: this.shares.length
+      sharesCount: this.exportedShares.length
     };
   }
 
+  /**
+   * Export shares for backup
+   * @returns {Object} Exportable data
+   */
   exportShares() {
     return {
       network: this.network,
-      threshold: this.threshold,
-      participants: this.participants,
-      shares: this.getShares(),
-      commitments: this.commitments?.map(c => c.toString('hex'))
+      n: this.n,
+      t: this.t,
+      shares: this.getShares()
     };
   }
 
+  /**
+   * Import shares from backup
+   * @param {Object} exportedData - Previously exported data
+   * @returns {NonCustodialWallet} Restored wallet
+   */
   static importShares(exportedData) {
-    const wallet = NonCustodialWallet.fromShares(
+    return NonCustodialWallet.fromShares(
       exportedData.network,
       exportedData.shares,
-      exportedData.threshold
+      exportedData.t
     );
+  }
 
-    if (exportedData.commitments) {
-      wallet.commitments = exportedData.commitments.map(c => Buffer.from(c, 'hex'));
+  /**
+   * Clear sensitive data
+   */
+  clear() {
+    if (this.scheme) {
+      this.scheme.clear();
     }
-
-    return wallet;
+    this.exportedShares = [];
+    this.aggregatePublicKey = null;
   }
 }
 

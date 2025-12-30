@@ -1,6 +1,6 @@
 /**
  * @fileoverview Bitcoin address and key encoding utilities
- * @version 2.1.0
+ * @version 1.0.0
  * @author yfbsei
  * @license ISC
  */

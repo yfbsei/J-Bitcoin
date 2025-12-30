@@ -1,13 +1,11 @@
 /**
  * @fileoverview Tapscript interpreter implementation following BIP342
- * @version 2.1.0
+ * @version 1.0.0
  * @author yfbsei
  * @license ISC
  */
 
-import { createHash, randomBytes } from 'node:crypto';
 import Schnorr from '../crypto/signatures/schnorr-BIP340.js';
-import { CRYPTO_CONSTANTS } from '../constants.js';
 
 class TapscriptError extends Error {
   constructor(message, code, details = {}) {
@@ -148,7 +146,7 @@ class TapscriptInterpreter {
   _calculateSigOpsBudget(witness) {
     const witnessSize = witness.reduce((sum, item) => sum + item.length, 0);
     return TAPSCRIPT_CONSTANTS.BASE_SIGOPS_BUDGET +
-           Math.floor(witnessSize / TAPSCRIPT_CONSTANTS.SIGOPS_PER_WITNESS_UNIT);
+      Math.floor(witnessSize / TAPSCRIPT_CONSTANTS.SIGOPS_PER_WITNESS_UNIT);
   }
 
   _isOpSuccess(opcode) {

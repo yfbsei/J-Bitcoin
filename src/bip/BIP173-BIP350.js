@@ -1,6 +1,6 @@
 /**
  * @fileoverview BIP173/BIP350 Bech32 address encoding for Bitcoin
- * @version 2.1.0
+ * @version 1.0.0
  * @author yfbsei
  * @license ISC
  */

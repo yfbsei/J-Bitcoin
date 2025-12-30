@@ -1,11 +1,11 @@
 /**
  * @fileoverview ECDSA signature implementation for Bitcoin
- * @version 2.1.0
+ * @version 1.0.0
  * @author yfbsei
  * @license ISC
  */
 
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { secp256k1 } from '@noble/curves/secp256k1';
 import { b58decode } from '../../../encoding/base58.js';
 import { CRYPTO_CONSTANTS, NETWORK_VERSIONS } from '../../constants.js';

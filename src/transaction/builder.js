@@ -1,17 +1,12 @@
 /**
  * @fileoverview Transaction builder with Taproot support
- * @version 2.1.0
+ * @version 1.0.0
  * @author yfbsei
  * @license ISC
  */
 
 import { createHash } from 'node:crypto';
-import { secp256k1 } from '@noble/curves/secp256k1';
-import rmd160 from '../core/crypto/hash/ripemd160.js';
-import { BECH32 } from '../bip/BIP173-BIP350.js';
-import { NETWORK_VERSIONS, CRYPTO_CONSTANTS, TRANSACTION_CONSTANTS } from '../core/constants.js';
-import { validateAddress, ValidationError } from '../utils/validation.js';
-import { decodeAddress, getScriptPubKey } from '../utils/address-helpers.js';
+import { getScriptPubKey } from '../utils/address-helpers.js';
 
 class TransactionBuilderError extends Error {
   constructor(message, code, details = {}) {

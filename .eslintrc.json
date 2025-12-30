@@ -50,7 +50,7 @@
     "keyword-spacing": "error",
     "comma-dangle": [
       "error",
-      "es5"
+      "always-multiline"
     ],
     "quotes": [
       "error",

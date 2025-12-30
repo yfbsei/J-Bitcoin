@@ -42,12 +42,16 @@ export { ECDSA } from './src/core/crypto/signatures/ecdsa.js';
 // Schnorr Signatures (BIP340)
 export { Schnorr, Schnorr as SchnorrSignature } from './src/core/crypto/signatures/schnorr-BIP340.js';
 
-// Threshold Signatures
-export { Polynomial } from './src/core/crypto/signatures/threshold/polynomial.js';
+// Threshold Signatures (nChain TSS Protocol)
 export {
-  ThresholdSignature,
-  FeldmanCommitments
-} from './src/core/crypto/signatures/threshold/threshold-signature.js';
+  Polynomial,
+  JVRSS,
+  ThresholdSignatureScheme,
+  createThresholdScheme,
+  ADDSS,
+  PROSS,
+  INVSS
+} from './src/core/crypto/signatures/threshold/index.js';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ENCODING
@@ -154,8 +158,11 @@ import CustodialWallet from './src/wallet/custodial.js';
 import NonCustodialWallet from './src/wallet/non-custodial.js';
 import { ECDSA } from './src/core/crypto/signatures/ecdsa.js';
 import { Schnorr } from './src/core/crypto/signatures/schnorr-BIP340.js';
-import { Polynomial } from './src/core/crypto/signatures/threshold/polynomial.js';
-import { ThresholdSignature } from './src/core/crypto/signatures/threshold/threshold-signature.js';
+import {
+  Polynomial,
+  ThresholdSignatureScheme,
+  JVRSS
+} from './src/core/crypto/signatures/threshold/index.js';
 import { BIP39 } from './src/bip/bip39/mnemonic.js';
 import { BECH32 } from './src/bip/BIP173-BIP350.js';
 import { generateMasterKey } from './src/bip/bip32/master-key.js';
@@ -171,7 +178,8 @@ export default {
   Schnorr,
   SchnorrSignature: Schnorr,
   Polynomial,
-  ThresholdSignature,
+  ThresholdSignatureScheme,
+  JVRSS,
 
   // BIP Implementations
   BIP39,

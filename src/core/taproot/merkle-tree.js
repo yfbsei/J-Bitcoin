@@ -1,11 +1,11 @@
 /**
  * @fileoverview Taproot merkle tree implementation for script path spending
- * @version 2.1.0
+ * @version 1.0.0
  * @author yfbsei
  * @license ISC
  */
 
-import { createHash, timingSafeEqual, randomBytes } from 'node:crypto';
+import { createHash } from 'node:crypto';
 
 class MerkleTreeError extends Error {
   constructor(message, code, details = {}) {

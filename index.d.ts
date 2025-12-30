@@ -1,6 +1,6 @@
 /**
  * J-Bitcoin - TypeScript Definitions
- * @version 2.0.0
+ * @version 3.0.0
  * @author yfbsei
  * @license ISC
  */
@@ -21,6 +21,9 @@ declare module 'j-bitcoin' {
 
     /** Buffer-like input types */
     export type BufferLike = Buffer | Uint8Array | ArrayBuffer;
+
+    /** BN.js compatible type */
+    export type BNLike = any;
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // INTERFACES
@@ -60,18 +63,32 @@ declare module 'j-bitcoin' {
 
     /** Threshold signature result */
     export interface ThresholdSignatureResult {
-        r: bigint;
-        s: bigint;
-        participants: number;
-        threshold: number;
+        r: string;
+        s: string;
+        signature: Buffer;
     }
 
-    /** Polynomial share for secret sharing */
-    export interface PolynomialShareData {
+    /** Participant share for threshold signatures (nChain TSS) */
+    export interface ParticipantShareData {
         index: number;
-        x: string;
-        y: string;
-        publicKey?: string | null;
+        keyShare: string;
+        publicKeyShare?: string | null;
+    }
+
+    /** Threshold scheme configuration */
+    export interface ThresholdConfig {
+        n: number;
+        t: number;
+        reconstructionThreshold: number;
+        signingThreshold: number;
+        sharesAvailable: number;
+        ephemeralKeysAvailable?: number;
+    }
+
+    /** Share for interpolation */
+    export interface InterpolationShare {
+        x: BNLike;
+        y: BNLike;
     }
 
     /** UTXO structure */
@@ -184,87 +201,99 @@ declare module 'j-bitcoin' {
     /** Participant share for threshold signatures */
     export class ParticipantShare {
         readonly index: number;
-        readonly x: any; // BN instance
-        readonly y: any; // BN instance
-        readonly publicKey: Buffer | null;
+        readonly keyShare: BNLike;
+        readonly publicKeyShare: Buffer | null;
 
-        constructor(index: number, x: any, y: any, publicKey?: any);
+        constructor(index: number, keyShare: BNLike, publicKeyShare?: Buffer | null);
 
-        toJSON(): PolynomialShareData;
-        static fromJSON(json: PolynomialShareData): ParticipantShare;
+        toJSON(): ParticipantShareData;
+        static fromJSON(json: ParticipantShareData): ParticipantShare;
     }
 
-    /** Non-custodial wallet with threshold signatures */
+    /**
+     * Non-custodial wallet with nChain Threshold Signature Scheme
+     * 
+     * Parameters:
+     * - n: Total number of participants
+     * - t: Threshold polynomial degree (t+1 to reconstruct, 2t+1 to sign)
+     */
     export class NonCustodialWallet {
         readonly network: BitcoinNetwork;
-        readonly participants: number;
-        readonly threshold: number;
+        readonly n: number;
+        readonly t: number;
+        readonly signingThreshold: number;
+        readonly reconstructionThreshold: number;
         readonly version: string;
         readonly created: number;
 
-        constructor(network: BitcoinNetwork, participants: number, threshold: number);
+        constructor(network: BitcoinNetwork, n: number, t: number);
 
         /** Create new wallet with generated shares */
         static createNew(
             network?: BitcoinNetwork,
-            participants?: number,
-            threshold?: number
-        ): { wallet: NonCustodialWallet; shares: PolynomialShareData[] };
+            n?: number,
+            t?: number,
+            ephemeralKeyCount?: number
+        ): {
+            wallet: NonCustodialWallet;
+            shares: ParticipantShareData[];
+            config: ThresholdConfig;
+        };
 
-        /** Restore wallet from existing shares */
+        /** Restore wallet from existing shares (limited functionality) */
         static fromShares(
             network: BitcoinNetwork,
-            shares: PolynomialShareData[],
-            threshold: number
+            shares: ParticipantShareData[],
+            t: number
         ): NonCustodialWallet;
 
         /** Import wallet from exported data */
         static importShares(exportedData: {
             network: BitcoinNetwork;
-            threshold: number;
-            participants: number;
-            shares: PolynomialShareData[];
-            commitments?: string[];
+            n: number;
+            t: number;
+            shares: ParticipantShareData[];
         }): NonCustodialWallet;
 
-        /** Generate secret shares */
-        generateShares(secret?: any): ParticipantShare[];
+        /** Initialize the wallet with TSS key generation */
+        initialize(ephemeralKeyCount?: number): void;
 
         /** Get wallet address */
         getAddress(type?: AddressType): string;
 
         /** Get all shares as JSON */
-        getShares(): PolynomialShareData[];
+        getShares(): ParticipantShareData[];
 
         /** Get specific share by index */
-        getShare(index: number): PolynomialShareData;
-
-        /** Verify share is valid against commitments */
-        verifyShare(share: PolynomialShareData): boolean;
+        getShare(index: number): ParticipantShareData;
 
         /** Sign message hash with threshold participants */
-        signMessage(messageHash: BufferLike, participantIndices?: number[]): Promise<ThresholdSignatureResult>;
+        sign(messageHash: BufferLike, participantIndices?: number[]): ThresholdSignatureResult;
 
-        /** Verify threshold signature */
-        verifySignature(messageHash: BufferLike, signature: ThresholdSignatureResult): Promise<boolean>;
+        /** Sign message with Bitcoin prefix */
+        signMessage(message: string | Buffer, participantIndices?: number[]): ThresholdSignatureResult;
+
+        /** Verify signature */
+        verify(messageHash: BufferLike, signature: ThresholdSignatureResult | Buffer): boolean;
 
         /** Get aggregate public key */
         getPublicKey(): Buffer;
 
         /** Get threshold configuration */
-        getThresholdConfig(): {
-            threshold: number;
-            participants: number;
-            sharesAvailable: number;
-        };
+        getThresholdConfig(): ThresholdConfig;
+
+        /** Generate more ephemeral keys */
+        generateEphemeralKeys(count?: number): void;
 
         /** Export wallet info */
         toJSON(): {
             network: BitcoinNetwork;
             version: string;
             created: number;
-            threshold: number;
-            participants: number;
+            n: number;
+            t: number;
+            signingThreshold: number;
+            reconstructionThreshold: number;
             aggregatePublicKey: string | undefined;
             sharesCount: number;
         };
@@ -272,11 +301,13 @@ declare module 'j-bitcoin' {
         /** Export shares for backup */
         exportShares(): {
             network: BitcoinNetwork;
-            threshold: number;
-            participants: number;
-            shares: PolynomialShareData[];
-            commitments?: string[];
+            n: number;
+            t: number;
+            shares: ParticipantShareData[];
         };
+
+        /** Clear sensitive data */
+        clear(): void;
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -324,39 +355,118 @@ declare module 'j-bitcoin' {
     /** Alias for Schnorr */
     export const SchnorrSignature: typeof Schnorr;
 
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // THRESHOLD SIGNATURES (nChain TSS Protocol)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
     /** Polynomial for secret sharing */
     export class Polynomial {
-        readonly coefficients: any[]; // BN array
+        readonly coefficients: BNLike[];
         readonly degree: number;
 
-        constructor(coefficients: any[]);
-        evaluate(x: any): any;
-        static generateRandom(degree: number, constantTerm?: any): Polynomial;
-        static reconstructSecret(shares: Array<{ x: any; y: any }>): any;
+        constructor(degree: number, secret?: BNLike | null);
+        evaluate(x: number | BNLike): BNLike;
+        getSecret(): BNLike;
+        getCoefficients(): BNLike[];
+        generateShares(n: number): InterpolationShare[];
+        clear(): void;
+
+        static lagrangeCoefficient(i: number, xCoords: BNLike[], x?: BNLike): BNLike;
+        static interpolate(shares: InterpolationShare[], x?: BNLike): BNLike;
+        static reconstructSecret(shares: InterpolationShare[]): BNLike;
     }
 
-    /** Threshold signature scheme */
-    export class ThresholdSignature {
-        readonly threshold: number;
-        readonly participants: number;
+    /** Joint Verifiable Random Secret Sharing */
+    export class JVRSS {
+        readonly n: number;
+        readonly t: number;
+        readonly participants: any[];
+        readonly sharedPublicKey: Buffer | null;
 
-        constructor(threshold: number, participants: number);
-        generateShares(secret?: any): {
-            shares: Array<{ index: number; x: any; y: any }>;
-            commitments: Buffer[];
+        constructor(n: number, t: number);
+
+        getParticipant(index: number): any;
+        generatePolynomials(): void;
+        distributePolynomialPoints(): void;
+        calculateShares(): void;
+        broadcastObfuscatedCoefficients(): void;
+        verifyAllShares(): { valid: boolean; invalidPairs: Array<{ verifier: number; sender: number }> };
+        calculateSharedPublicKey(): Buffer;
+        runProtocol(): {
+            shares: Array<{ index: number; keyShare: BNLike; publicKeyShare: Buffer }>;
             publicKey: Buffer;
+            verified: boolean;
         };
-        static generatePartialSignature(share: { y: any; index: number }, messageHash: BufferLike): any;
-        static combinePartialSignatures(partialSigs: any[], threshold: number): ThresholdSignatureResult;
-        static verifyThresholdSignature(publicKey: BufferLike, messageHash: BufferLike, signature: { r: bigint; s: bigint }): boolean;
+        getSharesForInterpolation(): InterpolationShare[];
+        reconstructSecret(): BNLike;
+        clear(): void;
     }
 
-    /** Feldman VSS commitments */
-    export class FeldmanCommitments {
-        commitments: any[];
-        constructor(polynomial: Polynomial);
-        verifyShare(share: { x: any; y: any }): boolean;
+    /** Threshold Signature Scheme (nChain TSS Protocol) */
+    export class ThresholdSignatureScheme {
+        readonly n: number;
+        readonly t: number;
+        readonly signingThreshold: number;
+        readonly reconstructionThreshold: number;
+
+        constructor(n: number, t: number);
+
+        /** Generate shared private key using JVRSS */
+        generateSharedPrivateKey(): Buffer;
+
+        /** Generate ephemeral keys for signing */
+        generateEphemeralKeys(count?: number): void;
+
+        /** Sign message hash with threshold participants */
+        sign(messageHash: BufferLike, participantIndices?: number[]): ThresholdSignatureResult;
+
+        /** Sign message with Bitcoin prefix */
+        signMessage(message: string | Buffer, participantIndices?: number[]): ThresholdSignatureResult;
+
+        /** Verify signature */
+        verify(messageHash: BufferLike, signature: ThresholdSignatureResult | Buffer, publicKey?: Buffer): boolean;
+
+        /** Get the shared public key */
+        getPublicKey(): Buffer;
+
+        /** Get configuration */
+        getConfig(): ThresholdConfig;
+
+        /** Clear sensitive data */
+        clear(): void;
     }
+
+    /** Create and initialize a threshold scheme */
+    export function createThresholdScheme(
+        n: number,
+        t: number,
+        ephemeralKeyCount?: number
+    ): ThresholdSignatureScheme;
+
+    /** Addition of shared secrets (Section 2.2) */
+    export function ADDSS(
+        aShares: InterpolationShare[],
+        bShares: InterpolationShare[],
+        threshold: number
+    ): BNLike;
+
+    /** Product of shared secrets (Section 2.3) */
+    export function PROSS(
+        aShares: InterpolationShare[],
+        bShares: InterpolationShare[],
+        productThreshold: number
+    ): BNLike;
+
+    /** Inverse of a shared secret (Section 2.4) */
+    export function INVSS(
+        aShares: InterpolationShare[],
+        bShares: InterpolationShare[],
+        t: number
+    ): {
+        mu: BNLike;
+        muInverse: BNLike;
+        inverseShares: InterpolationShare[];
+    };
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // ENCODING FUNCTIONS
@@ -449,7 +559,12 @@ declare module 'j-bitcoin' {
         Schnorr: typeof Schnorr;
         SchnorrSignature: typeof Schnorr;
         Polynomial: typeof Polynomial;
-        ThresholdSignature: typeof ThresholdSignature;
+        JVRSS: typeof JVRSS;
+        ThresholdSignatureScheme: typeof ThresholdSignatureScheme;
+        createThresholdScheme: typeof createThresholdScheme;
+        ADDSS: typeof ADDSS;
+        PROSS: typeof PROSS;
+        INVSS: typeof INVSS;
         BIP39: typeof BIP39;
         BECH32: typeof BECH32;
         fromSeed: typeof generateMasterKey;

@@ -1,11 +1,10 @@
 /**
  * @fileoverview Taproot control block implementation following BIP341
- * @version 2.1.0
+ * @version 1.0.0
  * @author yfbsei
  * @license ISC
  */
 
-import { createHash, timingSafeEqual } from 'node:crypto';
 import { secp256k1 } from '@noble/curves/secp256k1';
 import { TaprootMerkleTree, TaggedHash, MERKLE_CONSTANTS } from './merkle-tree.js';
 import { CRYPTO_CONSTANTS } from '../constants.js';
@@ -123,7 +122,7 @@ class TaprootControlBlock {
     const merklePath = merkleTree.getMerklePath(leafIndex);
 
     const firstByte = (leaf.leafVersion & CONTROL_BLOCK_CONSTANTS.LEAF_VERSION_MASK) |
-                      (outputKeyParity & CONTROL_BLOCK_CONSTANTS.PARITY_MASK);
+      (outputKeyParity & CONTROL_BLOCK_CONSTANTS.PARITY_MASK);
 
     const parts = [
       Buffer.from([firstByte]),

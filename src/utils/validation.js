@@ -1,11 +1,11 @@
 /**
  * @fileoverview Comprehensive validation utilities for Bitcoin operations
- * @version 2.1.0
+ * @version 1.0.0
  * @author yfbsei
  * @license ISC
  */
 
-import { CRYPTO_CONSTANTS, NETWORK_VERSIONS } from '../core/constants.js';
+import { CRYPTO_CONSTANTS } from '../core/constants.js';
 
 class ValidationError extends Error {
   constructor(message, code, details = {}) {
@@ -112,7 +112,7 @@ function validateAddress(address, network = 'main') {
   }
 
   if (address.startsWith('1') || address.startsWith('3') ||
-      address.startsWith('m') || address.startsWith('n') || address.startsWith('2')) {
+    address.startsWith('m') || address.startsWith('n') || address.startsWith('2')) {
     return validateBase58Address(address, network);
   }
 
@@ -166,7 +166,7 @@ function validatePrivateKey(key, fieldName = 'private key') {
       return { valid: true, format: 'hex' };
     }
     if (key.startsWith('5') || key.startsWith('K') || key.startsWith('L') ||
-        key.startsWith('9') || key.startsWith('c')) {
+      key.startsWith('9') || key.startsWith('c')) {
       return { valid: true, format: 'wif' };
     }
     throw new ValidationError(`Invalid ${fieldName} format`, 'INVALID_FORMAT');

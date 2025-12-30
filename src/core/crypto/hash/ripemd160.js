@@ -1,11 +1,11 @@
 /**
  * @fileoverview RIPEMD160 cryptographic hash function implementation
- * @version 2.1.0
+ * @version 1.0.0
  * @author yfbsei
  * @license ISC
  */
 
-import { randomBytes, timingSafeEqual, createHash } from 'node:crypto';
+import { createHash } from 'node:crypto';
 
 const SECURITY_CONSTANTS = {
   MAX_INPUT_SIZE: 1024 * 1024,

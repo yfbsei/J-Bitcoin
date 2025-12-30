@@ -1,6 +1,6 @@
 /**
  * @fileoverview Bech32/Bech32m encoding for Bitcoin SegWit and Taproot addresses
- * @version 2.1.0
+ * @version 1.0.0
  * @author yfbsei
  * @license ISC
  */

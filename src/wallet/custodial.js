@@ -1,18 +1,18 @@
 /**
  * @fileoverview Custodial Bitcoin Wallet implementation
- * @version 2.0.0
+ * @version 1.0.0
  * @author yfbsei
  * @license ISC
  */
 
-import { createHash } from 'node:crypto';
+
 import { BIP39 } from '../bip/bip39/mnemonic.js';
 import { generateMasterKey } from '../bip/bip32/master-key.js';
 import { derive } from '../bip/bip32/derive.js';
 import { BECH32 } from '../bip/BIP173-BIP350.js';
 import { ECDSA } from '../core/crypto/signatures/ecdsa.js';
 import { encodeP2PKH, encodeWIF, hash160 } from '../encoding/address/encode.js';
-import { NETWORK_VERSIONS, BIP_PURPOSES, generateDerivationPath } from '../core/constants.js';
+import { NETWORK_VERSIONS, BIP_PURPOSES } from '../core/constants.js';
 
 class CustodialWalletError extends Error {
   constructor(message, solution = '') {
@@ -29,7 +29,7 @@ class CustodialWallet {
     this.masterKeys = masterKeys;
     this.mnemonic = mnemonic;
     this.derivedAddresses = new Map();
-    this.version = '2.0.0';
+    this.version = '1.0.0';
     this.created = Date.now();
   }
 
