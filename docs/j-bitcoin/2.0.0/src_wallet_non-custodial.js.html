@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>src/wallet/non-custodial.js - J-Bitcoin - Bitcoin Wallet Library</title>
+    
+    <meta name="description" content="JavaScript/TypeScript Bitcoin wallet library with HD wallets, threshold signatures, and BIP compliance" />
+    
+        <meta name="keywords" content="bitcoin, btc, cryptocurrency, wallet, javascript, typescript, threshold signatures, bip32, bip39" />
+        <meta name="keyword" content="bitcoin, btc, cryptocurrency, wallet, javascript, typescript, threshold signatures, bip32, bip39" />
+    
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+    <script src="scripts/nav.js" defer></script>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav class="wrap">
+    
+    <input type="text" id="nav-search" placeholder="Search" />
+    
+    
+    <h2><a href="index.html">Home</a></h2><h2><a href="https://github.com/yfbsei/J-Bitcoin" target="_blank" class="menu-item home-link" id="home-link" >🏠 Home</a></h2><h2><a href="https://github.com/yfbsei/J-Bitcoin" target="_blank" class="menu-item github-link" id="github-link" >📚 GitHub</a></h2><h2><a href="https://www.npmjs.com/package/j-bitcoin" target="_blank" class="menu-item npm-link" id="npm-link" >📦 NPM</a></h2><h2><a href="https://github.com/yfbsei/J-Bitcoin/tree/main/examples" target="_blank" class="menu-item examples-link" id="examples-link" >🔧 Examples</a></h2><h2><a href="https://github.com/yfbsei/J-Bitcoin/blob/main/CHANGELOG.md" target="_blank" class="menu-item changelog-link" id="changelog-link" >📊 Changelog</a></h2><h3>Global</h3><ul><li><a href="global.html#BIP_COMPLIANCE">BIP_COMPLIANCE</a></li><li><a href="global.html#FEATURES">FEATURES</a></li><li><a href="global.html#LIBRARY_INFO">LIBRARY_INFO</a></li><li><a href="global.html#NETWORKS">NETWORKS</a></li></ul>
+    
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">src/wallet/non-custodial.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview Non-Custodial Wallet with Threshold Signature Scheme
+ * @version 2.0.0
+ * @author yfbsei
+ * @license ISC
+ */
+
+import { createHash, randomBytes } from 'node:crypto';
+import { secp256k1 } from '@noble/curves/secp256k1';
+import BN from 'bn.js';
+import { ThresholdSignature, FeldmanCommitments } from '../core/crypto/signatures/threshold/threshold-signature.js';
+import { Polynomial } from '../core/crypto/signatures/threshold/polynomial.js';
+import { Schnorr } from '../core/crypto/signatures/schnorr-BIP340.js';
+import { ECDSA } from '../core/crypto/signatures/ecdsa.js';
+import { BECH32 } from '../bip/BIP173-BIP350.js';
+import { CRYPTO_CONSTANTS, THRESHOLD_CONSTANTS } from '../core/constants.js';
+
+class NonCustodialWalletError extends Error {
+  constructor(message, solution = 'Check threshold configuration') {
+    super(message);
+    this.name = 'NonCustodialWalletError';
+    this.solution = solution;
+    this.timestamp = new Date().toISOString();
+  }
+}
+
+class ParticipantShare {
+  constructor(index, x, y, publicKey = null) {
+    this.index = index;
+    this.x = x instanceof BN ? x : new BN(x, 'hex');
+    this.y = y instanceof BN ? y : new BN(y, 'hex');
+    this.publicKey = publicKey;
+  }
+
+  toJSON() {
+    return {
+      index: this.index,
+      x: this.x.toString('hex'),
+      y: this.y.toString('hex'),
+      publicKey: this.publicKey ? this.publicKey.toString('hex') : null
+    };
+  }
+
+  static fromJSON(json) {
+    return new ParticipantShare(
+      json.index,
+      json.x,
+      json.y,
+      json.publicKey ? Buffer.from(json.publicKey, 'hex') : null
+    );
+  }
+}
+
+class NonCustodialWallet {
+  constructor(network, participants, threshold) {
+    if (threshold &lt; THRESHOLD_CONSTANTS.MIN_THRESHOLD) {
+      throw new NonCustodialWalletError(
+        `Threshold must be at least ${THRESHOLD_CONSTANTS.MIN_THRESHOLD}`,
+        'Increase threshold value'
+      );
+    }
+
+    if (participants > THRESHOLD_CONSTANTS.MAX_PARTICIPANTS) {
+      throw new NonCustodialWalletError(
+        `Participants cannot exceed ${THRESHOLD_CONSTANTS.MAX_PARTICIPANTS}`,
+        'Reduce participant count'
+      );
+    }
+
+    if (threshold > participants) {
+      throw new NonCustodialWalletError(
+        'Threshold cannot exceed participants',
+        'Adjust threshold or participant count'
+      );
+    }
+
+    this.network = network === 'main' ? 'main' : 'test';
+    this.participants = participants;
+    this.threshold = threshold;
+    this.shares = [];
+    this.aggregatePublicKey = null;
+    this.commitments = null;
+    this.version = '2.0.0';
+    this.created = Date.now();
+  }
+
+  static createNew(network = 'main', participants = 3, threshold = 2) {
+    const wallet = new NonCustodialWallet(network, participants, threshold);
+    wallet.generateShares();
+    return { wallet, shares: wallet.getShares() };
+  }
+
+  static fromShares(network, shares, threshold) {
+    const participants = shares.length;
+    const wallet = new NonCustodialWallet(network, participants, threshold);
+
+    wallet.shares = shares.map(s =>
+      s instanceof ParticipantShare ? s : ParticipantShare.fromJSON(s)
+    );
+
+    wallet._reconstructPublicKey();
+    return wallet;
+  }
+
+  generateShares(secret = null) {
+    const thresholdSig = new ThresholdSignature(this.threshold, this.participants);
+    const result = thresholdSig.generateShares(secret);
+
+    this.shares = result.shares.map(s => new ParticipantShare(
+      s.index,
+      s.x,
+      s.y
+    ));
+
+    this.commitments = result.commitments;
+    this.aggregatePublicKey = result.publicKey;
+
+    return this.shares;
+  }
+
+  _reconstructPublicKey() {
+    if (this.shares.length &lt; this.threshold) {
+      throw new NonCustodialWalletError(
+        `Need at least ${this.threshold} shares to reconstruct`,
+        'Provide more shares'
+      );
+    }
+
+    const selectedShares = this.shares.slice(0, this.threshold);
+    const secret = Polynomial.reconstructSecret(
+      selectedShares.map(s => ({ x: s.x, y: s.y }))
+    );
+
+    const secretBuffer = secret.toBuffer('be', 32);
+    this.aggregatePublicKey = Buffer.from(
+      secp256k1.getPublicKey(secretBuffer, true)
+    );
+  }
+
+  getAddress(type = 'segwit') {
+    if (!this.aggregatePublicKey) {
+      this._reconstructPublicKey();
+    }
+
+    const publicKeyHex = this.aggregatePublicKey.toString('hex');
+
+    switch (type) {
+      case 'taproot':
+        const xOnlyPubKey = this.aggregatePublicKey.slice(1);
+        return BECH32.to_P2TR(xOnlyPubKey, this.network);
+      case 'segwit':
+      default:
+        return BECH32.to_P2WPKH(publicKeyHex, this.network);
+    }
+  }
+
+  getShares() {
+    return this.shares.map(s => s.toJSON());
+  }
+
+  getShare(index) {
+    const share = this.shares.find(s => s.index === index);
+    if (!share) {
+      throw new NonCustodialWalletError(`Share ${index} not found`);
+    }
+    return share.toJSON();
+  }
+
+  verifyShare(share) {
+    if (!this.commitments) {
+      throw new NonCustodialWalletError('Commitments not available');
+    }
+
+    const feldman = new FeldmanCommitments({ getCoefficients: () => [] });
+    feldman.commitments = this.commitments.map(c =>
+      secp256k1.ProjectivePoint.fromHex(c)
+    );
+
+    return feldman.verifyShare({
+      x: new BN(share.x, 'hex'),
+      y: new BN(share.y, 'hex')
+    });
+  }
+
+  async signMessage(messageHash, participantIndices = null) {
+    const indices = participantIndices || this.shares.slice(0, this.threshold).map(s => s.index);
+
+    if (indices.length &lt; this.threshold) {
+      throw new NonCustodialWalletError(
+        `Need at least ${this.threshold} participants to sign`,
+        'Provide more participant indices'
+      );
+    }
+
+    const selectedShares = indices.map(i => {
+      const share = this.shares.find(s => s.index === i);
+      if (!share) {
+        throw new NonCustodialWalletError(`Share ${i} not found`);
+      }
+      return share;
+    });
+
+    const partialSigs = selectedShares.map(share =>
+      ThresholdSignature.generatePartialSignature(
+        { y: share.y, index: share.index },
+        messageHash
+      )
+    );
+
+    return ThresholdSignature.combinePartialSignatures(partialSigs, this.threshold);
+  }
+
+  async verifySignature(messageHash, signature) {
+    if (!this.aggregatePublicKey) {
+      this._reconstructPublicKey();
+    }
+
+    return ThresholdSignature.verifyThresholdSignature(
+      this.aggregatePublicKey,
+      messageHash,
+      signature
+    );
+  }
+
+  getPublicKey() {
+    if (!this.aggregatePublicKey) {
+      this._reconstructPublicKey();
+    }
+    return this.aggregatePublicKey;
+  }
+
+  getThresholdConfig() {
+    return {
+      threshold: this.threshold,
+      participants: this.participants,
+      sharesAvailable: this.shares.length
+    };
+  }
+
+  toJSON() {
+    return {
+      network: this.network,
+      version: this.version,
+      created: this.created,
+      threshold: this.threshold,
+      participants: this.participants,
+      aggregatePublicKey: this.aggregatePublicKey?.toString('hex'),
+      sharesCount: this.shares.length
+    };
+  }
+
+  exportShares() {
+    return {
+      network: this.network,
+      threshold: this.threshold,
+      participants: this.participants,
+      shares: this.getShares(),
+      commitments: this.commitments?.map(c => c.toString('hex'))
+    };
+  }
+
+  static importShares(exportedData) {
+    const wallet = NonCustodialWallet.fromShares(
+      exportedData.network,
+      exportedData.shares,
+      exportedData.threshold
+    );
+
+    if (exportedData.commitments) {
+      wallet.commitments = exportedData.commitments.map(c => Buffer.from(c, 'hex'));
+    }
+
+    return wallet;
+  }
+}
+
+export { NonCustodialWallet, NonCustodialWalletError, ParticipantShare };
+export default NonCustodialWallet;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.5</a> on Tue Dec 30 2025 14:53:38 GMT-0500 (Eastern Standard Time) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/polyfill.js"></script>
+<script src="scripts/linenumber.js"></script>
+
+<script src="scripts/search.js" defer></script>
+
+
+<script src="scripts/collapse.js" defer></script>
+
+
+</body>
+</html>

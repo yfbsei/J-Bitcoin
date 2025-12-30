@@ -50,11 +50,11 @@
     "commonjs": false,
     "scripts": [],
     "style": [],
-    "title": "J-Bitcoin v2.0.0 API Documentation",
+    "title": "J-Bitcoin API Documentation",
     "meta": {
       "title": "J-Bitcoin - Bitcoin Wallet Library",
-      "description": "Comprehensive JavaScript/TypeScript Bitcoin wallet library with custodial and threshold signature support",
-      "keyword": "bitcoin, cryptocurrency, wallet, javascript, typescript, threshold signatures"
+      "description": "JavaScript/TypeScript Bitcoin wallet library with HD wallets, threshold signatures, and BIP compliance",
+      "keyword": "bitcoin, btc, cryptocurrency, wallet, javascript, typescript, threshold signatures, bip32, bip39"
     },
     "menu": {
       "🏠 Home": {
@@ -88,7 +88,7 @@
         "id": "changelog-link"
       }
     },
-    "footer": "Copyright © 2024 yfbsei. Bitcoin-focused cryptocurrency wallet library."
+    "footer": "Copyright © 2025 yfbsei. Bitcoin wallet library with HD wallets and threshold signatures."
   },
   "tags": {
     "allowUnknownTags": [

@@ -1,0 +1,3323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>Home - J-Bitcoin - Bitcoin Wallet Library</title>
+    
+    <meta name="description" content="JavaScript/TypeScript Bitcoin wallet library with HD wallets, threshold signatures, and BIP compliance" />
+    
+        <meta name="keywords" content="bitcoin, btc, cryptocurrency, wallet, javascript, typescript, threshold signatures, bip32, bip39" />
+        <meta name="keyword" content="bitcoin, btc, cryptocurrency, wallet, javascript, typescript, threshold signatures, bip32, bip39" />
+    
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+    <script src="scripts/nav.js" defer></script>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav class="wrap">
+    
+    <input type="text" id="nav-search" placeholder="Search" />
+    
+    
+    <h2><a href="index.html">Home</a></h2><h2><a href="https://github.com/yfbsei/J-Bitcoin" target="_blank" class="menu-item home-link" id="home-link" >🏠 Home</a></h2><h2><a href="https://github.com/yfbsei/J-Bitcoin" target="_blank" class="menu-item github-link" id="github-link" >📚 GitHub</a></h2><h2><a href="https://www.npmjs.com/package/j-bitcoin" target="_blank" class="menu-item npm-link" id="npm-link" >📦 NPM</a></h2><h2><a href="https://github.com/yfbsei/J-Bitcoin/tree/main/examples" target="_blank" class="menu-item examples-link" id="examples-link" >🔧 Examples</a></h2><h2><a href="https://github.com/yfbsei/J-Bitcoin/blob/main/CHANGELOG.md" target="_blank" class="menu-item changelog-link" id="changelog-link" >📊 Changelog</a></h2><h3>Global</h3><ul><li><a href="global.html#BIP_COMPLIANCE">BIP_COMPLIANCE</a></li><li><a href="global.html#FEATURES">FEATURES</a></li><li><a href="global.html#LIBRARY_INFO">LIBRARY_INFO</a></li><li><a href="global.html#NETWORKS">NETWORKS</a></li></ul>
+    
+</nav>
+
+<div id="main">
+    
+
+    
+
+
+
+    
+
+
+    <section class="package">
+        <h3>j-bitcoin 2.0.0</h3>		
+    </section>
+
+
+
+
+
+
+
+
+
+    
+
+
+
+    <section class="readme usertext">
+        <article><h1 id="j-bitcoin">J-Bitcoin</h1>
+<p><a href="https://badge.fury.io/js/j-bitcoin"><img src="https://badge.fury.io/js/j-bitcoin.svg" alt="npm version"></a>
+<a href="https://opensource.org/licenses/ISC"><img src="https://img.shields.io/badge/License-ISC-blue.svg" alt="License: ISC"></a>
+<a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-16%2B-green.svg" alt="Node.js"></a>
+<a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-Ready-blue.svg" alt="TypeScript"></a>
+<a href="https://jsdoc.app/"><img src="https://img.shields.io/badge/JSDoc-Complete-brightgreen.svg" alt="JSDoc"></a></p>
+<p>A comprehensive JavaScript/TypeScript cryptocurrency wallet library focused exclusively on Bitcoin (BTC) with both custodial and non-custodial wallet support, featuring advanced threshold signature schemes.</p>
+<h2 id="%F0%9F%9A%80-key-features">🚀 Key Features</h2>
+<h3 id="%F0%9F%92%BC-wallet-technologies">💼 Wallet Technologies</h3>
+<ul>
+<li><strong>Custodial Wallets</strong> - HD wallets with BIP32/BIP39 support</li>
+<li><strong>Non-Custodial Wallets</strong> - Advanced threshold signature schemes (TSS)</li>
+<li><strong>Multi-party Control</strong> - 2-of-3, 3-of-5, and custom threshold configurations</li>
+</ul>
+<h3 id="%F0%9F%94%90-cryptographic-standards">🔐 Cryptographic Standards</h3>
+<ul>
+<li><strong>BIP32</strong> - Hierarchical Deterministic Wallets</li>
+<li><strong>BIP39</strong> - Mnemonic Seed Phrases (12-word entropy)</li>
+<li><strong>BIP340</strong> - Schnorr Signatures for Bitcoin</li>
+<li><strong>ECDSA</strong> - Standard Bitcoin signatures with recovery</li>
+<li><strong>Threshold Signatures</strong> - Distributed signature generation</li>
+<li><strong>Shamir's Secret Sharing</strong> - Secure key distribution</li>
+</ul>
+<h3 id="%F0%9F%8F%A0-address-support">🏠 Address Support</h3>
+<ul>
+<li><strong>Legacy P2PKH</strong> - Traditional Bitcoin addresses (1...)</li>
+<li><strong>SegWit Bech32</strong> - Modern Bitcoin addresses (bc1...)</li>
+<li><strong>Network Support</strong> - Bitcoin Mainnet &amp; Testnet</li>
+</ul>
+<h3 id="%F0%9F%93%9D-developer-experience">📝 Developer Experience</h3>
+<ul>
+<li><strong>Full TypeScript Support</strong> - Complete type definitions and IntelliSense</li>
+<li><strong>Comprehensive JSDoc</strong> - Rich inline documentation with examples</li>
+<li><strong>ES Modules</strong> - Modern JavaScript with tree shaking support</li>
+<li><strong>Bitcoin Constants</strong> - Built-in BIP44 paths and network configurations</li>
+<li><strong>Error Handling</strong> - Proper Error objects with detailed messages</li>
+</ul>
+<h2 id="%F0%9F%93%9A-documentation">📚 Documentation</h2>
+<p><strong><a href="https://yfbsei.github.io/J-Bitcoin/j-bitcoin/2.0.0/">Complete API Documentation</a></strong></p>
+<h2 id="%F0%9F%93%A6-installation">📦 Installation</h2>
+<pre class="prettyprint source lang-bash"><code>npm install j-bitcoin
+</code></pre>
+<p><strong>Requirements:</strong></p>
+<ul>
+<li>Node.js 16.0.0 or higher</li>
+<li>npm 7.0.0 or higher</li>
+</ul>
+<h2 id="%F0%9F%8E%AF-quick-start-examples">🎯 Quick Start Examples</h2>
+<h3 id="custodial-wallet-(javascript)">Custodial Wallet (JavaScript)</h3>
+<pre class="prettyprint source lang-javascript"><code>import { Custodial_Wallet, BIP44_CONSTANTS } from 'j-bitcoin';
+
+// Generate new wallet with mnemonic
+const [mnemonic, wallet] = Custodial_Wallet.fromRandom('main');
+console.log('Mnemonic:', mnemonic);
+console.log('Root Address:', wallet.address);
+
+// Use convenience methods for standard Bitcoin derivation
+const receivingAddr = wallet.deriveReceivingAddress(0);  // m/44'/0'/0'/0/0
+const changeAddr = wallet.deriveChangeAddress(0);        // m/44'/0'/0'/1/0
+
+console.log('First Receiving:', receivingAddr);
+console.log('First Change:', changeAddr);
+
+// Sign and verify messages
+const [signature, recoveryId] = wallet.sign(&quot;Hello Bitcoin!&quot;);
+const isValid = wallet.verify(signature, &quot;Hello Bitcoin!&quot;);
+console.log('Signature valid:', isValid);
+
+// Get comprehensive wallet summary
+const summary = wallet.getSummary();
+console.log(`Wallet has ${summary.receivingAddresses} receiving addresses`);
+</code></pre>
+<h3 id="custodial-wallet-(typescript)">Custodial Wallet (TypeScript)</h3>
+<pre class="prettyprint source lang-typescript"><code>import { 
+  Custodial_Wallet, 
+  ECDSASignatureResult, 
+  WalletSummary,
+  NetworkType,
+  ChildKeyInfo
+} from 'j-bitcoin';
+
+// Type-safe wallet generation
+const network: NetworkType = 'main';
+const [mnemonic, wallet]: [string, Custodial_Wallet] = 
+  Custodial_Wallet.fromRandom(network);
+
+// Type-safe operations with full IntelliSense
+const signature: ECDSASignatureResult = wallet.sign(&quot;Hello Bitcoin!&quot;);
+const summary: WalletSummary = wallet.getSummary();
+const receivingKeys: ChildKeyInfo[] = wallet.getChildKeysByType('receiving');
+
+// Restore wallet with type safety
+const restoredWallet: Custodial_Wallet = 
+  Custodial_Wallet.fromMnemonic(network, mnemonic, 'optional-passphrase');
+</code></pre>
+<h3 id="threshold-signatures-(advanced)">Threshold Signatures (Advanced)</h3>
+<pre class="prettyprint source lang-javascript"><code>import { Non_Custodial_Wallet } from 'j-bitcoin';
+
+// Create 2-of-3 threshold wallet
+const threshold = 2;
+const participants = 3;
+const walletShares = Non_Custodial_Wallet.generate_shares(threshold, participants, 'main');
+
+// Each participant gets their share
+const [share1, share2, share3] = walletShares;
+
+// Simulate distributed signing (requires threshold participants)
+const message = &quot;Threshold signature test&quot;;
+const signatures = [
+  share1.sign(message),  // Participant 1 signs
+  share2.sign(message)   // Participant 2 signs (threshold reached)
+];
+
+// Combine signatures
+const combinedSignature = Non_Custodial_Wallet.combine_signatures(signatures, message);
+console.log('Threshold signature created:', combinedSignature.serialized_sig);
+</code></pre>
+<h3 id="schnorr-signatures-(bip340)">Schnorr Signatures (BIP340)</h3>
+<pre class="prettyprint source lang-javascript"><code>import { schnorr_sig } from 'j-bitcoin';
+
+// Generate key and sign with Schnorr
+const privateKey = &quot;L1vHfV6GUbMJSvFaqjnButzwq5x4ThdFaotpUgsfScwMNKjdGVuS&quot;;
+const message = &quot;Schnorr signature test&quot;;
+
+const signature = schnorr_sig.sign(privateKey, message);
+const publicKey = schnorr_sig.retrieve_public_key(privateKey);
+const isValid = schnorr_sig.verify(signature, message, publicKey);
+
+console.log('Schnorr signature valid:', isValid);
+</code></pre>
+<h2 id="%F0%9F%8F%97%EF%B8%8F-architecture-overview">🏗️ Architecture Overview</h2>
+<h3 id="core-components">Core Components</h3>
+<pre class="prettyprint source"><code>src/
+├── wallets/
+│   ├── custodial/          # HD wallet implementation
+│   └── non-custodial/      # Threshold signature wallets
+├── core/
+│   ├── crypto/             # Cryptographic primitives
+│   ├── keys/               # Key management (BIP32/BIP39)
+│   └── math/               # Mathematical operations
+├── encoding/
+│   ├── address/            # Address encoding/decoding
+│   └── base58/             # Base58 encoding utilities
+└── constants/              # Bitcoin network constants
+</code></pre>
+<h3 id="typescript-integration">TypeScript Integration</h3>
+<p>Full TypeScript support with comprehensive interfaces:</p>
+<pre class="prettyprint source lang-typescript"><code>// Complete type definitions available
+interface WalletSummary {
+  mnemonic?: string;
+  rootKey: string;
+  network: NetworkType;
+  receivingAddresses: number;
+  changeAddresses: number;
+  totalDerived: number;
+  createdAt: string;
+}
+
+interface ThresholdSignatureResult {
+  sig: { r: bigint; s: bigint; };
+  serialized_sig: string;
+  msgHash: Buffer;
+  recovery_id: number;
+}
+</code></pre>
+<h2 id="%F0%9F%93%8A-feature-comparison">📊 Feature Comparison</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Custodial</th>
+<th>Non-Custodial</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HD Key Derivation</td>
+<td>✅</td>
+<td>✅</td>
+<td>Complete</td>
+</tr>
+<tr>
+<td>BIP39 Mnemonics</td>
+<td>✅</td>
+<td>✅</td>
+<td>Complete</td>
+</tr>
+<tr>
+<td>ECDSA Signatures</td>
+<td>✅</td>
+<td>✅</td>
+<td>Complete</td>
+</tr>
+<tr>
+<td>Schnorr Signatures</td>
+<td>✅</td>
+<td>✅</td>
+<td>Complete</td>
+</tr>
+<tr>
+<td>Threshold Signatures</td>
+<td>❌</td>
+<td>✅</td>
+<td>Complete</td>
+</tr>
+<tr>
+<td>Legacy Addresses</td>
+<td>✅</td>
+<td>✅</td>
+<td>Complete</td>
+</tr>
+<tr>
+<td>SegWit Addresses</td>
+<td>✅</td>
+<td>✅</td>
+<td>Complete</td>
+</tr>
+<tr>
+<td>TypeScript Support</td>
+<td>✅</td>
+<td>✅</td>
+<td>Complete</td>
+</tr>
+<tr>
+<td>Network Support</td>
+<td>BTC Main/Test</td>
+<td>BTC Main/Test</td>
+<td>Complete</td>
+</tr>
+</tbody>
+</table>
+<h2 id="%F0%9F%94%A7-development">🔧 Development</h2>
+<h3 id="setup">Setup</h3>
+<pre class="prettyprint source lang-bash"><code># Clone repository
+git clone https://github.com/yfbsei/J-Bitcoin.git
+cd J-Bitcoin
+
+# Install dependencies
+npm install
+
+# Development commands
+npm run test           # Run test suite
+npm run test:coverage  # Test with coverage report
+npm run test:watch     # Watch mode testing
+npm run lint           # Code linting
+npm run lint:fix       # Auto-fix linting issues
+npm run format         # Code formatting
+npm run docs           # Generate documentation
+npm run build          # Build project
+</code></pre>
+<h3 id="testing">Testing</h3>
+<p>Comprehensive test suite with coverage reporting:</p>
+<pre class="prettyprint source lang-bash"><code># Run all tests
+npm test
+
+# Generate coverage report
+npm run test:coverage
+
+# Watch for changes
+npm run test:watch
+</code></pre>
+<h3 id="documentation-generation">Documentation Generation</h3>
+<pre class="prettyprint source lang-bash"><code># Generate API documentation
+npm run docs
+
+# Serve documentation locally
+npm run docs:serve  # Available at http://localhost:8080
+</code></pre>
+<h2 id="%F0%9F%94%92-security-best-practices">🔒 Security Best Practices</h2>
+<h3 id="key-management">Key Management</h3>
+<ul>
+<li><strong>Secure Storage</strong>: Store mnemonic phrases in secure, offline locations</li>
+<li><strong>Share Distribution</strong>: Use encrypted channels for threshold share distribution</li>
+<li><strong>Access Control</strong>: Implement proper authentication for wallet operations</li>
+<li><strong>Regular Rotation</strong>: Consider periodic key rotation for high-value wallets</li>
+</ul>
+<h3 id="development-guidelines">Development Guidelines</h3>
+<ul>
+<li><strong>Input Validation</strong>: Always validate addresses, amounts, and signatures</li>
+<li><strong>Error Handling</strong>: Implement comprehensive error handling for all operations</li>
+<li><strong>Testing</strong>: Thoroughly test on testnet before mainnet deployment</li>
+<li><strong>Auditing</strong>: Maintain audit trails for all cryptographic operations</li>
+</ul>
+<h3 id="production-deployment">Production Deployment</h3>
+<ul>
+<li><strong>Environment Separation</strong>: Isolate development and production environments</li>
+<li><strong>Monitoring</strong>: Implement monitoring for wallet operations and security events</li>
+<li><strong>Backup Procedures</strong>: Establish reliable backup and recovery procedures</li>
+<li><strong>Incident Response</strong>: Have plans for handling security incidents</li>
+</ul>
+<h2 id="%F0%9F%93%8B-api-reference">📋 API Reference</h2>
+<h3 id="built-in-constants">Built-in Constants</h3>
+<pre class="prettyprint source lang-javascript"><code>import { BIP44_CONSTANTS, NETWORK_CONSTANTS } from 'j-bitcoin';
+
+// Bitcoin derivation paths
+BIP44_CONSTANTS.COIN_TYPES.BITCOIN_MAINNET;  // 0
+BIP44_CONSTANTS.COIN_TYPES.BITCOIN_TESTNET;  // 1
+
+// Network configurations
+NETWORK_CONSTANTS.BITCOIN_MAINNET.public;    // 0x0488b21e
+NETWORK_CONSTANTS.BITCOIN_TESTNET.public;    // 0x043587cf
+</code></pre>
+<h3 id="core-classes">Core Classes</h3>
+<table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Purpose</th>
+<th>Key Methods</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Custodial_Wallet</code></td>
+<td>HD wallet management</td>
+<td><code>fromRandom()</code>, <code>fromMnemonic()</code>, <code>sign()</code>, <code>derive()</code></td>
+</tr>
+<tr>
+<td><code>Non_Custodial_Wallet</code></td>
+<td>Threshold signatures</td>
+<td><code>generate_shares()</code>, <code>combine_signatures()</code>, <code>sign()</code></td>
+</tr>
+<tr>
+<td><code>BIP39</code></td>
+<td>Mnemonic handling</td>
+<td><code>generate()</code>, <code>validate()</code>, <code>toSeed()</code>, <code>toEntropy()</code></td>
+</tr>
+<tr>
+<td><code>ECDSA</code></td>
+<td>Standard signatures</td>
+<td><code>sign()</code>, <code>verify()</code>, <code>recover()</code></td>
+</tr>
+<tr>
+<td><code>schnorr_sig</code></td>
+<td>Schnorr signatures</td>
+<td><code>sign()</code>, <code>verify()</code>, <code>retrieve_public_key()</code></td>
+</tr>
+<tr>
+<td><code>BECH32</code></td>
+<td>Address encoding</td>
+<td><code>encode()</code>, <code>decode()</code>, <code>validate()</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="%F0%9F%94%AE-roadmap">🔮 Roadmap</h2>
+<h3 id="version-2.1-(q3-2025)">Version 2.1 (Q3 2025)</h3>
+<ul>
+<li>[ ] Enhanced error handling with custom error types</li>
+<li>[ ] Performance optimizations for threshold operations</li>
+<li>[ ] Additional address format support (P2SH, P2WSH)</li>
+<li>[ ] Expanded test coverage and benchmarks</li>
+</ul>
+<h3 id="version-2.2-(q4-2025)">Version 2.2 (Q4 2025)</h3>
+<ul>
+<li>[ ] Transaction building and broadcasting utilities</li>
+<li>[ ] SPV wallet implementation</li>
+<li>[ ] Hardware wallet integration support</li>
+<li>[ ] Advanced script template system</li>
+</ul>
+<h3 id="version-3.0-(2026)">Version 3.0 (2026)</h3>
+<ul>
+<li>[ ] Lightning Network integration</li>
+<li>[ ] WebAssembly optimization</li>
+<li>[ ] React/Vue component library</li>
+<li>[ ] Cross-platform mobile support</li>
+</ul>
+<h2 id="%F0%9F%A4%9D-contributing">🤝 Contributing</h2>
+<p>We welcome contributions! Please see our <a href="CONTRIBUTING.md">Contributing Guidelines</a> for details.</p>
+<h3 id="quick-contribution-steps">Quick Contribution Steps</h3>
+<ol>
+<li>Fork the repository</li>
+<li>Create a feature branch: <code>git checkout -b feature/amazing-feature</code></li>
+<li>Make your changes with tests</li>
+<li>Run the test suite: <code>npm test</code></li>
+<li>Commit your changes: <code>git commit -m 'Add amazing feature'</code></li>
+<li>Push to your branch: <code>git push origin feature/amazing-feature</code></li>
+<li>Open a Pull Request</li>
+</ol>
+<h3 id="development-standards">Development Standards</h3>
+<ul>
+<li>Follow existing code style (ESLint + Prettier configured)</li>
+<li>Add tests for new functionality</li>
+<li>Update documentation for API changes</li>
+<li>Ensure TypeScript compatibility</li>
+</ul>
+<h2 id="%F0%9F%93%9C-license">📜 License</h2>
+<p>ISC License - see <a href="LICENSE">LICENSE</a> file for details.</p>
+<h2 id="%F0%9F%99%8F-acknowledgments">🙏 Acknowledgments</h2>
+<ul>
+<li><strong>Bitcoin Core Team</strong> - Reference implementation and standards</li>
+<li><strong>BIP Authors</strong> - Bitcoin Improvement Proposal specifications</li>
+<li><strong>Noble Crypto</strong> - Excellent secp256k1 cryptographic library</li>
+<li><strong>Open Source Community</strong> - Continuous innovation and peer review</li>
+</ul>
+<h2 id="%F0%9F%93%9E-support-%26-resources">📞 Support &amp; Resources</h2>
+<ul>
+<li><strong>Issues</strong>: <a href="https://github.com/yfbsei/J-Bitcoin/issues">GitHub Issues</a></li>
+<li><strong>Documentation</strong>: <a href="https://yfbsei.github.io/J-Bitcoin/j-bitcoin/2.0.0/">API Documentation</a></li>
+<li><strong>Examples</strong>: <a href="https://github.com/yfbsei/J-Bitcoin/tree/main/examples">Examples Directory</a></li>
+<li><strong>Discussions</strong>: <a href="https://github.com/yfbsei/J-Bitcoin/discussions">GitHub Discussions</a></li>
+</ul>
+<h2 id="%E2%9A%A0%EF%B8%8F-important-security-notice">⚠️ Important Security Notice</h2>
+<p>This library handles private keys and cryptographic material. Always:</p>
+<ul>
+<li>Test thoroughly in development environments</li>
+<li>Use testnet for initial testing</li>
+<li>Implement proper key management practices</li>
+<li>Keep dependencies updated</li>
+<li>Follow security best practices for production deployments</li>
+</ul>
+<p><strong>Never share private keys, mnemonics, or threshold shares over insecure channels.</strong></p>
+<hr>
+<p><strong>Made with ❤️ for the Bitcoin community</strong></p></article>
+    </section>
+
+
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+            index.js
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+    
+    <dt class="tag-description">Description:</dt>
+    <dd class="tag-description"><ul class="dummy"><li><p>Enterprise-grade Bitcoin library with HD wallets, threshold signatures,
+and full BIP compliance for secure cryptocurrency operations.</p></li></ul></dd>
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+    <dt class="tag-version">Version:</dt>
+    <dd class="tag-version"><ul class="dummy"><li>2.0.0</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-author">Author:</dt>
+    <dd class="tag-author">
+        <ul>
+            <li>yfbsei</li>
+        </ul>
+    </dd>
+    
+
+    
+
+    
+    <dt class="tag-license">License:</dt>
+    <dd class="tag-license"><ul class="dummy"><li>ISC</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext"><p>Enterprise-grade Bitcoin library with HD wallets, threshold signatures,
+and full BIP compliance for secure cryptocurrency operations.</p></div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+            src/bip/BIP173-BIP350.js
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+    
+    <dt class="tag-description">Description:</dt>
+    <dd class="tag-description"><ul class="dummy"><li><p>BIP173/BIP350 Bech32 address encoding for Bitcoin</p></li></ul></dd>
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_bip_BIP173-BIP350.js.html">src/bip/BIP173-BIP350.js</a>, <a href="src_bip_BIP173-BIP350.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+    <dt class="tag-version">Version:</dt>
+    <dd class="tag-version"><ul class="dummy"><li>2.1.0</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-author">Author:</dt>
+    <dd class="tag-author">
+        <ul>
+            <li>yfbsei</li>
+        </ul>
+    </dd>
+    
+
+    
+
+    
+    <dt class="tag-license">License:</dt>
+    <dd class="tag-license"><ul class="dummy"><li>ISC</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext"><p>BIP173/BIP350 Bech32 address encoding for Bitcoin</p></div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+            src/bip/bip32/derive.js
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+    
+    <dt class="tag-description">Description:</dt>
+    <dd class="tag-description"><ul class="dummy"><li><p>BIP32 child key derivation</p></li></ul></dd>
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_bip_bip32_derive.js.html">src/bip/bip32/derive.js</a>, <a href="src_bip_bip32_derive.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+    <dt class="tag-version">Version:</dt>
+    <dd class="tag-version"><ul class="dummy"><li>2.1.0</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-author">Author:</dt>
+    <dd class="tag-author">
+        <ul>
+            <li>yfbsei</li>
+        </ul>
+    </dd>
+    
+
+    
+
+    
+    <dt class="tag-license">License:</dt>
+    <dd class="tag-license"><ul class="dummy"><li>ISC</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext"><p>BIP32 child key derivation</p></div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+            src/bip/bip32/master-key.js
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+    
+    <dt class="tag-description">Description:</dt>
+    <dd class="tag-description"><ul class="dummy"><li><p>BIP32 master key generation from seed</p></li></ul></dd>
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_bip_bip32_master-key.js.html">src/bip/bip32/master-key.js</a>, <a href="src_bip_bip32_master-key.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+    <dt class="tag-version">Version:</dt>
+    <dd class="tag-version"><ul class="dummy"><li>2.1.0</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-author">Author:</dt>
+    <dd class="tag-author">
+        <ul>
+            <li>yfbsei</li>
+        </ul>
+    </dd>
+    
+
+    
+
+    
+    <dt class="tag-license">License:</dt>
+    <dd class="tag-license"><ul class="dummy"><li>ISC</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext"><p>BIP32 master key generation from seed</p></div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+            src/bip/bip39/mnemonic.js
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+    
+    <dt class="tag-description">Description:</dt>
+    <dd class="tag-description"><ul class="dummy"><li><p>BIP39 mnemonic phrase generation and seed derivation</p></li></ul></dd>
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_bip_bip39_mnemonic.js.html">src/bip/bip39/mnemonic.js</a>, <a href="src_bip_bip39_mnemonic.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+    <dt class="tag-version">Version:</dt>
+    <dd class="tag-version"><ul class="dummy"><li>2.2.0</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-author">Author:</dt>
+    <dd class="tag-author">
+        <ul>
+            <li>yfbsei</li>
+        </ul>
+    </dd>
+    
+
+    
+
+    
+    <dt class="tag-license">License:</dt>
+    <dd class="tag-license"><ul class="dummy"><li>ISC</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext"><p>BIP39 mnemonic phrase generation and seed derivation</p></div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+            src/core/constants.js
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+    
+    <dt class="tag-description">Description:</dt>
+    <dd class="tag-description"><ul class="dummy"><li><p>Core constants and configuration for J-Bitcoin library</p></li></ul></dd>
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_core_constants.js.html">src/core/constants.js</a>, <a href="src_core_constants.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+    <dt class="tag-version">Version:</dt>
+    <dd class="tag-version"><ul class="dummy"><li>2.1.0</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-author">Author:</dt>
+    <dd class="tag-author">
+        <ul>
+            <li>yfbsei</li>
+        </ul>
+    </dd>
+    
+
+    
+
+    
+    <dt class="tag-license">License:</dt>
+    <dd class="tag-license"><ul class="dummy"><li>ISC</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext"><p>Core constants and configuration for J-Bitcoin library</p></div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+            src/core/crypto/signatures/ecdsa.js
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+    
+    <dt class="tag-description">Description:</dt>
+    <dd class="tag-description"><ul class="dummy"><li><p>ECDSA signature implementation for Bitcoin</p></li></ul></dd>
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_core_crypto_signatures_ecdsa.js.html">src/core/crypto/signatures/ecdsa.js</a>, <a href="src_core_crypto_signatures_ecdsa.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+    <dt class="tag-version">Version:</dt>
+    <dd class="tag-version"><ul class="dummy"><li>2.1.0</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-author">Author:</dt>
+    <dd class="tag-author">
+        <ul>
+            <li>yfbsei</li>
+        </ul>
+    </dd>
+    
+
+    
+
+    
+    <dt class="tag-license">License:</dt>
+    <dd class="tag-license"><ul class="dummy"><li>ISC</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext"><p>ECDSA signature implementation for Bitcoin</p></div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+            src/core/crypto/signatures/schnorr-BIP340.js
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+    
+    <dt class="tag-description">Description:</dt>
+    <dd class="tag-description"><ul class="dummy"><li><p>Schnorr signature implementation following BIP340</p></li></ul></dd>
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_core_crypto_signatures_schnorr-BIP340.js.html">src/core/crypto/signatures/schnorr-BIP340.js</a>, <a href="src_core_crypto_signatures_schnorr-BIP340.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+    <dt class="tag-version">Version:</dt>
+    <dd class="tag-version"><ul class="dummy"><li>2.2.0</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-author">Author:</dt>
+    <dd class="tag-author">
+        <ul>
+            <li>yfbsei</li>
+        </ul>
+    </dd>
+    
+
+    
+
+    
+    <dt class="tag-license">License:</dt>
+    <dd class="tag-license"><ul class="dummy"><li>ISC</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext"><p>Schnorr signature implementation following BIP340</p></div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+            src/core/crypto/signatures/threshold/polynomial.js
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+    
+    <dt class="tag-description">Description:</dt>
+    <dd class="tag-description"><ul class="dummy"><li><p>Polynomial operations for threshold cryptography</p></li></ul></dd>
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_core_crypto_signatures_threshold_polynomial.js.html">src/core/crypto/signatures/threshold/polynomial.js</a>, <a href="src_core_crypto_signatures_threshold_polynomial.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+    <dt class="tag-version">Version:</dt>
+    <dd class="tag-version"><ul class="dummy"><li>2.1.0</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-author">Author:</dt>
+    <dd class="tag-author">
+        <ul>
+            <li>yfbsei</li>
+        </ul>
+    </dd>
+    
+
+    
+
+    
+    <dt class="tag-license">License:</dt>
+    <dd class="tag-license"><ul class="dummy"><li>ISC</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext"><p>Polynomial operations for threshold cryptography</p></div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+            src/core/crypto/signatures/threshold/threshold-signature.js
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+    
+    <dt class="tag-description">Description:</dt>
+    <dd class="tag-description"><ul class="dummy"><li><p>Threshold signature implementation with JVRSS and Feldman commitments</p></li></ul></dd>
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_core_crypto_signatures_threshold_threshold-signature.js.html">src/core/crypto/signatures/threshold/threshold-signature.js</a>, <a href="src_core_crypto_signatures_threshold_threshold-signature.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+    <dt class="tag-version">Version:</dt>
+    <dd class="tag-version"><ul class="dummy"><li>2.1.0</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-author">Author:</dt>
+    <dd class="tag-author">
+        <ul>
+            <li>yfbsei</li>
+        </ul>
+    </dd>
+    
+
+    
+
+    
+    <dt class="tag-license">License:</dt>
+    <dd class="tag-license"><ul class="dummy"><li>ISC</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext"><p>Threshold signature implementation with JVRSS and Feldman commitments</p></div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+            src/core/taproot/control-block.js
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+    
+    <dt class="tag-description">Description:</dt>
+    <dd class="tag-description"><ul class="dummy"><li><p>Taproot control block implementation following BIP341</p></li></ul></dd>
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_core_taproot_control-block.js.html">src/core/taproot/control-block.js</a>, <a href="src_core_taproot_control-block.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+    <dt class="tag-version">Version:</dt>
+    <dd class="tag-version"><ul class="dummy"><li>2.1.0</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-author">Author:</dt>
+    <dd class="tag-author">
+        <ul>
+            <li>yfbsei</li>
+        </ul>
+    </dd>
+    
+
+    
+
+    
+    <dt class="tag-license">License:</dt>
+    <dd class="tag-license"><ul class="dummy"><li>ISC</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext"><p>Taproot control block implementation following BIP341</p></div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+            src/core/taproot/merkle-tree.js
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+    
+    <dt class="tag-description">Description:</dt>
+    <dd class="tag-description"><ul class="dummy"><li><p>Taproot merkle tree implementation for script path spending</p></li></ul></dd>
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_core_taproot_merkle-tree.js.html">src/core/taproot/merkle-tree.js</a>, <a href="src_core_taproot_merkle-tree.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+    <dt class="tag-version">Version:</dt>
+    <dd class="tag-version"><ul class="dummy"><li>2.1.0</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-author">Author:</dt>
+    <dd class="tag-author">
+        <ul>
+            <li>yfbsei</li>
+        </ul>
+    </dd>
+    
+
+    
+
+    
+    <dt class="tag-license">License:</dt>
+    <dd class="tag-license"><ul class="dummy"><li>ISC</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext"><p>Taproot merkle tree implementation for script path spending</p></div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+            src/core/taproot/tapscript-interpreter.js
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+    
+    <dt class="tag-description">Description:</dt>
+    <dd class="tag-description"><ul class="dummy"><li><p>Tapscript interpreter implementation following BIP342</p></li></ul></dd>
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_core_taproot_tapscript-interpreter.js.html">src/core/taproot/tapscript-interpreter.js</a>, <a href="src_core_taproot_tapscript-interpreter.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+    <dt class="tag-version">Version:</dt>
+    <dd class="tag-version"><ul class="dummy"><li>2.1.0</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-author">Author:</dt>
+    <dd class="tag-author">
+        <ul>
+            <li>yfbsei</li>
+        </ul>
+    </dd>
+    
+
+    
+
+    
+    <dt class="tag-license">License:</dt>
+    <dd class="tag-license"><ul class="dummy"><li>ISC</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext"><p>Tapscript interpreter implementation following BIP342</p></div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+            src/encoding/address/decode.js
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+    
+    <dt class="tag-description">Description:</dt>
+    <dd class="tag-description"><ul class="dummy"><li><p>Bitcoin address and key decoding utilities</p></li></ul></dd>
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_encoding_address_decode.js.html">src/encoding/address/decode.js</a>, <a href="src_encoding_address_decode.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+    <dt class="tag-version">Version:</dt>
+    <dd class="tag-version"><ul class="dummy"><li>2.1.0</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-author">Author:</dt>
+    <dd class="tag-author">
+        <ul>
+            <li>yfbsei</li>
+        </ul>
+    </dd>
+    
+
+    
+
+    
+    <dt class="tag-license">License:</dt>
+    <dd class="tag-license"><ul class="dummy"><li>ISC</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext"><p>Bitcoin address and key decoding utilities</p></div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+            src/encoding/address/encode.js
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+    
+    <dt class="tag-description">Description:</dt>
+    <dd class="tag-description"><ul class="dummy"><li><p>Bitcoin address and key encoding utilities</p></li></ul></dd>
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_encoding_address_encode.js.html">src/encoding/address/encode.js</a>, <a href="src_encoding_address_encode.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+    <dt class="tag-version">Version:</dt>
+    <dd class="tag-version"><ul class="dummy"><li>2.1.0</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-author">Author:</dt>
+    <dd class="tag-author">
+        <ul>
+            <li>yfbsei</li>
+        </ul>
+    </dd>
+    
+
+    
+
+    
+    <dt class="tag-license">License:</dt>
+    <dd class="tag-license"><ul class="dummy"><li>ISC</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext"><p>Bitcoin address and key encoding utilities</p></div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+            src/encoding/base32.js
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+    
+    <dt class="tag-description">Description:</dt>
+    <dd class="tag-description"><ul class="dummy"><li><p>Bech32/Bech32m encoding for Bitcoin SegWit and Taproot addresses</p></li></ul></dd>
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_encoding_base32.js.html">src/encoding/base32.js</a>, <a href="src_encoding_base32.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+    <dt class="tag-version">Version:</dt>
+    <dd class="tag-version"><ul class="dummy"><li>2.1.0</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-author">Author:</dt>
+    <dd class="tag-author">
+        <ul>
+            <li>yfbsei</li>
+        </ul>
+    </dd>
+    
+
+    
+
+    
+    <dt class="tag-license">License:</dt>
+    <dd class="tag-license"><ul class="dummy"><li>ISC</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext"><p>Bech32/Bech32m encoding for Bitcoin SegWit and Taproot addresses</p></div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+            src/encoding/base58.js
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+    
+    <dt class="tag-description">Description:</dt>
+    <dd class="tag-description"><ul class="dummy"><li><p>Base58Check encoding implementation for Bitcoin</p></li></ul></dd>
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_encoding_base58.js.html">src/encoding/base58.js</a>, <a href="src_encoding_base58.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+    <dt class="tag-version">Version:</dt>
+    <dd class="tag-version"><ul class="dummy"><li>2.1.0</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-author">Author:</dt>
+    <dd class="tag-author">
+        <ul>
+            <li>yfbsei</li>
+        </ul>
+    </dd>
+    
+
+    
+
+    
+    <dt class="tag-license">License:</dt>
+    <dd class="tag-license"><ul class="dummy"><li>ISC</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext"><p>Base58Check encoding implementation for Bitcoin</p></div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+            src/transaction/builder.js
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+    
+    <dt class="tag-description">Description:</dt>
+    <dd class="tag-description"><ul class="dummy"><li><p>Transaction builder with Taproot support</p></li></ul></dd>
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_transaction_builder.js.html">src/transaction/builder.js</a>, <a href="src_transaction_builder.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+    <dt class="tag-version">Version:</dt>
+    <dd class="tag-version"><ul class="dummy"><li>2.1.0</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-author">Author:</dt>
+    <dd class="tag-author">
+        <ul>
+            <li>yfbsei</li>
+        </ul>
+    </dd>
+    
+
+    
+
+    
+    <dt class="tag-license">License:</dt>
+    <dd class="tag-license"><ul class="dummy"><li>ISC</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext"><p>Transaction builder with Taproot support</p></div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+            src/transaction/psbt.js
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+    
+    <dt class="tag-description">Description:</dt>
+    <dd class="tag-description"><ul class="dummy"><li><p>PSBT (Partially Signed Bitcoin Transaction) implementation</p></li></ul></dd>
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_transaction_psbt.js.html">src/transaction/psbt.js</a>, <a href="src_transaction_psbt.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+    <dt class="tag-version">Version:</dt>
+    <dd class="tag-version"><ul class="dummy"><li>2.1.0</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-author">Author:</dt>
+    <dd class="tag-author">
+        <ul>
+            <li>yfbsei</li>
+        </ul>
+    </dd>
+    
+
+    
+
+    
+    <dt class="tag-license">License:</dt>
+    <dd class="tag-license"><ul class="dummy"><li>ISC</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext"><p>PSBT (Partially Signed Bitcoin Transaction) implementation</p></div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+            src/transaction/utxo-manager.js
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+    
+    <dt class="tag-description">Description:</dt>
+    <dd class="tag-description"><ul class="dummy"><li><p>UTXO management with selection strategies</p></li></ul></dd>
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_transaction_utxo-manager.js.html">src/transaction/utxo-manager.js</a>, <a href="src_transaction_utxo-manager.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+    <dt class="tag-version">Version:</dt>
+    <dd class="tag-version"><ul class="dummy"><li>2.1.0</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-author">Author:</dt>
+    <dd class="tag-author">
+        <ul>
+            <li>yfbsei</li>
+        </ul>
+    </dd>
+    
+
+    
+
+    
+    <dt class="tag-license">License:</dt>
+    <dd class="tag-license"><ul class="dummy"><li>ISC</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext"><p>UTXO management with selection strategies</p></div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+            src/utils/address-helpers.js
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+    
+    <dt class="tag-description">Description:</dt>
+    <dd class="tag-description"><ul class="dummy"><li><p>Address helper functions and utilities</p></li></ul></dd>
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_utils_address-helpers.js.html">src/utils/address-helpers.js</a>, <a href="src_utils_address-helpers.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+    <dt class="tag-version">Version:</dt>
+    <dd class="tag-version"><ul class="dummy"><li>2.1.0</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-author">Author:</dt>
+    <dd class="tag-author">
+        <ul>
+            <li>yfbsei</li>
+        </ul>
+    </dd>
+    
+
+    
+
+    
+    <dt class="tag-license">License:</dt>
+    <dd class="tag-license"><ul class="dummy"><li>ISC</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext"><p>Address helper functions and utilities</p></div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+            src/utils/validation.js
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+    
+    <dt class="tag-description">Description:</dt>
+    <dd class="tag-description"><ul class="dummy"><li><p>Comprehensive validation utilities for Bitcoin operations</p></li></ul></dd>
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_utils_validation.js.html">src/utils/validation.js</a>, <a href="src_utils_validation.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+    <dt class="tag-version">Version:</dt>
+    <dd class="tag-version"><ul class="dummy"><li>2.1.0</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-author">Author:</dt>
+    <dd class="tag-author">
+        <ul>
+            <li>yfbsei</li>
+        </ul>
+    </dd>
+    
+
+    
+
+    
+    <dt class="tag-license">License:</dt>
+    <dd class="tag-license"><ul class="dummy"><li>ISC</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext"><p>Comprehensive validation utilities for Bitcoin operations</p></div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+            src/wallet/custodial.js
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+    
+    <dt class="tag-description">Description:</dt>
+    <dd class="tag-description"><ul class="dummy"><li><p>Custodial Bitcoin Wallet implementation</p></li></ul></dd>
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet_custodial.js.html">src/wallet/custodial.js</a>, <a href="src_wallet_custodial.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+    <dt class="tag-version">Version:</dt>
+    <dd class="tag-version"><ul class="dummy"><li>2.0.0</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-author">Author:</dt>
+    <dd class="tag-author">
+        <ul>
+            <li>yfbsei</li>
+        </ul>
+    </dd>
+    
+
+    
+
+    
+    <dt class="tag-license">License:</dt>
+    <dd class="tag-license"><ul class="dummy"><li>ISC</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext"><p>Custodial Bitcoin Wallet implementation</p></div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+            src/wallet/non-custodial.js
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+    
+    <dt class="tag-description">Description:</dt>
+    <dd class="tag-description"><ul class="dummy"><li><p>Non-Custodial Wallet with Threshold Signature Scheme</p></li></ul></dd>
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_wallet_non-custodial.js.html">src/wallet/non-custodial.js</a>, <a href="src_wallet_non-custodial.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+    <dt class="tag-version">Version:</dt>
+    <dd class="tag-version"><ul class="dummy"><li>2.0.0</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-author">Author:</dt>
+    <dd class="tag-author">
+        <ul>
+            <li>yfbsei</li>
+        </ul>
+    </dd>
+    
+
+    
+
+    
+    <dt class="tag-license">License:</dt>
+    <dd class="tag-license"><ul class="dummy"><li>ISC</li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext"><p>Non-Custodial Wallet with Threshold Signature Scheme</p></div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.5</a> on Tue Dec 30 2025 14:53:38 GMT-0500 (Eastern Standard Time) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/polyfill.js"></script>
+<script src="scripts/linenumber.js"></script>
+
+<script src="scripts/search.js" defer></script>
+
+
+<script src="scripts/collapse.js" defer></script>
+
+
+</body>
+</html>

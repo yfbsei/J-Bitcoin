@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>src/utils/validation.js - J-Bitcoin - Bitcoin Wallet Library</title>
+    
+    <meta name="description" content="JavaScript/TypeScript Bitcoin wallet library with HD wallets, threshold signatures, and BIP compliance" />
+    
+        <meta name="keywords" content="bitcoin, btc, cryptocurrency, wallet, javascript, typescript, threshold signatures, bip32, bip39" />
+        <meta name="keyword" content="bitcoin, btc, cryptocurrency, wallet, javascript, typescript, threshold signatures, bip32, bip39" />
+    
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+    <script src="scripts/nav.js" defer></script>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav class="wrap">
+    
+    <input type="text" id="nav-search" placeholder="Search" />
+    
+    
+    <h2><a href="index.html">Home</a></h2><h2><a href="https://github.com/yfbsei/J-Bitcoin" target="_blank" class="menu-item home-link" id="home-link" >🏠 Home</a></h2><h2><a href="https://github.com/yfbsei/J-Bitcoin" target="_blank" class="menu-item github-link" id="github-link" >📚 GitHub</a></h2><h2><a href="https://www.npmjs.com/package/j-bitcoin" target="_blank" class="menu-item npm-link" id="npm-link" >📦 NPM</a></h2><h2><a href="https://github.com/yfbsei/J-Bitcoin/tree/main/examples" target="_blank" class="menu-item examples-link" id="examples-link" >🔧 Examples</a></h2><h2><a href="https://github.com/yfbsei/J-Bitcoin/blob/main/CHANGELOG.md" target="_blank" class="menu-item changelog-link" id="changelog-link" >📊 Changelog</a></h2><h3>Global</h3><ul><li><a href="global.html#BIP_COMPLIANCE">BIP_COMPLIANCE</a></li><li><a href="global.html#FEATURES">FEATURES</a></li><li><a href="global.html#LIBRARY_INFO">LIBRARY_INFO</a></li><li><a href="global.html#NETWORKS">NETWORKS</a></li></ul>
+    
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">src/utils/validation.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview Comprehensive validation utilities for Bitcoin operations
+ * @version 2.1.0
+ * @author yfbsei
+ * @license ISC
+ */
+
+import { CRYPTO_CONSTANTS, NETWORK_VERSIONS } from '../core/constants.js';
+
+class ValidationError extends Error {
+  constructor(message, code, details = {}) {
+    super(message);
+    this.name = 'ValidationError';
+    this.code = code;
+    this.details = details;
+  }
+}
+
+function validateBuffer(value, expectedLength = null, fieldName = 'value') {
+  if (!Buffer.isBuffer(value) &amp;&amp; !(value instanceof Uint8Array)) {
+    throw new ValidationError(
+      `${fieldName} must be a Buffer or Uint8Array`,
+      'INVALID_TYPE',
+      { fieldName, actualType: typeof value }
+    );
+  }
+
+  if (expectedLength !== null &amp;&amp; value.length !== expectedLength) {
+    throw new ValidationError(
+      `${fieldName} must be ${expectedLength} bytes, got ${value.length}`,
+      'INVALID_LENGTH',
+      { fieldName, expected: expectedLength, actual: value.length }
+    );
+  }
+
+  return true;
+}
+
+function validateBufferLength(value, minLength, maxLength, fieldName = 'value') {
+  validateBuffer(value, null, fieldName);
+
+  if (value.length &lt; minLength || value.length > maxLength) {
+    throw new ValidationError(
+      `${fieldName} length must be between ${minLength} and ${maxLength} bytes`,
+      'INVALID_LENGTH',
+      { fieldName, min: minLength, max: maxLength, actual: value.length }
+    );
+  }
+
+  return true;
+}
+
+function validateNumberRange(value, min, max, fieldName = 'value') {
+  if (typeof value !== 'number' || isNaN(value)) {
+    throw new ValidationError(
+      `${fieldName} must be a valid number`,
+      'INVALID_TYPE',
+      { fieldName, actualType: typeof value }
+    );
+  }
+
+  if (value &lt; min || value > max) {
+    throw new ValidationError(
+      `${fieldName} must be between ${min} and ${max}`,
+      'OUT_OF_RANGE',
+      { fieldName, min, max, actual: value }
+    );
+  }
+
+  return true;
+}
+
+function validateHexString(value, expectedLength = null, fieldName = 'value') {
+  if (typeof value !== 'string') {
+    throw new ValidationError(
+      `${fieldName} must be a string`,
+      'INVALID_TYPE',
+      { fieldName, actualType: typeof value }
+    );
+  }
+
+  const hexRegex = /^[0-9a-fA-F]*$/;
+  if (!hexRegex.test(value)) {
+    throw new ValidationError(
+      `${fieldName} must be a valid hex string`,
+      'INVALID_HEX',
+      { fieldName }
+    );
+  }
+
+  if (expectedLength !== null &amp;&amp; value.length !== expectedLength) {
+    throw new ValidationError(
+      `${fieldName} must be ${expectedLength} characters`,
+      'INVALID_LENGTH',
+      { fieldName, expected: expectedLength, actual: value.length }
+    );
+  }
+
+  return true;
+}
+
+function validateAddress(address, network = 'main') {
+  if (typeof address !== 'string' || address.length === 0) {
+    throw new ValidationError('Address must be a non-empty string', 'INVALID_ADDRESS');
+  }
+
+  const lowerAddr = address.toLowerCase();
+  const upperAddr = address.toUpperCase();
+
+  if (lowerAddr.startsWith('bc1') || lowerAddr.startsWith('tb1')) {
+    return validateBech32Address(address, network);
+  }
+
+  if (address.startsWith('1') || address.startsWith('3') ||
+      address.startsWith('m') || address.startsWith('n') || address.startsWith('2')) {
+    return validateBase58Address(address, network);
+  }
+
+  throw new ValidationError('Unknown address format', 'UNKNOWN_FORMAT', { address });
+}
+
+function validateBech32Address(address, network = 'main') {
+  const lowerAddr = address.toLowerCase();
+  const expectedPrefix = network === 'main' ? 'bc1' : 'tb1';
+
+  if (!lowerAddr.startsWith(expectedPrefix)) {
+    throw new ValidationError(
+      `Invalid prefix for ${network} network`,
+      'INVALID_PREFIX',
+      { expected: expectedPrefix, actual: lowerAddr.slice(0, 3) }
+    );
+  }
+
+  if (address.length &lt; 14 || address.length > 74) {
+    throw new ValidationError(
+      'Invalid bech32 address length',
+      'INVALID_LENGTH',
+      { length: address.length }
+    );
+  }
+
+  return { valid: true, type: 'bech32', network };
+}
+
+function validateBase58Address(address, network = 'main') {
+  const base58Regex = /^[1-9A-HJ-NP-Za-km-z]+$/;
+
+  if (!base58Regex.test(address)) {
+    throw new ValidationError('Invalid Base58 characters', 'INVALID_CHARACTERS');
+  }
+
+  if (address.length &lt; 25 || address.length > 35) {
+    throw new ValidationError(
+      'Invalid Base58 address length',
+      'INVALID_LENGTH',
+      { length: address.length }
+    );
+  }
+
+  return { valid: true, type: 'base58', network };
+}
+
+function validatePrivateKey(key, fieldName = 'private key') {
+  if (typeof key === 'string') {
+    if (/^[0-9a-fA-F]{64}$/.test(key)) {
+      return { valid: true, format: 'hex' };
+    }
+    if (key.startsWith('5') || key.startsWith('K') || key.startsWith('L') ||
+        key.startsWith('9') || key.startsWith('c')) {
+      return { valid: true, format: 'wif' };
+    }
+    throw new ValidationError(`Invalid ${fieldName} format`, 'INVALID_FORMAT');
+  }
+
+  if (Buffer.isBuffer(key) || key instanceof Uint8Array) {
+    if (key.length !== CRYPTO_CONSTANTS.PRIVATE_KEY_LENGTH) {
+      throw new ValidationError(
+        `${fieldName} must be ${CRYPTO_CONSTANTS.PRIVATE_KEY_LENGTH} bytes`,
+        'INVALID_LENGTH'
+      );
+    }
+    return { valid: true, format: 'buffer' };
+  }
+
+  throw new ValidationError(`${fieldName} must be string or Buffer`, 'INVALID_TYPE');
+}
+
+function validatePublicKey(key, fieldName = 'public key') {
+  let keyBuffer;
+
+  if (typeof key === 'string') {
+    keyBuffer = Buffer.from(key, 'hex');
+  } else if (Buffer.isBuffer(key) || key instanceof Uint8Array) {
+    keyBuffer = Buffer.from(key);
+  } else {
+    throw new ValidationError(`${fieldName} must be string or Buffer`, 'INVALID_TYPE');
+  }
+
+  if (keyBuffer.length === 33) {
+    if (keyBuffer[0] !== 0x02 &amp;&amp; keyBuffer[0] !== 0x03) {
+      throw new ValidationError('Invalid compressed public key prefix', 'INVALID_PREFIX');
+    }
+    return { valid: true, compressed: true };
+  }
+
+  if (keyBuffer.length === 65) {
+    if (keyBuffer[0] !== 0x04) {
+      throw new ValidationError('Invalid uncompressed public key prefix', 'INVALID_PREFIX');
+    }
+    return { valid: true, compressed: false };
+  }
+
+  throw new ValidationError(
+    `${fieldName} must be 33 (compressed) or 65 (uncompressed) bytes`,
+    'INVALID_LENGTH'
+  );
+}
+
+function validateDerivationPath(path) {
+  if (typeof path !== 'string') {
+    throw new ValidationError('Derivation path must be a string', 'INVALID_TYPE');
+  }
+
+  const pathRegex = /^m(\/\d+'?)*$/;
+  if (!pathRegex.test(path)) {
+    throw new ValidationError('Invalid derivation path format', 'INVALID_FORMAT', { path });
+  }
+
+  return { valid: true };
+}
+
+function validateNetwork(network) {
+  const validNetworks = ['main', 'test', 'mainnet', 'testnet'];
+
+  if (!validNetworks.includes(network)) {
+    throw new ValidationError(
+      `Invalid network: ${network}. Use 'main' or 'test'`,
+      'INVALID_NETWORK'
+    );
+  }
+
+  return network === 'main' || network === 'mainnet' ? 'main' : 'test';
+}
+
+function assertValid(condition, message, code = 'ASSERTION_FAILED') {
+  if (!condition) {
+    throw new ValidationError(message, code);
+  }
+  return true;
+}
+
+export {
+  ValidationError,
+  validateBuffer,
+  validateBufferLength,
+  validateNumberRange,
+  validateHexString,
+  validateAddress,
+  validateBech32Address,
+  validateBase58Address,
+  validatePrivateKey,
+  validatePublicKey,
+  validateDerivationPath,
+  validateNetwork,
+  assertValid
+};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.5</a> on Tue Dec 30 2025 14:53:38 GMT-0500 (Eastern Standard Time) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/polyfill.js"></script>
+<script src="scripts/linenumber.js"></script>
+
+<script src="scripts/search.js" defer></script>
+
+
+<script src="scripts/collapse.js" defer></script>
+
+
+</body>
+</html>

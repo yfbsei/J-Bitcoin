@@ -20,9 +20,9 @@
     "test:unit": "mocha test/unit/**/*.test.js --timeout 10000",
     "test:integration": "mocha test/integration/**/*.test.js --timeout 20000",
     "docs": "jsdoc -c jsdoc.config.json",
-    "docs:watch": "nodemon --exec 'npm run docs' --watch src --watch index.js --ext js",
+    "docs:watch": "nodemon --exec npm run docs --watch src --watch index.js --ext js",
     "docs:serve": "http-server docs -p 8080 -o -c-1",
-    "docs:clean": "rm -rf docs",
+    "docs:clean": "npx rimraf docs",
     "build": "npm run lint && npm run test && npm run docs",
     "build:docs": "npm run docs:clean && npm run docs",
     "lint": "eslint src/**/*.js index.js test/**/*.js --ignore-missing",
@@ -40,8 +40,8 @@
     "examples:custodial": "node examples/custodial-wallet.js",
     "benchmark": "node benchmarks/performance.js",
     "benchmark:crypto": "node benchmarks/crypto-performance.js",
-    "clean": "npm run docs:clean && rm -rf node_modules/.cache",
-    "reset": "npm run clean && rm -rf node_modules && npm install",
+    "clean": "npm run docs:clean && npx rimraf node_modules/.cache",
+    "reset": "npm run clean && npx rimraf node_modules && npm install",
     "version:patch": "npm version patch",
     "version:minor": "npm version minor",
     "version:major": "npm version major"
@@ -189,14 +189,12 @@
     "npm": "9.6.7"
   },
   "packageManager": "npm@9.6.7",
-  "releaseDate": "2024-12-19",
+  "releaseDate": "2025-01-01",
   "changelog": {
     "version": "2.0.0",
-    "released": "2024-12-19",
+    "released": "2025-01-01",
     "breaking": true,
     "description": "Bitcoin-focused refactor with enhanced TypeScript support and threshold signatures"
   },
-  "preferGlobal": false,
-  "private": false,
-  "workspaces": []
+  "private": false
 }

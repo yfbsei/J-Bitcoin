@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>src/bip/BIP173-BIP350.js - J-Bitcoin - Bitcoin Wallet Library</title>
+    
+    <meta name="description" content="JavaScript/TypeScript Bitcoin wallet library with HD wallets, threshold signatures, and BIP compliance" />
+    
+        <meta name="keywords" content="bitcoin, btc, cryptocurrency, wallet, javascript, typescript, threshold signatures, bip32, bip39" />
+        <meta name="keyword" content="bitcoin, btc, cryptocurrency, wallet, javascript, typescript, threshold signatures, bip32, bip39" />
+    
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+    <script src="scripts/nav.js" defer></script>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav class="wrap">
+    
+    <input type="text" id="nav-search" placeholder="Search" />
+    
+    
+    <h2><a href="index.html">Home</a></h2><h2><a href="https://github.com/yfbsei/J-Bitcoin" target="_blank" class="menu-item home-link" id="home-link" >🏠 Home</a></h2><h2><a href="https://github.com/yfbsei/J-Bitcoin" target="_blank" class="menu-item github-link" id="github-link" >📚 GitHub</a></h2><h2><a href="https://www.npmjs.com/package/j-bitcoin" target="_blank" class="menu-item npm-link" id="npm-link" >📦 NPM</a></h2><h2><a href="https://github.com/yfbsei/J-Bitcoin/tree/main/examples" target="_blank" class="menu-item examples-link" id="examples-link" >🔧 Examples</a></h2><h2><a href="https://github.com/yfbsei/J-Bitcoin/blob/main/CHANGELOG.md" target="_blank" class="menu-item changelog-link" id="changelog-link" >📊 Changelog</a></h2><h3>Global</h3><ul><li><a href="global.html#BIP_COMPLIANCE">BIP_COMPLIANCE</a></li><li><a href="global.html#FEATURES">FEATURES</a></li><li><a href="global.html#LIBRARY_INFO">LIBRARY_INFO</a></li><li><a href="global.html#NETWORKS">NETWORKS</a></li></ul>
+    
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">src/bip/BIP173-BIP350.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview BIP173/BIP350 Bech32 address encoding for Bitcoin
+ * @version 2.1.0
+ * @author yfbsei
+ * @license ISC
+ */
+
+import { createHash } from 'node:crypto';
+import { encodeSegwit, decodeSegwit, convertBits } from '../encoding/base32.js';
+import rmd160 from '../core/crypto/hash/ripemd160.js';
+
+const BECH32_PREFIXES = {
+  main: 'bc',
+  test: 'tb'
+};
+
+function hash160(data) {
+  const sha256 = createHash('sha256').update(data).digest();
+  return rmd160(sha256);
+}
+
+const BECH32 = {
+  to_P2WPKH(publicKeyHex, network = 'main') {
+    const publicKey = Buffer.from(publicKeyHex, 'hex');
+
+    if (publicKey.length !== 33 &amp;&amp; publicKey.length !== 65) {
+      throw new Error('Invalid public key length');
+    }
+
+    const prefix = BECH32_PREFIXES[network];
+    if (!prefix) {
+      throw new Error(`Invalid network: ${network}`);
+    }
+
+    const hash = hash160(publicKey);
+    return encodeSegwit(prefix, 0, hash);
+  },
+
+  to_P2WSH(scriptHash, network = 'main') {
+    const hash = Buffer.isBuffer(scriptHash) ? scriptHash : Buffer.from(scriptHash, 'hex');
+
+    if (hash.length !== 32) {
+      throw new Error('P2WSH requires 32-byte SHA256 hash');
+    }
+
+    const prefix = BECH32_PREFIXES[network];
+    if (!prefix) {
+      throw new Error(`Invalid network: ${network}`);
+    }
+
+    return encodeSegwit(prefix, 0, hash);
+  },
+
+  to_P2TR(xOnlyPublicKey, network = 'main') {
+    const pubkey = Buffer.isBuffer(xOnlyPublicKey) ? xOnlyPublicKey : Buffer.from(xOnlyPublicKey, 'hex');
+
+    if (pubkey.length !== 32) {
+      throw new Error('Taproot requires 32-byte x-only public key');
+    }
+
+    const prefix = BECH32_PREFIXES[network];
+    if (!prefix) {
+      throw new Error(`Invalid network: ${network}`);
+    }
+
+    return encodeSegwit(prefix, 1, pubkey);
+  },
+
+  decode(address) {
+    let hrp, result;
+
+    if (address.startsWith('bc1') || address.startsWith('BC1')) {
+      hrp = 'bc';
+    } else if (address.startsWith('tb1') || address.startsWith('TB1')) {
+      hrp = 'tb';
+    } else {
+      throw new Error('Invalid bech32 address prefix');
+    }
+
+    result = decodeSegwit(hrp, address.toLowerCase());
+
+    return {
+      version: result.version,
+      program: result.program,
+      network: hrp === 'bc' ? 'main' : 'test',
+      type: this.getAddressType(result.version, result.program.length)
+    };
+  },
+
+  getAddressType(version, programLength) {
+    if (version === 0) {
+      if (programLength === 20) return 'p2wpkh';
+      if (programLength === 32) return 'p2wsh';
+    }
+    if (version === 1 &amp;&amp; programLength === 32) {
+      return 'p2tr';
+    }
+    return 'unknown';
+  },
+
+  validate(address) {
+    try {
+      this.decode(address);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  getPrefix(network = 'main') {
+    return BECH32_PREFIXES[network] || BECH32_PREFIXES.main;
+  }
+};
+
+export { BECH32, hash160, BECH32_PREFIXES };
+export default BECH32;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.5</a> on Tue Dec 30 2025 14:53:38 GMT-0500 (Eastern Standard Time) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/polyfill.js"></script>
+<script src="scripts/linenumber.js"></script>
+
+<script src="scripts/search.js" defer></script>
+
+
+<script src="scripts/collapse.js" defer></script>
+
+
+</body>
+</html>

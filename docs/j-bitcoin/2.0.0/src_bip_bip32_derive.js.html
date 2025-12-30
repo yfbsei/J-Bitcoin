@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>src/bip/bip32/derive.js - J-Bitcoin - Bitcoin Wallet Library</title>
+    
+    <meta name="description" content="JavaScript/TypeScript Bitcoin wallet library with HD wallets, threshold signatures, and BIP compliance" />
+    
+        <meta name="keywords" content="bitcoin, btc, cryptocurrency, wallet, javascript, typescript, threshold signatures, bip32, bip39" />
+        <meta name="keyword" content="bitcoin, btc, cryptocurrency, wallet, javascript, typescript, threshold signatures, bip32, bip39" />
+    
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+    <script src="scripts/nav.js" defer></script>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav class="wrap">
+    
+    <input type="text" id="nav-search" placeholder="Search" />
+    
+    
+    <h2><a href="index.html">Home</a></h2><h2><a href="https://github.com/yfbsei/J-Bitcoin" target="_blank" class="menu-item home-link" id="home-link" >🏠 Home</a></h2><h2><a href="https://github.com/yfbsei/J-Bitcoin" target="_blank" class="menu-item github-link" id="github-link" >📚 GitHub</a></h2><h2><a href="https://www.npmjs.com/package/j-bitcoin" target="_blank" class="menu-item npm-link" id="npm-link" >📦 NPM</a></h2><h2><a href="https://github.com/yfbsei/J-Bitcoin/tree/main/examples" target="_blank" class="menu-item examples-link" id="examples-link" >🔧 Examples</a></h2><h2><a href="https://github.com/yfbsei/J-Bitcoin/blob/main/CHANGELOG.md" target="_blank" class="menu-item changelog-link" id="changelog-link" >📊 Changelog</a></h2><h3>Global</h3><ul><li><a href="global.html#BIP_COMPLIANCE">BIP_COMPLIANCE</a></li><li><a href="global.html#FEATURES">FEATURES</a></li><li><a href="global.html#LIBRARY_INFO">LIBRARY_INFO</a></li><li><a href="global.html#NETWORKS">NETWORKS</a></li></ul>
+    
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">src/bip/bip32/derive.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview BIP32 child key derivation
+ * @version 2.1.0
+ * @author yfbsei
+ * @license ISC
+ */
+
+import { createHmac, createHash } from 'node:crypto';
+import { secp256k1 } from '@noble/curves/secp256k1';
+import BN from 'bn.js';
+import { b58encode, b58decode } from '../../encoding/base58.js';
+import rmd160 from '../../core/crypto/hash/ripemd160.js';
+import {
+  CRYPTO_CONSTANTS,
+  BIP32_CONSTANTS,
+  NETWORK_VERSIONS,
+  validateAndGetNetwork
+} from '../../core/constants.js';
+
+const HARDENED_OFFSET = 0x80000000;
+
+function validateExtendedKey(key, expectedPrefix = null) {
+  if (!key || typeof key !== 'string') {
+    throw new Error('Extended key must be a non-empty string');
+  }
+
+  const base58Regex = /^[1-9A-HJ-NP-Za-km-z]+$/;
+  if (!base58Regex.test(key)) {
+    throw new Error('Extended key contains invalid Base58 characters');
+  }
+
+  if (key.length !== 111) {
+    throw new Error(`Invalid extended key length: expected 111, got ${key.length}`);
+  }
+
+  if (expectedPrefix &amp;&amp; !key.startsWith(expectedPrefix)) {
+    throw new Error(`Extended key has wrong prefix: expected ${expectedPrefix}`);
+  }
+
+  return true;
+}
+
+function validateDerivationPath(path) {
+  if (!path || typeof path !== 'string') {
+    throw new Error('Derivation path must be a non-empty string');
+  }
+
+  const pathRegex = /^m(\/\d+'?)*$/;
+  if (!pathRegex.test(path)) {
+    throw new Error(`Invalid derivation path format: ${path}`);
+  }
+
+  return true;
+}
+
+function validateChildKey(childKeyBN) {
+  const curveOrder = new BN(CRYPTO_CONSTANTS.SECP256K1_ORDER, 'hex');
+
+  if (childKeyBN.isZero()) {
+    throw new Error('Invalid child key: key is zero');
+  }
+
+  if (childKeyBN.gte(curveOrder)) {
+    throw new Error('Invalid child key: key >= curve order');
+  }
+
+  const formattedKey = childKeyBN.toBuffer('be', 32);
+
+  if (formattedKey.length !== 32) {
+    throw new Error(`Key serialization failed: expected 32 bytes, got ${formattedKey.length}`);
+  }
+
+  return formattedKey;
+}
+
+function decodeExtendedKey(extendedKey) {
+  validateExtendedKey(extendedKey);
+
+  const decoded = b58decode(extendedKey);
+
+  if (decoded.length !== BIP32_CONSTANTS.EXTENDED_KEY_LENGTH) {
+    throw new Error(`Invalid decoded key length: ${decoded.length}`);
+  }
+
+  const version = decoded.slice(0, 4);
+  const depth = decoded.readUInt8(4);
+  const parentFingerprint = decoded.slice(5, 9);
+  const childIndex = decoded.readUInt32BE(9);
+  const chainCode = decoded.slice(13, 45);
+  const keyData = decoded.slice(45, 78);
+
+  let isPrivate = false;
+  let network = 'main';
+
+  if (version.equals(NETWORK_VERSIONS.main.versions.EXTENDED_PRIVATE_KEY)) {
+    isPrivate = true;
+    network = 'main';
+  } else if (version.equals(NETWORK_VERSIONS.main.versions.EXTENDED_PUBLIC_KEY)) {
+    isPrivate = false;
+    network = 'main';
+  } else if (version.equals(NETWORK_VERSIONS.test.versions.EXTENDED_PRIVATE_KEY)) {
+    isPrivate = true;
+    network = 'test';
+  } else if (version.equals(NETWORK_VERSIONS.test.versions.EXTENDED_PUBLIC_KEY)) {
+    isPrivate = false;
+    network = 'test';
+  } else {
+    throw new Error('Unknown extended key version');
+  }
+
+  let privateKey = null;
+  let publicKey = null;
+
+  if (isPrivate) {
+    if (keyData[0] !== 0x00) {
+      throw new Error('Invalid private key padding');
+    }
+    privateKey = keyData.slice(1);
+    publicKey = Buffer.from(secp256k1.getPublicKey(privateKey, true));
+  } else {
+    publicKey = keyData;
+  }
+
+  return {
+    version,
+    depth,
+    parentFingerprint,
+    childIndex,
+    chainCode,
+    privateKey,
+    publicKey,
+    isPrivate,
+    network
+  };
+}
+
+function encodeExtendedKey(keyInfo) {
+  const networkConfig = NETWORK_VERSIONS[keyInfo.network];
+  const buffer = Buffer.alloc(BIP32_CONSTANTS.EXTENDED_KEY_LENGTH);
+  let offset = 0;
+
+  const versionBytes = keyInfo.isPrivate
+    ? networkConfig.versions.EXTENDED_PRIVATE_KEY
+    : networkConfig.versions.EXTENDED_PUBLIC_KEY;
+
+  versionBytes.copy(buffer, offset);
+  offset += 4;
+
+  buffer.writeUInt8(keyInfo.depth, offset);
+  offset += 1;
+
+  keyInfo.parentFingerprint.copy(buffer, offset);
+  offset += 4;
+
+  buffer.writeUInt32BE(keyInfo.childIndex, offset);
+  offset += 4;
+
+  keyInfo.chainCode.copy(buffer, offset);
+  offset += 32;
+
+  if (keyInfo.isPrivate) {
+    buffer.writeUInt8(0x00, offset);
+    offset += 1;
+    keyInfo.privateKey.copy(buffer, offset);
+  } else {
+    keyInfo.publicKey.copy(buffer, offset);
+  }
+
+  return b58encode(buffer);
+}
+
+function getFingerprint(publicKey) {
+  const sha256Hash = createHash('sha256').update(publicKey).digest();
+  const hash160 = rmd160(sha256Hash);
+  return hash160.slice(0, 4);
+}
+
+function deriveChildKey(parentKeyInfo, index, hardened = false) {
+  const actualIndex = hardened ? index + HARDENED_OFFSET : index;
+
+  if (hardened &amp;&amp; !parentKeyInfo.isPrivate) {
+    throw new Error('Cannot derive hardened child from public key');
+  }
+
+  let data;
+  if (hardened) {
+    data = Buffer.concat([
+      Buffer.from([0x00]),
+      parentKeyInfo.privateKey,
+      Buffer.alloc(4)
+    ]);
+    data.writeUInt32BE(actualIndex, 33);
+  } else {
+    data = Buffer.concat([
+      parentKeyInfo.publicKey,
+      Buffer.alloc(4)
+    ]);
+    data.writeUInt32BE(actualIndex, 33);
+  }
+
+  const hmac = createHmac('sha512', parentKeyInfo.chainCode);
+  const hmacResult = hmac.update(data).digest();
+
+  const derivedKeyMaterial = hmacResult.slice(0, 32);
+  const childChainCode = hmacResult.slice(32, 64);
+
+  let childPrivateKey = null;
+  let childPublicKey = null;
+
+  if (parentKeyInfo.isPrivate) {
+    const parentKeyBN = new BN(parentKeyInfo.privateKey);
+    const derivedBN = new BN(derivedKeyMaterial);
+    const curveOrder = new BN(CRYPTO_CONSTANTS.SECP256K1_ORDER, 'hex');
+
+    const childKeyBN = parentKeyBN.add(derivedBN).mod(curveOrder);
+    childPrivateKey = validateChildKey(childKeyBN);
+    childPublicKey = Buffer.from(secp256k1.getPublicKey(childPrivateKey, true));
+  } else {
+    const parentPoint = secp256k1.ProjectivePoint.fromHex(parentKeyInfo.publicKey);
+    const derivedPoint = secp256k1.ProjectivePoint.fromPrivateKey(derivedKeyMaterial);
+    const childPoint = parentPoint.add(derivedPoint);
+    childPublicKey = Buffer.from(childPoint.toRawBytes(true));
+  }
+
+  const parentFingerprint = getFingerprint(parentKeyInfo.publicKey);
+
+  return {
+    version: parentKeyInfo.version,
+    depth: parentKeyInfo.depth + 1,
+    parentFingerprint,
+    childIndex: actualIndex,
+    chainCode: childChainCode,
+    privateKey: childPrivateKey,
+    publicKey: childPublicKey,
+    isPrivate: parentKeyInfo.isPrivate,
+    network: parentKeyInfo.network
+  };
+}
+
+function derive(path, extendedKey) {
+  validateDerivationPath(path);
+  validateExtendedKey(extendedKey);
+
+  let currentKey = decodeExtendedKey(extendedKey);
+
+  const segments = path.split('/').slice(1);
+
+  for (const segment of segments) {
+    const hardened = segment.endsWith("'");
+    const indexStr = hardened ? segment.slice(0, -1) : segment;
+    const index = parseInt(indexStr, 10);
+
+    if (isNaN(index) || index &lt; 0) {
+      throw new Error(`Invalid path segment: ${segment}`);
+    }
+
+    if (currentKey.depth >= BIP32_CONSTANTS.MAX_DERIVATION_DEPTH) {
+      throw new Error(`Maximum derivation depth exceeded: ${currentKey.depth}`);
+    }
+
+    currentKey = deriveChildKey(currentKey, index, hardened);
+  }
+
+  const extendedPrivateKey = currentKey.isPrivate ? encodeExtendedKey(currentKey) : null;
+
+  const publicKeyInfo = { ...currentKey, isPrivate: false, privateKey: null };
+  const extendedPublicKey = encodeExtendedKey(publicKeyInfo);
+
+  return {
+    extendedPrivateKey,
+    extendedPublicKey,
+    privateKey: currentKey.privateKey,
+    publicKey: currentKey.publicKey,
+    chainCode: currentKey.chainCode,
+    depth: currentKey.depth,
+    index: currentKey.childIndex,
+    network: currentKey.network
+  };
+}
+
+export {
+  derive,
+  deriveChildKey,
+  decodeExtendedKey,
+  encodeExtendedKey,
+  validateDerivationPath,
+  validateExtendedKey,
+  getFingerprint,
+  HARDENED_OFFSET
+};
+
+export default { derive };
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.5</a> on Tue Dec 30 2025 14:53:38 GMT-0500 (Eastern Standard Time) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/polyfill.js"></script>
+<script src="scripts/linenumber.js"></script>
+
+<script src="scripts/search.js" defer></script>
+
+
+<script src="scripts/collapse.js" defer></script>
+
+
+</body>
+</html>

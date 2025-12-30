@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>src/transaction/utxo-manager.js - J-Bitcoin - Bitcoin Wallet Library</title>
+    
+    <meta name="description" content="JavaScript/TypeScript Bitcoin wallet library with HD wallets, threshold signatures, and BIP compliance" />
+    
+        <meta name="keywords" content="bitcoin, btc, cryptocurrency, wallet, javascript, typescript, threshold signatures, bip32, bip39" />
+        <meta name="keyword" content="bitcoin, btc, cryptocurrency, wallet, javascript, typescript, threshold signatures, bip32, bip39" />
+    
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+    <script src="scripts/nav.js" defer></script>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav class="wrap">
+    
+    <input type="text" id="nav-search" placeholder="Search" />
+    
+    
+    <h2><a href="index.html">Home</a></h2><h2><a href="https://github.com/yfbsei/J-Bitcoin" target="_blank" class="menu-item home-link" id="home-link" >🏠 Home</a></h2><h2><a href="https://github.com/yfbsei/J-Bitcoin" target="_blank" class="menu-item github-link" id="github-link" >📚 GitHub</a></h2><h2><a href="https://www.npmjs.com/package/j-bitcoin" target="_blank" class="menu-item npm-link" id="npm-link" >📦 NPM</a></h2><h2><a href="https://github.com/yfbsei/J-Bitcoin/tree/main/examples" target="_blank" class="menu-item examples-link" id="examples-link" >🔧 Examples</a></h2><h2><a href="https://github.com/yfbsei/J-Bitcoin/blob/main/CHANGELOG.md" target="_blank" class="menu-item changelog-link" id="changelog-link" >📊 Changelog</a></h2><h3>Global</h3><ul><li><a href="global.html#BIP_COMPLIANCE">BIP_COMPLIANCE</a></li><li><a href="global.html#FEATURES">FEATURES</a></li><li><a href="global.html#LIBRARY_INFO">LIBRARY_INFO</a></li><li><a href="global.html#NETWORKS">NETWORKS</a></li></ul>
+    
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">src/transaction/utxo-manager.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview UTXO management with selection strategies
+ * @version 2.1.0
+ * @author yfbsei
+ * @license ISC
+ */
+
+class UTXOManagerError extends Error {
+  constructor(message, code, details = {}) {
+    super(message);
+    this.name = 'UTXOManagerError';
+    this.code = code;
+    this.details = details;
+  }
+}
+
+const UTXO_CONSTANTS = {
+  MAX_UTXOS_PER_TRANSACTION: 100,
+  MIN_UTXO_VALUE: 546,
+  MAX_SELECTION_ATTEMPTS: 1000,
+  CONSOLIDATION_THRESHOLD: 100,
+  DEFAULT_FEE_RATE: 10,
+  MIN_FEE_RATE: 1,
+  MAX_FEE_RATE: 1000
+};
+
+const INPUT_SIZES = {
+  p2pkh: 148,
+  p2sh: 91,
+  p2wpkh: 68,
+  p2wsh: 91,
+  p2tr: 57.5
+};
+
+const OUTPUT_SIZES = {
+  p2pkh: 34,
+  p2sh: 32,
+  p2wpkh: 31,
+  p2wsh: 43,
+  p2tr: 43
+};
+
+class UTXOManager {
+  constructor(utxos = []) {
+    this.utxos = [];
+    this.feeCache = new Map();
+
+    for (const utxo of utxos) {
+      this.addUTXO(utxo);
+    }
+  }
+
+  addUTXO(utxo) {
+    if (!utxo.txid || typeof utxo.txid !== 'string') {
+      throw new UTXOManagerError('Invalid UTXO txid', 'INVALID_TXID');
+    }
+
+    if (typeof utxo.vout !== 'number' || utxo.vout &lt; 0) {
+      throw new UTXOManagerError('Invalid UTXO vout', 'INVALID_VOUT');
+    }
+
+    if (typeof utxo.value !== 'number' || utxo.value &lt; 0) {
+      throw new UTXOManagerError('Invalid UTXO value', 'INVALID_VALUE');
+    }
+
+    this.utxos.push({
+      txid: utxo.txid,
+      vout: utxo.vout,
+      value: utxo.value,
+      scriptPubKey: utxo.scriptPubKey,
+      address: utxo.address,
+      type: utxo.type || 'p2wpkh',
+      confirmations: utxo.confirmations || 0,
+      isSpent: false
+    });
+
+    return this;
+  }
+
+  removeUTXO(txid, vout) {
+    const index = this.utxos.findIndex(u => u.txid === txid &amp;&amp; u.vout === vout);
+    if (index !== -1) {
+      this.utxos.splice(index, 1);
+    }
+    return this;
+  }
+
+  markSpent(txid, vout) {
+    const utxo = this.utxos.find(u => u.txid === txid &amp;&amp; u.vout === vout);
+    if (utxo) {
+      utxo.isSpent = true;
+    }
+    return this;
+  }
+
+  getBalance() {
+    return this.utxos
+      .filter(u => !u.isSpent)
+      .reduce((sum, u) => sum + u.value, 0);
+  }
+
+  getAvailableUTXOs() {
+    return this.utxos.filter(u => !u.isSpent);
+  }
+
+  selectUTXOs(targetAmount, feeRate = UTXO_CONSTANTS.DEFAULT_FEE_RATE, strategy = 'optimal') {
+    const available = this.getAvailableUTXOs();
+
+    if (available.length === 0) {
+      throw new UTXOManagerError('No available UTXOs', 'NO_UTXOS');
+    }
+
+    switch (strategy) {
+      case 'largest':
+        return this._selectLargestFirst(available, targetAmount, feeRate);
+      case 'smallest':
+        return this._selectSmallestFirst(available, targetAmount, feeRate);
+      case 'oldest':
+        return this._selectOldestFirst(available, targetAmount, feeRate);
+      case 'optimal':
+      default:
+        return this._selectOptimal(available, targetAmount, feeRate);
+    }
+  }
+
+  _selectLargestFirst(utxos, targetAmount, feeRate) {
+    const sorted = [...utxos].sort((a, b) => b.value - a.value);
+    return this._accumulate(sorted, targetAmount, feeRate);
+  }
+
+  _selectSmallestFirst(utxos, targetAmount, feeRate) {
+    const sorted = [...utxos].sort((a, b) => a.value - b.value);
+    return this._accumulate(sorted, targetAmount, feeRate);
+  }
+
+  _selectOldestFirst(utxos, targetAmount, feeRate) {
+    const sorted = [...utxos].sort((a, b) => b.confirmations - a.confirmations);
+    return this._accumulate(sorted, targetAmount, feeRate);
+  }
+
+  _selectOptimal(utxos, targetAmount, feeRate) {
+    const exactMatch = utxos.find(u => {
+      const fee = this._estimateFee([u], 2, feeRate);
+      return u.value === targetAmount + fee;
+    });
+
+    if (exactMatch) {
+      return {
+        utxos: [exactMatch],
+        totalValue: exactMatch.value,
+        fee: this._estimateFee([exactMatch], 2, feeRate),
+        change: 0
+      };
+    }
+
+    return this._selectLargestFirst(utxos, targetAmount, feeRate);
+  }
+
+  _accumulate(sortedUtxos, targetAmount, feeRate) {
+    const selected = [];
+    let totalValue = 0;
+
+    for (const utxo of sortedUtxos) {
+      selected.push(utxo);
+      totalValue += utxo.value;
+
+      const fee = this._estimateFee(selected, 2, feeRate);
+      const requiredAmount = targetAmount + fee;
+
+      if (totalValue >= requiredAmount) {
+        const change = totalValue - requiredAmount;
+        return {
+          utxos: selected,
+          totalValue,
+          fee,
+          change: change >= UTXO_CONSTANTS.MIN_UTXO_VALUE ? change : 0
+        };
+      }
+
+      if (selected.length >= UTXO_CONSTANTS.MAX_UTXOS_PER_TRANSACTION) {
+        break;
+      }
+    }
+
+    throw new UTXOManagerError(
+      `Insufficient funds: have ${totalValue}, need ${targetAmount}`,
+      'INSUFFICIENT_FUNDS',
+      { available: totalValue, required: targetAmount }
+    );
+  }
+
+  _estimateFee(inputs, outputCount, feeRate) {
+    const baseSize = 10;
+    let inputSize = 0;
+
+    for (const input of inputs) {
+      inputSize += INPUT_SIZES[input.type] || INPUT_SIZES.p2wpkh;
+    }
+
+    const outputSize = outputCount * OUTPUT_SIZES.p2wpkh;
+    const virtualSize = baseSize + inputSize + outputSize;
+
+    return Math.ceil(virtualSize * feeRate);
+  }
+
+  estimateFee(inputCount, outputCount, feeRate = UTXO_CONSTANTS.DEFAULT_FEE_RATE, inputType = 'p2wpkh') {
+    const baseSize = 10;
+    const inputSize = inputCount * (INPUT_SIZES[inputType] || INPUT_SIZES.p2wpkh);
+    const outputSize = outputCount * OUTPUT_SIZES.p2wpkh;
+    const virtualSize = baseSize + inputSize + outputSize;
+
+    return Math.ceil(virtualSize * feeRate);
+  }
+
+  shouldConsolidate() {
+    const available = this.getAvailableUTXOs();
+    return available.length >= UTXO_CONSTANTS.CONSOLIDATION_THRESHOLD;
+  }
+
+  getConsolidationUTXOs(maxCount = 50) {
+    const available = this.getAvailableUTXOs();
+    const sorted = [...available].sort((a, b) => a.value - b.value);
+    return sorted.slice(0, maxCount);
+  }
+
+  toJSON() {
+    return {
+      utxoCount: this.utxos.length,
+      balance: this.getBalance(),
+      utxos: this.utxos.map(u => ({
+        txid: u.txid,
+        vout: u.vout,
+        value: u.value,
+        type: u.type,
+        isSpent: u.isSpent
+      }))
+    };
+  }
+
+  clear() {
+    this.utxos = [];
+    this.feeCache.clear();
+    return this;
+  }
+}
+
+export {
+  UTXOManager,
+  UTXOManagerError,
+  UTXO_CONSTANTS,
+  INPUT_SIZES,
+  OUTPUT_SIZES
+};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.5</a> on Tue Dec 30 2025 14:53:38 GMT-0500 (Eastern Standard Time) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/polyfill.js"></script>
+<script src="scripts/linenumber.js"></script>
+
+<script src="scripts/search.js" defer></script>
+
+
+<script src="scripts/collapse.js" defer></script>
+
+
+</body>
+</html>
