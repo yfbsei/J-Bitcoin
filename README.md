@@ -1,372 +1,240 @@
 # J-Bitcoin
 
-[![npm version](https://badge.fury.io/js/j-bitcoin.svg)](https://badge.fury.io/js/j-bitcoin)
+[![npm version](https://badge.fury.io/js/j-bitcoin.svg)](https://www.npmjs.com/package/j-bitcoin)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
 [![Node.js](https://img.shields.io/badge/Node.js-16%2B-green.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
-[![JSDoc](https://img.shields.io/badge/JSDoc-Complete-brightgreen.svg)](https://jsdoc.app/)
 
-A comprehensive JavaScript/TypeScript cryptocurrency wallet library focused exclusively on Bitcoin (BTC) with both custodial and non-custodial wallet support, featuring advanced threshold signature schemes.
+A comprehensive JavaScript/TypeScript Bitcoin wallet library featuring HD wallets (BIP32/39/44/84/86), threshold signatures (nChain TSS), Schnorr/ECDSA signatures, and Taproot support.
 
-## 🚀 Key Features
+## Features
 
-### 💼 Wallet Technologies
-- **Custodial Wallets** - HD wallets with BIP32/BIP39 support
-- **Non-Custodial Wallets** - Advanced threshold signature schemes (TSS)
-- **Multi-party Control** - 2-of-3, 3-of-5, and custom threshold configurations
+| Category | Features |
+|----------|----------|
+| **Wallets** | Custodial HD wallets, Non-custodial threshold wallets (2-of-3, 3-of-5+) |
+| **Standards** | BIP32, BIP39, BIP44, BIP84, BIP86, BIP173, BIP340, BIP350 |
+| **Addresses** | Legacy P2PKH, SegWit P2WPKH (bc1...), Taproot P2TR (bc1p...) |
+| **Signatures** | ECDSA, Schnorr (BIP340), Threshold signatures (nChain TSS) |
+| **Networks** | Bitcoin Mainnet, Testnet |
 
-### 🔐 Cryptographic Standards
-- **BIP32** - Hierarchical Deterministic Wallets
-- **BIP39** - Mnemonic Seed Phrases (12-word entropy)
-- **BIP340** - Schnorr Signatures for Bitcoin
-- **ECDSA** - Standard Bitcoin signatures with recovery
-- **Threshold Signatures** - Distributed signature generation
-- **Shamir's Secret Sharing** - Secure key distribution
-
-### 🏠 Address Support
-- **Legacy P2PKH** - Traditional Bitcoin addresses (1...)
-- **SegWit Bech32** - Modern Bitcoin addresses (bc1...)
-- **Network Support** - Bitcoin Mainnet & Testnet
-
-### 📝 Developer Experience
-- **Full TypeScript Support** - Complete type definitions and IntelliSense
-- **Comprehensive JSDoc** - Rich inline documentation with examples
-- **ES Modules** - Modern JavaScript with tree shaking support
-- **Bitcoin Constants** - Built-in BIP44 paths and network configurations
-- **Error Handling** - Proper Error objects with detailed messages
-
-## 📚 Documentation
-
-**[Complete API Documentation](https://yfbsei.github.io/J-Bitcoin/j-bitcoin/2.0.0/)**
-
-## 📦 Installation
+## Installation
 
 ```bash
 npm install j-bitcoin
 ```
 
-**Requirements:**
-- Node.js 16.0.0 or higher
-- npm 7.0.0 or higher
+**Requirements:** Node.js 16+ and npm 7+
 
-## 🎯 Quick Start Examples
+## Quick Start
 
-### Custodial Wallet (JavaScript)
+### Create a Custodial HD Wallet
 
 ```javascript
-import { Custodial_Wallet, BIP44_CONSTANTS } from 'j-bitcoin';
+import { CustodialWallet } from 'j-bitcoin';
 
 // Generate new wallet with mnemonic
-const [mnemonic, wallet] = Custodial_Wallet.fromRandom('main');
-console.log('Mnemonic:', mnemonic);
-console.log('Root Address:', wallet.address);
+const { wallet, mnemonic } = CustodialWallet.createNew('main');
+console.log('Backup mnemonic:', mnemonic);
 
-// Use convenience methods for standard Bitcoin derivation
-const receivingAddr = wallet.deriveReceivingAddress(0);  // m/44'/0'/0'/0/0
-const changeAddr = wallet.deriveChangeAddress(0);        // m/44'/0'/0'/1/0
+// Derive addresses
+const legacyAddr = wallet.deriveLegacyAddress(0);      // P2PKH (1...)
+const segwitAddr = wallet.deriveSegWitAddress(0);      // P2WPKH (bc1q...)
+const taprootAddr = wallet.deriveTaprootAddress(0);    // P2TR (bc1p...)
 
-console.log('First Receiving:', receivingAddr);
-console.log('First Change:', changeAddr);
+console.log('Legacy:', legacyAddr);
+console.log('SegWit:', segwitAddr);
+console.log('Taproot:', taprootAddr);
 
-// Sign and verify messages
-const [signature, recoveryId] = wallet.sign("Hello Bitcoin!");
-const isValid = wallet.verify(signature, "Hello Bitcoin!");
-console.log('Signature valid:', isValid);
-
-// Get comprehensive wallet summary
-const summary = wallet.getSummary();
-console.log(`Wallet has ${summary.receivingAddresses} receiving addresses`);
+// Restore from mnemonic
+const restored = CustodialWallet.fromMnemonic('main', mnemonic);
 ```
 
-### Custodial Wallet (TypeScript)
-
-```typescript
-import { 
-  Custodial_Wallet, 
-  ECDSASignatureResult, 
-  WalletSummary,
-  NetworkType,
-  ChildKeyInfo
-} from 'j-bitcoin';
-
-// Type-safe wallet generation
-const network: NetworkType = 'main';
-const [mnemonic, wallet]: [string, Custodial_Wallet] = 
-  Custodial_Wallet.fromRandom(network);
-
-// Type-safe operations with full IntelliSense
-const signature: ECDSASignatureResult = wallet.sign("Hello Bitcoin!");
-const summary: WalletSummary = wallet.getSummary();
-const receivingKeys: ChildKeyInfo[] = wallet.getChildKeysByType('receiving');
-
-// Restore wallet with type safety
-const restoredWallet: Custodial_Wallet = 
-  Custodial_Wallet.fromMnemonic(network, mnemonic, 'optional-passphrase');
-```
-
-### Threshold Signatures (Advanced)
+### Create a Threshold Signature Wallet
 
 ```javascript
-import { Non_Custodial_Wallet } from 'j-bitcoin';
+import { NonCustodialWallet } from 'j-bitcoin';
 
 // Create 2-of-3 threshold wallet
-const threshold = 2;
-const participants = 3;
-const walletShares = Non_Custodial_Wallet.generate_shares(threshold, participants, 'main');
+const wallet = await NonCustodialWallet.create({
+  threshold: 2,
+  participants: 3,
+  network: 'main'
+});
 
-// Each participant gets their share
-const [share1, share2, share3] = walletShares;
+console.log('Shared public key:', wallet.getPublicKeyHex());
+console.log('SegWit address:', wallet.getSegWitAddress());
 
-// Simulate distributed signing (requires threshold participants)
-const message = "Threshold signature test";
-const signatures = [
-  share1.sign(message),  // Participant 1 signs
-  share2.sign(message)   // Participant 2 signs (threshold reached)
-];
+// Sign with threshold participants
+const messageHash = Buffer.from('...32 byte hash...');
+const signature = await wallet.sign(messageHash, [0, 1]); // Participants 0 and 1
 
-// Combine signatures
-const combinedSignature = Non_Custodial_Wallet.combine_signatures(signatures, message);
-console.log('Threshold signature created:', combinedSignature.serialized_sig);
+// Verify signature
+const isValid = wallet.verify(messageHash, signature);
+```
+
+### BIP39 Mnemonic Operations
+
+```javascript
+import { BIP39 } from 'j-bitcoin';
+
+// Generate mnemonic
+const { mnemonic } = BIP39.generateMnemonic();
+
+// Validate mnemonic
+const isValid = BIP39.validateChecksum(mnemonic);
+
+// Derive seed (with optional passphrase)
+const seed = BIP39.deriveSeed(mnemonic, 'optional-passphrase');
 ```
 
 ### Schnorr Signatures (BIP340)
 
 ```javascript
-import { schnorr_sig } from 'j-bitcoin';
+import { Schnorr } from 'j-bitcoin';
 
-// Generate key and sign with Schnorr
-const privateKey = "L1vHfV6GUbMJSvFaqjnButzwq5x4ThdFaotpUgsfScwMNKjdGVuS";
-const message = "Schnorr signature test";
+const schnorr = new Schnorr();
+const privateKey = Buffer.from('...32 bytes...');
+const messageHash = Buffer.from('...32 bytes...');
 
-const signature = schnorr_sig.sign(privateKey, message);
-const publicKey = schnorr_sig.retrieve_public_key(privateKey);
-const isValid = schnorr_sig.verify(signature, message, publicKey);
+// Sign
+const sig = await schnorr.sign(privateKey, messageHash);
 
-console.log('Schnorr signature valid:', isValid);
+// Verify
+const publicKey = schnorr.getPublicKey(privateKey);
+const isValid = await schnorr.verify(sig.signature, messageHash, publicKey);
 ```
 
-## 🏗️ Architecture Overview
+### ECDSA Signatures
 
-### Core Components
+```javascript
+import { ECDSA } from 'j-bitcoin';
+
+const privateKey = '...hex or buffer...';
+const messageHash = '...32 byte hex hash...';
+
+// Sign
+const sig = ECDSA.sign(privateKey, messageHash);
+console.log('Signature DER:', sig.der.toString('hex'));
+
+// Verify
+const publicKey = ECDSA.getPublicKey(privateKey);
+const isValid = ECDSA.verify(sig, messageHash, publicKey);
+```
+
+### Bech32 Address Encoding
+
+```javascript
+import { BECH32 } from 'j-bitcoin';
+
+// Encode public key to SegWit address
+const address = BECH32.to_P2WPKH(publicKeyHex, 'main');
+
+// Encode to Taproot address  
+const taprootAddr = BECH32.to_P2TR(xOnlyPubKeyHex, 'main');
+
+// Decode address
+const { program, version, type } = BECH32.decode(address);
+```
+
+## Project Structure
 
 ```
 src/
-├── wallets/
-│   ├── custodial/          # HD wallet implementation
-│   └── non-custodial/      # Threshold signature wallets
+├── wallet/                    # Wallet implementations
+│   ├── custodial.js          # HD wallet (BIP32/39/44/84/86)
+│   └── non-custodial.js      # Threshold signature wallet
+├── bip/                       # BIP standards
+│   ├── BIP173-BIP350.js      # Bech32/Bech32m encoding
+│   ├── bip32/                # HD key derivation
+│   └── bip39/                # Mnemonic generation
 ├── core/
-│   ├── crypto/             # Cryptographic primitives
-│   ├── keys/               # Key management (BIP32/BIP39)
-│   └── math/               # Mathematical operations
+│   ├── constants.js          # Network/crypto constants
+│   ├── crypto/
+│   │   ├── hash/             # RIPEMD160, HASH160
+│   │   └── signatures/       # ECDSA, Schnorr, Threshold
+│   └── taproot/              # Taproot support
 ├── encoding/
-│   ├── address/            # Address encoding/decoding
-│   └── base58/             # Base58 encoding utilities
-└── constants/              # Bitcoin network constants
+│   ├── base58.js             # Base58Check
+│   ├── base32.js             # Bech32/Bech32m
+│   └── address/              # Address encode/decode
+├── transaction/
+│   ├── builder.js            # Transaction construction
+│   ├── psbt.js               # PSBT support
+│   └── utxo-manager.js       # UTXO management
+└── utils/
+    ├── validation.js         # Input validation
+    └── address-helpers.js    # Address utilities
 ```
 
-### TypeScript Integration
+## API Reference
 
-Full TypeScript support with comprehensive interfaces:
+### Wallet Classes
 
-```typescript
-// Complete type definitions available
-interface WalletSummary {
-  mnemonic?: string;
-  rootKey: string;
-  network: NetworkType;
-  receivingAddresses: number;
-  changeAddresses: number;
-  totalDerived: number;
-  createdAt: string;
-}
+| Class | Description |
+|-------|-------------|
+| `CustodialWallet` | Full HD wallet with BIP32/39/44/84/86 support |
+| `NonCustodialWallet` | Threshold signature wallet (nChain TSS protocol) |
 
-interface ThresholdSignatureResult {
-  sig: { r: bigint; s: bigint; };
-  serialized_sig: string;
-  msgHash: Buffer;
-  recovery_id: number;
-}
-```
+### Cryptographic Modules
 
-## 📊 Feature Comparison
+| Module | Description |
+|--------|-------------|
+| `BIP39` | Mnemonic generation, validation, seed derivation |
+| `ECDSA` | Standard Bitcoin signatures with recovery |
+| `Schnorr` | BIP340 Schnorr signatures |
+| `BECH32` | Bech32/Bech32m address encoding |
+| `b58encode` / `b58decode` | Base58Check encoding |
 
-| Feature | Custodial | Non-Custodial | Status |
-|---------|-----------|---------------|---------|
-| HD Key Derivation | ✅ | ✅ | Complete |
-| BIP39 Mnemonics | ✅ | ✅ | Complete |
-| ECDSA Signatures | ✅ | ✅ | Complete |
-| Schnorr Signatures | ✅ | ✅ | Complete |
-| Threshold Signatures | ❌ | ✅ | Complete |
-| Legacy Addresses | ✅ | ✅ | Complete |
-| SegWit Addresses | ✅ | ✅ | Complete |
-| TypeScript Support | ✅ | ✅ | Complete |
-| Network Support | BTC Main/Test | BTC Main/Test | Complete |
+### Key Derivation
 
-## 🔧 Development
+| Function | Description |
+|----------|-------------|
+| `generateMasterKey(seed, network)` | Generate BIP32 master key from seed |
+| `derive(path, extendedKey)` | Derive child key at BIP32 path |
 
-### Setup
+## Development
 
 ```bash
-# Clone repository
-git clone https://github.com/yfbsei/J-Bitcoin.git
-cd J-Bitcoin
-
 # Install dependencies
 npm install
 
-# Development commands
-npm run test           # Run test suite
-npm run test:coverage  # Test with coverage report
-npm run test:watch     # Watch mode testing
-npm run lint           # Code linting
-npm run lint:fix       # Auto-fix linting issues
-npm run format         # Code formatting
-npm run docs           # Generate documentation
-npm run build          # Build project
-```
-
-### Testing
-
-Comprehensive test suite with coverage reporting:
-
-```bash
-# Run all tests
+# Run tests
 npm test
-
-# Generate coverage report
 npm run test:coverage
 
-# Watch for changes
-npm run test:watch
-```
+# Lint and format
+npm run lint
+npm run format
 
-### Documentation Generation
-
-```bash
-# Generate API documentation
+# Generate documentation
 npm run docs
-
-# Serve documentation locally
-npm run docs:serve  # Available at http://localhost:8080
+npm run docs:serve   # Serve at localhost:8080
 ```
 
-## 🔒 Security Best Practices
+## Security
 
-### Key Management
-- **Secure Storage**: Store mnemonic phrases in secure, offline locations
-- **Share Distribution**: Use encrypted channels for threshold share distribution
-- **Access Control**: Implement proper authentication for wallet operations
-- **Regular Rotation**: Consider periodic key rotation for high-value wallets
+> ⚠️ **Important**: This library handles private keys and cryptographic material.
 
-### Development Guidelines
-- **Input Validation**: Always validate addresses, amounts, and signatures
-- **Error Handling**: Implement comprehensive error handling for all operations
-- **Testing**: Thoroughly test on testnet before mainnet deployment
-- **Auditing**: Maintain audit trails for all cryptographic operations
+- **Never share** private keys, mnemonics, or threshold shares
+- **Test on testnet** before mainnet deployment
+- **Store securely** - use encrypted offline storage for mnemonics
+- **Validate inputs** - always validate addresses and signatures
 
-### Production Deployment
-- **Environment Separation**: Isolate development and production environments
-- **Monitoring**: Implement monitoring for wallet operations and security events
-- **Backup Procedures**: Establish reliable backup and recovery procedures
-- **Incident Response**: Have plans for handling security incidents
+## Dependencies
 
-## 📋 API Reference
+- [@noble/curves](https://github.com/paulmillr/noble-curves) - secp256k1 elliptic curve
+- [bn.js](https://github.com/indutny/bn.js) - BigNum arithmetic
 
-### Built-in Constants
+## License
 
-```javascript
-import { BIP44_CONSTANTS, NETWORK_CONSTANTS } from 'j-bitcoin';
+ISC License - see [LICENSE](LICENSE)
 
-// Bitcoin derivation paths
-BIP44_CONSTANTS.COIN_TYPES.BITCOIN_MAINNET;  // 0
-BIP44_CONSTANTS.COIN_TYPES.BITCOIN_TESTNET;  // 1
+## Links
 
-// Network configurations
-NETWORK_CONSTANTS.BITCOIN_MAINNET.public;    // 0x0488b21e
-NETWORK_CONSTANTS.BITCOIN_TESTNET.public;    // 0x043587cf
-```
-
-### Core Classes
-
-| Class | Purpose | Key Methods |
-|-------|---------|-------------|
-| `Custodial_Wallet` | HD wallet management | `fromRandom()`, `fromMnemonic()`, `sign()`, `derive()` |
-| `Non_Custodial_Wallet` | Threshold signatures | `generate_shares()`, `combine_signatures()`, `sign()` |
-| `BIP39` | Mnemonic handling | `generate()`, `validate()`, `toSeed()`, `toEntropy()` |
-| `ECDSA` | Standard signatures | `sign()`, `verify()`, `recover()` |
-| `schnorr_sig` | Schnorr signatures | `sign()`, `verify()`, `retrieve_public_key()` |
-| `BECH32` | Address encoding | `encode()`, `decode()`, `validate()` |
-
-## 🔮 Roadmap
-
-### Version 2.1 (Q3 2025)
-- [ ] Enhanced error handling with custom error types
-- [ ] Performance optimizations for threshold operations
-- [ ] Additional address format support (P2SH, P2WSH)
-- [ ] Expanded test coverage and benchmarks
-
-### Version 2.2 (Q4 2025)
-- [ ] Transaction building and broadcasting utilities
-- [ ] SPV wallet implementation
-- [ ] Hardware wallet integration support
-- [ ] Advanced script template system
-
-### Version 3.0 (2026)
-- [ ] Lightning Network integration
-- [ ] WebAssembly optimization
-- [ ] React/Vue component library
-- [ ] Cross-platform mobile support
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
-### Quick Contribution Steps
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes with tests
-4. Run the test suite: `npm test`
-5. Commit your changes: `git commit -m 'Add amazing feature'`
-6. Push to your branch: `git push origin feature/amazing-feature`
-7. Open a Pull Request
-
-### Development Standards
-
-- Follow existing code style (ESLint + Prettier configured)
-- Add tests for new functionality
-- Update documentation for API changes
-- Ensure TypeScript compatibility
-
-## 📜 License
-
-ISC License - see [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **Bitcoin Core Team** - Reference implementation and standards
-- **BIP Authors** - Bitcoin Improvement Proposal specifications
-- **Noble Crypto** - Excellent secp256k1 cryptographic library
-- **Open Source Community** - Continuous innovation and peer review
-
-## 📞 Support & Resources
-
-- **Issues**: [GitHub Issues](https://github.com/yfbsei/J-Bitcoin/issues)
-- **Documentation**: [API Documentation](https://yfbsei.github.io/J-Bitcoin/j-bitcoin/2.0.0/)
-- **Examples**: [Examples Directory](https://github.com/yfbsei/J-Bitcoin/tree/main/examples)
-- **Discussions**: [GitHub Discussions](https://github.com/yfbsei/J-Bitcoin/discussions)
-
-## ⚠️ Important Security Notice
-
-This library handles private keys and cryptographic material. Always:
-
-- Test thoroughly in development environments
-- Use testnet for initial testing
-- Implement proper key management practices
-- Keep dependencies updated
-- Follow security best practices for production deployments
-
-**Never share private keys, mnemonics, or threshold shares over insecure channels.**
+- [GitHub Repository](https://github.com/yfbsei/J-Bitcoin)
+- [API Documentation](https://yfbsei.github.io/J-Bitcoin)
+- [npm Package](https://www.npmjs.com/package/j-bitcoin)
+- [Issues](https://github.com/yfbsei/J-Bitcoin/issues)
 
 ---
 

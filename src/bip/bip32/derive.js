@@ -17,7 +17,19 @@ import {
   validateAndGetNetwork
 } from '../../core/constants.js';
 
+/**
+ * Offset for hardened key derivation (2^31)
+ * @constant {number}
+ */
 const HARDENED_OFFSET = 0x80000000;
+
+/**
+ * Validate a Base58Check-encoded extended key
+ * @param {string} key - Extended key to validate
+ * @param {string|null} [expectedPrefix=null] - Expected key prefix
+ * @returns {boolean} True if valid
+ * @throws {Error} If key is invalid
+ */
 
 function validateExtendedKey(key, expectedPrefix = null) {
   if (!key || typeof key !== 'string') {
@@ -40,6 +52,12 @@ function validateExtendedKey(key, expectedPrefix = null) {
   return true;
 }
 
+/**
+ * Validate a BIP32 derivation path
+ * @param {string} path - Derivation path (e.g., "m/44'/0'/0'/0/0")
+ * @returns {boolean} True if valid
+ * @throws {Error} If path format is invalid
+ */
 function validateDerivationPath(path) {
   if (!path || typeof path !== 'string') {
     throw new Error('Derivation path must be a non-empty string');
@@ -53,6 +71,12 @@ function validateDerivationPath(path) {
   return true;
 }
 
+/**
+ * Validate a derived child key against curve parameters
+ * @param {BN} childKeyBN - Child key as big number
+ * @returns {Buffer} 32-byte formatted key
+ * @throws {Error} If key is zero or >= curve order
+ */
 function validateChildKey(childKeyBN) {
   const curveOrder = new BN(CRYPTO_CONSTANTS.SECP256K1_ORDER, 'hex');
 
@@ -73,6 +97,12 @@ function validateChildKey(childKeyBN) {
   return formattedKey;
 }
 
+/**
+ * Decode a Base58Check-encoded extended key
+ * @param {string} extendedKey - Extended key (xprv/xpub/tprv/tpub)
+ * @returns {Object} Decoded key information
+ * @throws {Error} If key format is invalid
+ */
 function decodeExtendedKey(extendedKey) {
   validateExtendedKey(extendedKey);
 
@@ -134,6 +164,11 @@ function decodeExtendedKey(extendedKey) {
   };
 }
 
+/**
+ * Encode key information to a Base58Check extended key
+ * @param {Object} keyInfo - Key information object
+ * @returns {string} Base58Check-encoded extended key
+ */
 function encodeExtendedKey(keyInfo) {
   const networkConfig = NETWORK_VERSIONS[keyInfo.network];
   const buffer = Buffer.alloc(BIP32_CONSTANTS.EXTENDED_KEY_LENGTH);
@@ -169,12 +204,25 @@ function encodeExtendedKey(keyInfo) {
   return b58encode(buffer);
 }
 
+/**
+ * Get the fingerprint of a public key (first 4 bytes of HASH160)
+ * @param {Buffer} publicKey - Compressed public key
+ * @returns {Buffer} 4-byte fingerprint
+ */
 function getFingerprint(publicKey) {
   const sha256Hash = createHash('sha256').update(publicKey).digest();
   const hash160 = rmd160(sha256Hash);
   return hash160.slice(0, 4);
 }
 
+/**
+ * Derive a child key from a parent key
+ * @param {Object} parentKeyInfo - Parent key information
+ * @param {number} index - Child index (0-2147483647)
+ * @param {boolean} [hardened=false] - Whether to use hardened derivation
+ * @returns {Object} Child key information
+ * @throws {Error} If hardened derivation attempted on public key
+ */
 function deriveChildKey(parentKeyInfo, index, hardened = false) {
   const actualIndex = hardened ? index + HARDENED_OFFSET : index;
 
@@ -237,6 +285,13 @@ function deriveChildKey(parentKeyInfo, index, hardened = false) {
   };
 }
 
+/**
+ * Derive a child key at a given path from an extended key
+ * @param {string} path - BIP32 derivation path (e.g., "m/44'/0'/0'/0/0")
+ * @param {string} extendedKey - Parent extended key (xprv/xpub)
+ * @returns {Object} Derived key information
+ * @throws {Error} If path or key is invalid
+ */
 function derive(path, extendedKey) {
   validateDerivationPath(path);
   validateExtendedKey(extendedKey);

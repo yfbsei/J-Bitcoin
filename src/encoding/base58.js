@@ -10,10 +10,21 @@ import { createHash } from 'node:crypto';
 const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const CHECKSUM_LENGTH = 4;
 
+/**
+ * Double SHA256 hash for checksums
+ * @param {Buffer} data - Data to hash
+ * @returns {Buffer} 32-byte hash
+ */
 function doubleHash256(data) {
   return createHash('sha256').update(createHash('sha256').update(data).digest()).digest();
 }
 
+/**
+ * Encode buffer to Base58 (without checksum)
+ * @param {Buffer} buffer - Data to encode
+ * @returns {string} Base58-encoded string
+ * @throws {Error} If input is not a Buffer
+ */
 function encode(buffer) {
   if (!Buffer.isBuffer(buffer)) {
     throw new Error('Input must be a Buffer');
@@ -47,6 +58,12 @@ function encode(buffer) {
   return '1'.repeat(leadingZeros) + result.join('');
 }
 
+/**
+ * Decode Base58 string (without checksum)
+ * @param {string} str - Base58 string
+ * @returns {Buffer} Decoded data
+ * @throws {Error} If invalid characters found
+ */
 function decode(str) {
   if (typeof str !== 'string') {
     throw new Error('Input must be a string');
@@ -86,6 +103,12 @@ function decode(str) {
   return Buffer.from([...leadingZeros, ...bytes]);
 }
 
+/**
+ * Encode buffer with Base58Check (with checksum)
+ * @param {Buffer} buffer - Data to encode
+ * @returns {string} Base58Check-encoded string
+ * @throws {Error} If input invalid or checksum fails
+ */
 function b58encode(buffer) {
   if (!Buffer.isBuffer(buffer)) {
     throw new Error('Input must be a Buffer');
@@ -114,6 +137,12 @@ function b58encode(buffer) {
   return encoded;
 }
 
+/**
+ * Decode Base58Check string (with checksum verification)
+ * @param {string} encoded - Base58Check string
+ * @returns {Buffer} Decoded data (without checksum)
+ * @throws {Error} If checksum verification fails
+ */
 function b58decode(encoded) {
   if (typeof encoded !== 'string') {
     throw new Error('Input must be a string');

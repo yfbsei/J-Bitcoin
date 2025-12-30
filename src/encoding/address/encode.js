@@ -10,6 +10,11 @@ import { b58encode } from '../base58.js';
 import rmd160 from '../../core/crypto/hash/ripemd160.js';
 import { NETWORK_VERSIONS, CRYPTO_CONSTANTS } from '../../core/constants.js';
 
+/**
+ * Custom error class for encoding operations
+ * @class EncodingError
+ * @extends Error
+ */
 class EncodingError extends Error {
   constructor(message, code, details = {}) {
     super(message);
@@ -19,11 +24,23 @@ class EncodingError extends Error {
   }
 }
 
+/**
+ * Compute HASH160 of data
+ * @param {Buffer} data - Input data
+ * @returns {Buffer} 20-byte hash
+ */
+
 function hash160(data) {
   const sha256 = createHash('sha256').update(data).digest();
   return rmd160(sha256);
 }
 
+/**
+ * Encode a version byte and hash to Base58Check address
+ * @param {number} versionByte - Network version byte
+ * @param {Buffer} hash160Data - 20-byte hash
+ * @returns {string} Base58Check address
+ */
 function encodeAddress(versionByte, hash160Data) {
   if (!Buffer.isBuffer(hash160Data) && !(hash160Data instanceof Uint8Array)) {
     throw new EncodingError('Hash160 data must be a Buffer', 'INVALID_TYPE');
@@ -44,6 +61,12 @@ function encodeAddress(versionByte, hash160Data) {
   return b58encode(payload);
 }
 
+/**
+ * Encode public key to P2PKH (legacy) address
+ * @param {Buffer|string} publicKey - Compressed/uncompressed public key
+ * @param {string} [network='main'] - Network type
+ * @returns {string} Base58Check P2PKH address
+ */
 function encodeP2PKH(publicKey, network = 'main') {
   const pubKeyBuffer = Buffer.isBuffer(publicKey)
     ? publicKey
@@ -61,6 +84,12 @@ function encodeP2PKH(publicKey, network = 'main') {
   return encodeAddress(versionByte, hash);
 }
 
+/**
+ * Encode script hash to P2SH address
+ * @param {Buffer|string} scriptHash - 20-byte script hash
+ * @param {string} [network='main'] - Network type
+ * @returns {string} Base58Check P2SH address
+ */
 function encodeP2SH(scriptHash, network = 'main') {
   const hashBuffer = Buffer.isBuffer(scriptHash)
     ? scriptHash
@@ -77,6 +106,13 @@ function encodeP2SH(scriptHash, network = 'main') {
   return encodeAddress(versionByte, hashBuffer);
 }
 
+/**
+ * Encode private key to WIF format
+ * @param {Buffer|string} privateKey - 32-byte private key
+ * @param {string} [network='main'] - Network type
+ * @param {boolean} [compressed=true] - Use compressed format
+ * @returns {string} WIF-encoded private key
+ */
 function encodeWIF(privateKey, network = 'main', compressed = true) {
   const keyBuffer = Buffer.isBuffer(privateKey)
     ? privateKey

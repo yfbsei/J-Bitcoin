@@ -10,7 +10,18 @@ import { secp256k1 } from '@noble/curves/secp256k1';
 import { b58decode } from '../../../encoding/base58.js';
 import { CRYPTO_CONSTANTS, NETWORK_VERSIONS } from '../../constants.js';
 
+/**
+ * Custom error class for ECDSA operations
+ * @class ECDSAError
+ * @extends Error
+ */
 class ECDSAError extends Error {
+  /**
+   * Create an ECDSA error
+   * @param {string} message - Error message
+   * @param {string} code - Error code
+   * @param {Object} [details={}] - Additional details
+   */
   constructor(message, code, details = {}) {
     super(message);
     this.name = 'ECDSAError';
@@ -19,6 +30,12 @@ class ECDSAError extends Error {
   }
 }
 
+/**
+ * Validate a private key format and value
+ * @param {string|Buffer|Uint8Array} privateKey - Private key to validate
+ * @returns {Buffer} Validated 32-byte private key
+ * @throws {ECDSAError} If key is invalid
+ */
 function validatePrivateKey(privateKey) {
   let keyBuffer;
 
@@ -52,6 +69,12 @@ function validatePrivateKey(privateKey) {
   return keyBuffer;
 }
 
+/**
+ * Validate a public key format and value
+ * @param {string|Buffer|Uint8Array} publicKey - Public key to validate
+ * @returns {Buffer} Validated public key
+ * @throws {ECDSAError} If key is invalid
+ */
 function validatePublicKey(publicKey) {
   let keyBuffer;
 
@@ -78,6 +101,12 @@ function validatePublicKey(publicKey) {
   return keyBuffer;
 }
 
+/**
+ * Decode a WIF-encoded private key
+ * @param {string} wif - WIF-encoded private key
+ * @returns {Buffer} 32-byte private key
+ * @throws {ECDSAError} If WIF format is invalid
+ */
 function decodeWIFPrivateKey(wif) {
   const decoded = b58decode(wif);
 
@@ -101,7 +130,19 @@ function decodeWIFPrivateKey(wif) {
   return decoded.slice(1, 33);
 }
 
+/**
+ * ECDSA signature operations for Bitcoin
+ * @namespace ECDSA
+ */
 const ECDSA = {
+  /**
+   * Sign a message hash with ECDSA
+   * @param {string|Buffer|Uint8Array} privateKey - Private key
+   * @param {string|Buffer} messageHash - 32-byte hash to sign
+   * @param {Object} [options={}] - Signing options
+   * @returns {Object} Signature with r, s, recovery, signature, der
+   * @throws {ECDSAError} If inputs are invalid
+   */
   sign(privateKey, messageHash, options = {}) {
     const keyBuffer = validatePrivateKey(privateKey);
 
@@ -130,6 +171,13 @@ const ECDSA = {
     };
   },
 
+  /**
+   * Verify an ECDSA signature
+   * @param {Object|Buffer|Uint8Array} signature - Signature to verify
+   * @param {string|Buffer} messageHash - 32-byte message hash
+   * @param {string|Buffer|Uint8Array} publicKey - Public key
+   * @returns {boolean} True if signature is valid
+   */
   verify(signature, messageHash, publicKey) {
     const pubKeyBuffer = validatePublicKey(publicKey);
 
@@ -161,6 +209,14 @@ const ECDSA = {
     }
   },
 
+  /**
+   * Recover public key from signature
+   * @param {Object} signature - Signature with r, s components
+   * @param {string|Buffer} messageHash - Original message hash
+   * @param {number} recovery - Recovery parameter (0-3)
+   * @returns {Buffer} Recovered compressed public key
+   * @throws {ECDSAError} If signature format is invalid
+   */
   recoverPublicKey(signature, messageHash, recovery) {
     let hashBuffer;
     if (typeof messageHash === 'string') {
@@ -180,11 +236,23 @@ const ECDSA = {
     return Buffer.from(recoveredPoint.toRawBytes(true));
   },
 
+  /**
+   * Get public key from private key
+   * @param {string|Buffer|Uint8Array} privateKey - Private key
+   * @param {boolean} [compressed=true] - Return compressed format
+   * @returns {Buffer} Public key
+   */
   getPublicKey(privateKey, compressed = true) {
     const keyBuffer = validatePrivateKey(privateKey);
     return Buffer.from(secp256k1.getPublicKey(keyBuffer, compressed));
   },
 
+  /**
+   * Sign a message with Bitcoin message prefix
+   * @param {string|Buffer|Uint8Array} privateKey - Private key
+   * @param {string|Buffer} message - Message to sign
+   * @returns {Object} Signature
+   */
   signMessage(privateKey, message) {
     const messageBuffer = typeof message === 'string' ? Buffer.from(message, 'utf8') : message;
     const prefix = Buffer.from('\x18Bitcoin Signed Message:\n', 'utf8');
@@ -198,6 +266,13 @@ const ECDSA = {
     return this.sign(privateKey, messageHash);
   },
 
+  /**
+   * Verify a Bitcoin signed message
+   * @param {Object} signature - Signature to verify
+   * @param {string|Buffer} message - Original message
+   * @param {string|Buffer|Uint8Array} publicKey - Public key
+   * @returns {boolean} True if valid
+   */
   verifyMessage(signature, message, publicKey) {
     const messageBuffer = typeof message === 'string' ? Buffer.from(message, 'utf8') : message;
     const prefix = Buffer.from('\x18Bitcoin Signed Message:\n', 'utf8');

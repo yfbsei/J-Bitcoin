@@ -10,7 +10,18 @@ import { schnorr, secp256k1 } from '@noble/curves/secp256k1';
 import { CRYPTO_CONSTANTS } from '../../constants.js';
 import BN from 'bn.js';
 
+/**
+ * Custom error class for Schnorr operations
+ * @class SchnorrError
+ * @extends Error
+ */
 class SchnorrError extends Error {
+  /**
+   * Create a Schnorr error
+   * @param {string} message - Error message
+   * @param {string} code - Error code
+   * @param {Object} [details={}] - Additional details
+   */
   constructor(message, code, details = {}) {
     super(message);
     this.name = 'SchnorrError';
@@ -19,6 +30,10 @@ class SchnorrError extends Error {
   }
 }
 
+/**
+ * BIP340 Schnorr signature constants
+ * @constant {Object}
+ */
 const BIP340_CONSTANTS = {
   SIGNATURE_LENGTH: 64,
   PUBLIC_KEY_LENGTH: 32,
@@ -27,6 +42,11 @@ const BIP340_CONSTANTS = {
   AUX_TAG: 'BIP0340/aux',
   NONCE_TAG: 'BIP0340/nonce'
 };
+
+/**
+ * Taproot signature constants
+ * @constant {Object}
+ */
 
 const TAPROOT_CONSTANTS = {
   LEAF_VERSION: 0xc0,
@@ -41,7 +61,17 @@ const TAPROOT_CONSTANTS = {
 const CURVE_ORDER = BigInt('0x' + CRYPTO_CONSTANTS.SECP256K1_ORDER);
 const FIELD_PRIME = BigInt('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F');
 
+/**
+ * Tagged hash utility for BIP340
+ * @class TaggedHash
+ */
 class TaggedHash {
+  /**
+   * Create a tagged hash
+   * @param {string} tag - Hash tag
+   * @param {Buffer} data - Data to hash
+   * @returns {Buffer} 32-byte tagged hash
+   */
   static create(tag, data) {
     const tagHash = createHash('sha256').update(tag).digest();
     const taggedData = Buffer.concat([tagHash, tagHash, data]);
@@ -179,11 +209,22 @@ function validateSignature(signature) {
   return sigBuffer;
 }
 
+/**
+ * Schnorr signature implementation (BIP340)
+ * @class Schnorr
+ */
 class Schnorr {
   constructor() {
     this.taggedHash = TaggedHash;
   }
 
+  /**
+   * Sign a message hash with Schnorr
+   * @param {string|Buffer} privateKey - 32-byte private key
+   * @param {string|Buffer} message - 32-byte message hash
+   * @param {Buffer} [auxRand=null] - Optional auxiliary randomness
+   * @returns {Promise<Object>} Signature with r, s, signature, messageHash
+   */
   async sign(privateKey, message, auxRand = null) {
     const keyBuffer = validatePrivateKey(privateKey);
 

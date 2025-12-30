@@ -9,6 +9,11 @@ import { b58decode } from '../base58.js';
 import { decodeSegwit } from '../base32.js';
 import { NETWORK_VERSIONS, CRYPTO_CONSTANTS } from '../../core/constants.js';
 
+/**
+ * Custom error class for decoding operations
+ * @class DecodingError
+ * @extends Error
+ */
 class DecodingError extends Error {
   constructor(message, code, details = {}) {
     super(message);
@@ -17,6 +22,13 @@ class DecodingError extends Error {
     this.details = details;
   }
 }
+
+/**
+ * Decode a WIF-encoded private key
+ * @param {string} wif - WIF string
+ * @returns {Object} Decoded {privateKey, network, compressed}
+ * @throws {DecodingError} If WIF format invalid
+ */
 
 function decodeWIFPrivateKey(wif) {
   if (typeof wif !== 'string') {
@@ -61,6 +73,12 @@ function decodeWIFPrivateKey(wif) {
   };
 }
 
+/**
+ * Decode a legacy (Base58Check) address
+ * @param {string} address - Bitcoin address
+ * @returns {Object} Decoded {hash160, network, type, version}
+ * @throws {DecodingError} If address invalid
+ */
 function decodeLegacyAddress(address) {
   if (typeof address !== 'string') {
     throw new DecodingError('Address must be a string', 'INVALID_TYPE');
@@ -104,6 +122,12 @@ function decodeLegacyAddress(address) {
   };
 }
 
+/**
+ * Decode a SegWit (Bech32/Bech32m) address
+ * @param {string} address - Bech32 address
+ * @returns {Object} Decoded {program, version, network, type}
+ * @throws {DecodingError} If address invalid
+ */
 function decodeSegwitAddress(address) {
   const lowerAddr = address.toLowerCase();
   let hrp;
@@ -136,6 +160,12 @@ function decodeSegwitAddress(address) {
   };
 }
 
+/**
+ * Decode any Bitcoin address (auto-detects type)
+ * @param {string} address - Bitcoin address
+ * @returns {Object} Decoded address information
+ * @throws {DecodingError} If address invalid
+ */
 function decodeAddress(address) {
   if (typeof address !== 'string' || address.length === 0) {
     throw new DecodingError('Address must be a non-empty string', 'INVALID_ADDRESS');
@@ -150,6 +180,12 @@ function decodeAddress(address) {
   return decodeLegacyAddress(address);
 }
 
+/**
+ * Decode an extended key (xprv/xpub/tprv/tpub)
+ * @param {string} extendedKey - Extended key string
+ * @returns {Object} Decoded key information
+ * @throws {DecodingError} If key format invalid
+ */
 function decodeExtendedKey(extendedKey) {
   if (typeof extendedKey !== 'string') {
     throw new DecodingError('Extended key must be a string', 'INVALID_TYPE');

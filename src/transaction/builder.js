@@ -8,6 +8,11 @@
 import { createHash } from 'node:crypto';
 import { getScriptPubKey } from '../utils/address-helpers.js';
 
+/**
+ * Custom error class for transaction building
+ * @class TransactionBuilderError
+ * @extends Error
+ */
 class TransactionBuilderError extends Error {
   constructor(message, code, details = {}) {
     super(message);
@@ -16,6 +21,11 @@ class TransactionBuilderError extends Error {
     this.details = details;
   }
 }
+
+/**
+ * Transaction building constants
+ * @constant {Object}
+ */
 
 const TX_CONSTANTS = {
   VERSION: 2,
@@ -28,7 +38,16 @@ const TX_CONSTANTS = {
   SIGHASH_ANYONECANPAY: 0x80
 };
 
+/**
+ * Bitcoin transaction builder with SegWit/Taproot support
+ * @class TransactionBuilder
+ */
 class TransactionBuilder {
+  /**
+   * Create a transaction builder
+   * @param {string} [network='main'] - Network type
+   * @param {Object} [options={}] - Builder options
+   */
   constructor(network = 'main', options = {}) {
     this.network = network;
     this.version = options.version || TX_CONSTANTS.VERSION;
@@ -38,6 +57,13 @@ class TransactionBuilder {
     this.witnesses = [];
   }
 
+  /**
+   * Add a transaction input
+   * @param {Object} input - Input details
+   * @param {string} input.txid - Previous transaction ID
+   * @param {number} input.vout - Output index
+   * @returns {TransactionBuilder} this
+   */
   addInput(input) {
     if (!input.txid || typeof input.txid !== 'string') {
       throw new TransactionBuilderError('Invalid txid', 'INVALID_TXID');
@@ -60,6 +86,13 @@ class TransactionBuilder {
     return this;
   }
 
+  /**
+   * Add a transaction output
+   * @param {Object} output - Output details
+   * @param {string} [output.address] - Destination address
+   * @param {number} output.value - Amount in satoshis
+   * @returns {TransactionBuilder} this
+   */
   addOutput(output) {
     if (!output.address && !output.scriptPubKey) {
       throw new TransactionBuilderError('Address or scriptPubKey required', 'MISSING_OUTPUT');
@@ -97,6 +130,11 @@ class TransactionBuilder {
     return this;
   }
 
+  /**
+   * Build the transaction
+   * @returns {Object} Built transaction object
+   * @throws {TransactionBuilderError} If no inputs or outputs
+   */
   build() {
     if (this.inputs.length === 0) {
       throw new TransactionBuilderError('No inputs added', 'NO_INPUTS');
@@ -123,6 +161,11 @@ class TransactionBuilder {
     };
   }
 
+  /**
+   * Serialize transaction to raw bytes
+   * @param {Object} [transaction=null] - Transaction to serialize
+   * @returns {Buffer} Serialized transaction
+   */
   serialize(transaction = null) {
     const tx = transaction || this.build();
     const parts = [];
@@ -184,6 +227,11 @@ class TransactionBuilder {
     return Buffer.concat(parts);
   }
 
+  /**
+   * Get transaction ID (txid)
+   * @param {Object} [transaction=null] - Transaction object
+   * @returns {string} Transaction ID in hex
+   */
   getTxid(transaction = null) {
     const tx = transaction || this.build();
     const txCopy = { ...tx, witnesses: [] };

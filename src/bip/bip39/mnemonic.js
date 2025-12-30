@@ -8,6 +8,10 @@
 import { createHash, randomBytes, pbkdf2Sync, timingSafeEqual } from 'node:crypto';
 import ENGLISH_WORDLIST from './wordList_en.js';
 
+/**
+ * BIP39 implementation constants
+ * @constant {Object}
+ */
 const BIP39_CONSTANTS = {
   ENTROPY_BITS: 128,
   CHECKSUM_BITS: 4,
@@ -22,6 +26,14 @@ const BIP39_CONSTANTS = {
   ENTROPY_QUALITY_THRESHOLD: 0.4
 };
 
+/**
+ * Normalize Unicode text using specified form
+ * @param {string} text - Text to normalize
+ * @param {string} [form='NFKD'] - Normalization form
+ * @returns {string} Normalized text
+ * @throws {Error} If input is not a string
+ */
+
 function normalizeUnicode(text, form = 'NFKD') {
   if (typeof text !== 'string') {
     throw new Error('Input must be a string for Unicode normalization');
@@ -29,6 +41,11 @@ function normalizeUnicode(text, form = 'NFKD') {
   return text.normalize(form);
 }
 
+/**
+ * Validate entropy quality using Shannon entropy
+ * @param {Buffer} entropy - Entropy bytes to validate
+ * @returns {Object} Validation result with isValid, score, issues
+ */
 function validateEntropyQuality(entropy) {
   const bytes = Array.from(entropy);
   const byteFrequency = new Map();
@@ -67,7 +84,19 @@ function validateEntropyQuality(entropy) {
   };
 }
 
+/**
+ * BIP39 mnemonic phrase generation and seed derivation
+ * @namespace BIP39
+ */
 const BIP39 = {
+  /**
+   * Generate a new BIP39 mnemonic phrase
+   * @param {Object} [options={}] - Generation options
+   * @param {Buffer} [options.entropy] - Custom entropy (16 bytes)
+   * @param {boolean} [options.skipEntropyValidation] - Skip quality check
+   * @returns {Object} Result with mnemonic, entropyQuality, generationTime
+   * @throws {Error} If entropy is invalid or generation fails
+   */
   generateMnemonic(options = {}) {
     let entropyBytes;
 
@@ -123,6 +152,14 @@ const BIP39 = {
     };
   },
 
+  /**
+   * Derive a seed from a mnemonic phrase
+   * @param {string} mnemonicPhrase - BIP39 mnemonic
+   * @param {string} [passphrase=''] - Optional passphrase
+   * @param {Object} [options={}] - Derivation options
+   * @returns {string} 64-byte seed as hex string
+   * @throws {Error} If mnemonic or passphrase is invalid
+   */
   deriveSeed(mnemonicPhrase, passphrase = '', options = {}) {
     if (!mnemonicPhrase || typeof mnemonicPhrase !== 'string') {
       throw new Error('Mnemonic phrase is required');
@@ -154,6 +191,11 @@ const BIP39 = {
     return seed.toString('hex');
   },
 
+  /**
+   * Validate a mnemonic phrase checksum
+   * @param {string} mnemonicPhrase - Mnemonic to validate
+   * @returns {boolean} True if checksum is valid
+   */
   validateChecksum(mnemonicPhrase) {
     if (!mnemonicPhrase || typeof mnemonicPhrase !== 'string') {
       return false;
@@ -206,10 +248,21 @@ const BIP39 = {
     }
   },
 
+  /**
+   * Validate a mnemonic phrase (alias for validateChecksum)
+   * @param {string} mnemonicPhrase - Mnemonic to validate
+   * @returns {boolean} True if valid
+   */
   validateMnemonic(mnemonicPhrase) {
     return this.validateChecksum(mnemonicPhrase);
   },
 
+  /**
+   * Convert mnemonic back to entropy bytes
+   * @param {string} mnemonicPhrase - Valid mnemonic phrase
+   * @returns {Buffer} Original entropy bytes
+   * @throws {Error} If mnemonic checksum is invalid
+   */
   mnemonicToEntropy(mnemonicPhrase) {
     if (!this.validateChecksum(mnemonicPhrase)) {
       throw new Error('Invalid mnemonic checksum');
@@ -235,6 +288,10 @@ const BIP39 = {
     return Buffer.from(entropyBytes);
   },
 
+  /**
+   * Get the BIP39 English word list
+   * @returns {string[]} Copy of the 2048-word list
+   */
   getWordList() {
     return [...ENGLISH_WORDLIST];
   },

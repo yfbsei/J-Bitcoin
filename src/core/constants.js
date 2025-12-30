@@ -5,6 +5,10 @@
  * @license ISC
  */
 
+/**
+ * Cryptographic constants for secp256k1 curve and key lengths
+ * @constant {Object}
+ */
 const CRYPTO_CONSTANTS = {
   SECP256K1_ORDER: 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141',
   CURVE_ORDER: BigInt('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141'),
@@ -18,6 +22,11 @@ const CRYPTO_CONSTANTS = {
   HASH256_LENGTH: 32
 };
 
+/**
+ * BIP32 HD wallet constants
+ * @constant {Object}
+ */
+
 const BIP32_CONSTANTS = {
   MASTER_KEY_DEPTH: 0,
   ZERO_PARENT_FINGERPRINT: Buffer.alloc(4, 0),
@@ -30,6 +39,10 @@ const BIP32_CONSTANTS = {
   HARDENED_OFFSET: 0x80000000
 };
 
+/**
+ * BIP39 mnemonic constants
+ * @constant {Object}
+ */
 const BIP39_CONSTANTS = {
   ENTROPY_BITS: 128,
   CHECKSUM_BITS: 4,
@@ -43,6 +56,10 @@ const BIP39_CONSTANTS = {
   VALID_WORD_COUNTS: [12, 15, 18, 21, 24]
 };
 
+/**
+ * BIP44 derivation path constants
+ * @constant {Object}
+ */
 const BIP44_CONSTANTS = {
   PURPOSE: 44,
   BITCOIN_COINTYPE: 0,
@@ -52,6 +69,10 @@ const BIP44_CONSTANTS = {
   INTERNAL_CHAIN: 1
 };
 
+/**
+ * Network version bytes for mainnet and testnet
+ * @constant {Object}
+ */
 const NETWORK_VERSIONS = {
   main: {
     name: 'Bitcoin Mainnet',
@@ -79,6 +100,10 @@ const NETWORK_VERSIONS = {
   }
 };
 
+/**
+ * Supported address format types
+ * @constant {Object}
+ */
 const ADDRESS_FORMATS = {
   LEGACY: 'legacy',
   SEGWIT: 'segwit',
@@ -86,6 +111,10 @@ const ADDRESS_FORMATS = {
   TAPROOT: 'taproot'
 };
 
+/**
+ * BIP purpose values for different address types
+ * @constant {Object}
+ */
 const BIP_PURPOSES = {
   LEGACY: 44,
   NESTED_SEGWIT: 49,
@@ -93,12 +122,20 @@ const BIP_PURPOSES = {
   TAPROOT: 86
 };
 
+/**
+ * Encoding alphabet constants
+ * @constant {Object}
+ */
 const ENCODING_CONSTANTS = {
   BASE58_ALPHABET: '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz',
   BECH32_ALPHABET: 'qpzry9x8gf2tvdw0s3jn54khce6mua7l',
   BECH32M_CONSTANT: 0x2bc830a3
 };
 
+/**
+ * Threshold signature scheme constants
+ * @constant {Object}
+ */
 const THRESHOLD_CONSTANTS = {
   MIN_PARTICIPANTS: 2,
   MAX_PARTICIPANTS: 20,
@@ -107,6 +144,10 @@ const THRESHOLD_CONSTANTS = {
   DEFAULT_PARTICIPANTS: 3
 };
 
+/**
+ * Bitcoin transaction constants
+ * @constant {Object}
+ */
 const TRANSACTION_CONSTANTS = {
   MAX_TRANSACTION_SIZE: 100000,
   MAX_INPUTS: 10000,
@@ -119,6 +160,12 @@ const TRANSACTION_CONSTANTS = {
   SIGHASH_ANYONECANPAY: 0x80
 };
 
+/**
+ * Validate and get network configuration
+ * @param {string} network - Network type ('main', 'test', 'mainnet')
+ * @returns {Object} Network configuration
+ * @throws {Error} If network is invalid
+ */
 function validateAndGetNetwork(network) {
   const normalizedNetwork = network === 'main' || network === 'mainnet' ? 'main' : 'test';
   const config = NETWORK_VERSIONS[normalizedNetwork];
@@ -128,6 +175,11 @@ function validateAndGetNetwork(network) {
   return config;
 }
 
+/**
+ * Generate a BIP44 derivation path
+ * @param {Object} [options={}] - Path options
+ * @returns {string} Derivation path string
+ */
 function generateDerivationPath(options = {}) {
   const {
     purpose = BIP_PURPOSES.NATIVE_SEGWIT,

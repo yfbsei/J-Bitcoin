@@ -11,6 +11,11 @@ const BECH32M_CONST = 0x2bc830a3;
 
 const GENERATOR = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
 
+/**
+ * Compute Bech32 polymod checksum
+ * @param {number[]} values - Values to checksum
+ * @returns {number} Checksum value
+ */
 function polymod(values) {
   let chk = 1;
   for (const v of values) {
@@ -53,6 +58,13 @@ function createChecksum(hrp, data, spec) {
   return result;
 }
 
+/**
+ * Encode data as Bech32/Bech32m
+ * @param {string} hrp - Human-readable part
+ * @param {number[]} data - 5-bit values to encode
+ * @param {string} [spec='bech32'] - Encoding spec ('bech32' or 'bech32m')
+ * @returns {string} Encoded address
+ */
 function encode(hrp, data, spec = 'bech32') {
   const checksum = createChecksum(hrp, data, spec);
   const combined = data.concat(checksum);
@@ -63,6 +75,12 @@ function encode(hrp, data, spec = 'bech32') {
   return result;
 }
 
+/**
+ * Decode a Bech32/Bech32m string
+ * @param {string} str - Bech32 string to decode
+ * @returns {Object} Decoded {hrp, data, spec}
+ * @throws {Error} If string invalid or checksum fails
+ */
 function decode(str) {
   if (str.length < 8 || str.length > 90) {
     throw new Error('Invalid bech32 string length');
@@ -105,6 +123,14 @@ function decode(str) {
   return { hrp, data: data.slice(0, -6), spec };
 }
 
+/**
+ * Convert between bit groupings
+ * @param {number[]} data - Input values
+ * @param {number} fromBits - Source bits per value
+ * @param {number} toBits - Target bits per value
+ * @param {boolean} [pad=true] - Add padding if needed
+ * @returns {number[]} Converted values
+ */
 function convertBits(data, fromBits, toBits, pad = true) {
   let acc = 0;
   let bits = 0;
@@ -134,6 +160,13 @@ function convertBits(data, fromBits, toBits, pad = true) {
   return result;
 }
 
+/**
+ * Encode a SegWit address
+ * @param {string} hrp - Human-readable part ('bc' or 'tb')
+ * @param {number} version - Witness version (0-16)
+ * @param {Buffer} program - Witness program
+ * @returns {string} Bech32/Bech32m address
+ */
 function encodeSegwit(hrp, version, program) {
   if (version < 0 || version > 16) {
     throw new Error('Invalid witness version');
@@ -153,6 +186,13 @@ function encodeSegwit(hrp, version, program) {
   return encode(hrp, data, spec);
 }
 
+/**
+ * Decode a SegWit address
+ * @param {string} hrp - Expected human-readable part
+ * @param {string} addr - Bech32 address to decode
+ * @returns {Object} Decoded {version, program}
+ * @throws {Error} If address invalid
+ */
 function decodeSegwit(hrp, addr) {
   const { hrp: decodedHrp, data, spec } = decode(addr);
 

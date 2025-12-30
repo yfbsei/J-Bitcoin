@@ -7,6 +7,11 @@
 
 import { CRYPTO_CONSTANTS } from '../core/constants.js';
 
+/**
+ * Custom error class for validation failures
+ * @class ValidationError
+ * @extends Error
+ */
 class ValidationError extends Error {
   constructor(message, code, details = {}) {
     super(message);
@@ -15,6 +20,15 @@ class ValidationError extends Error {
     this.details = details;
   }
 }
+
+/**
+ * Validate a value is a Buffer with optional length check
+ * @param {*} value - Value to validate
+ * @param {number|null} [expectedLength=null] - Expected byte length
+ * @param {string} [fieldName='value'] - Field name for error messages
+ * @returns {boolean} True if valid
+ * @throws {ValidationError} If validation fails
+ */
 
 function validateBuffer(value, expectedLength = null, fieldName = 'value') {
   if (!Buffer.isBuffer(value) && !(value instanceof Uint8Array)) {
@@ -36,6 +50,14 @@ function validateBuffer(value, expectedLength = null, fieldName = 'value') {
   return true;
 }
 
+/**
+ * Validate buffer length is within range
+ * @param {Buffer} value - Buffer to validate
+ * @param {number} minLength - Minimum length
+ * @param {number} maxLength - Maximum length
+ * @param {string} [fieldName='value'] - Field name
+ * @returns {boolean} True if valid
+ */
 function validateBufferLength(value, minLength, maxLength, fieldName = 'value') {
   validateBuffer(value, null, fieldName);
 
@@ -50,6 +72,14 @@ function validateBufferLength(value, minLength, maxLength, fieldName = 'value') 
   return true;
 }
 
+/**
+ * Validate number is within range
+ * @param {number} value - Number to validate
+ * @param {number} min - Minimum value
+ * @param {number} max - Maximum value
+ * @param {string} [fieldName='value'] - Field name
+ * @returns {boolean} True if valid
+ */
 function validateNumberRange(value, min, max, fieldName = 'value') {
   if (typeof value !== 'number' || isNaN(value)) {
     throw new ValidationError(
@@ -70,6 +100,13 @@ function validateNumberRange(value, min, max, fieldName = 'value') {
   return true;
 }
 
+/**
+ * Validate a hex string
+ * @param {string} value - String to validate
+ * @param {number|null} [expectedLength=null] - Expected length
+ * @param {string} [fieldName='value'] - Field name
+ * @returns {boolean} True if valid
+ */
 function validateHexString(value, expectedLength = null, fieldName = 'value') {
   if (typeof value !== 'string') {
     throw new ValidationError(
@@ -99,6 +136,12 @@ function validateHexString(value, expectedLength = null, fieldName = 'value') {
   return true;
 }
 
+/**
+ * Validate any Bitcoin address (auto-detects type)
+ * @param {string} address - Address to validate
+ * @param {string} [network='main'] - Network type
+ * @returns {Object} Validation result
+ */
 function validateAddress(address, network = 'main') {
   if (typeof address !== 'string' || address.length === 0) {
     throw new ValidationError('Address must be a non-empty string', 'INVALID_ADDRESS');
@@ -160,6 +203,12 @@ function validateBase58Address(address, network = 'main') {
   return { valid: true, type: 'base58', network };
 }
 
+/**
+ * Validate a private key
+ * @param {string|Buffer} key - Private key
+ * @param {string} [fieldName='private key'] - Field name
+ * @returns {Object} Validation result with format
+ */
 function validatePrivateKey(key, fieldName = 'private key') {
   if (typeof key === 'string') {
     if (/^[0-9a-fA-F]{64}$/.test(key)) {
@@ -185,6 +234,12 @@ function validatePrivateKey(key, fieldName = 'private key') {
   throw new ValidationError(`${fieldName} must be string or Buffer`, 'INVALID_TYPE');
 }
 
+/**
+ * Validate a public key
+ * @param {string|Buffer} key - Public key
+ * @param {string} [fieldName='public key'] - Field name
+ * @returns {Object} Validation result with compressed flag
+ */
 function validatePublicKey(key, fieldName = 'public key') {
   let keyBuffer;
 

@@ -7,6 +7,10 @@
 
 import { createHash } from 'node:crypto';
 
+/**
+ * Security constants for RIPEMD160 implementation
+ * @constant {Object}
+ */
 const SECURITY_CONSTANTS = {
   MAX_INPUT_SIZE: 1024 * 1024,
   MAX_VALIDATIONS_PER_SECOND: 1000,
@@ -69,10 +73,21 @@ const FR = [
   (b, c, d) => b ^ c ^ d
 ];
 
+/**
+ * Rotate left operation for 32-bit integers
+ * @param {number} x - Value to rotate
+ * @param {number} n - Number of bits
+ * @returns {number} Rotated value
+ */
 function rotl(x, n) {
   return ((x << n) | (x >>> (32 - n))) >>> 0;
 }
 
+/**
+ * Securely clear sensitive data from memory
+ * @param {Uint8Array|Uint32Array} data - Data to clear
+ * @returns {void}
+ */
 function secureClear(data) {
   if (data instanceof Uint8Array || data instanceof Uint32Array) {
     for (let pass = 0; pass < SECURITY_CONSTANTS.MEMORY_CLEAR_PASSES; pass++) {
@@ -84,6 +99,12 @@ function secureClear(data) {
   }
 }
 
+/**
+ * Compute RIPEMD160 hash of input
+ * @param {Buffer|ArrayBuffer|TypedArray} buffer - Input data
+ * @returns {Buffer} 20-byte hash result
+ * @throws {Error} If input is missing, wrong type, or too large
+ */
 function rmd160(buffer) {
   if (!buffer) {
     throw new Error('Input buffer is required');
@@ -153,6 +174,11 @@ function rmd160(buffer) {
   return result;
 }
 
+/**
+ * Compute HASH160 (SHA256 + RIPEMD160) of input
+ * @param {Buffer} buffer - Input data
+ * @returns {Buffer} 20-byte hash result
+ */
 function hash160(buffer) {
   const sha256Hash = createHash('sha256').update(buffer).digest();
   return rmd160(sha256Hash);

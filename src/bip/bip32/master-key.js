@@ -15,6 +15,11 @@ import {
   validateAndGetNetwork
 } from '../../core/constants.js';
 
+/**
+ * Securely clear sensitive data from a buffer
+ * @param {Buffer} buffer - Buffer to clear
+ * @returns {void}
+ */
 function secureClear(buffer) {
   if (Buffer.isBuffer(buffer)) {
     const randomData = randomBytes(buffer.length);
@@ -23,6 +28,12 @@ function secureClear(buffer) {
   }
 }
 
+/**
+ * Validate a seed for BIP32 master key generation
+ * @param {string|Buffer} seed - Seed as hex string or Buffer
+ * @returns {Buffer} Validated seed buffer
+ * @throws {Error} If seed is missing, wrong type, or wrong length
+ */
 function validateSeed(seed) {
   if (!seed) {
     throw new Error('Seed is required');
@@ -48,6 +59,12 @@ function validateSeed(seed) {
   return seedBuffer;
 }
 
+/**
+ * Encode extended key components to Base58Check format
+ * @param {string} type - Key type ('private' or 'public')
+ * @param {Object} context - Key context with version, depth, chain code, etc.
+ * @returns {string} Base58Check-encoded extended key
+ */
 function encodeExtendedKey(type, context) {
   const buffer = Buffer.alloc(BIP32_CONSTANTS.EXTENDED_KEY_LENGTH);
   let offset = 0;
@@ -82,6 +99,13 @@ function encodeExtendedKey(type, context) {
   return b58encode(buffer);
 }
 
+/**
+ * Generate BIP32 master keys from a seed
+ * @param {string|Buffer} seed - 16-64 byte seed (typically from BIP39)
+ * @param {string} [network='main'] - Network type ('main' or 'test')
+ * @returns {Array} [masterKeys, masterKeyContext]
+ * @throws {Error} If seed is invalid or key generation fails
+ */
 function generateMasterKey(seed, network = 'main') {
   const seedBuffer = validateSeed(seed);
   const networkConfig = validateAndGetNetwork(network);
