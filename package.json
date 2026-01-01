@@ -1,6 +1,6 @@
 {
   "name": "j-bitcoin",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Comprehensive JavaScript/TypeScript Bitcoin (BTC) wallet library with custodial and non-custodial support, hierarchical deterministic keys, threshold signatures, and advanced cryptographic features",
   "main": "index.js",
   "types": "index.d.ts",
@@ -31,8 +31,6 @@
     "format": "prettier --write \"src/**/*.js\" \"index.js\" \"test/**/*.js\" \"*.md\" \"*.json\"",
     "format:check": "prettier --check \"src/**/*.js\" \"index.js\" \"test/**/*.js\" \"*.md\" \"*.json\"",
     "validate": "npm run lint:check && npm run format:check && npm run test",
-    "prepare": "npm run build:docs",
-    "prepublishOnly": "npm run validate",
     "audit:security": "npm audit --audit-level moderate",
     "audit:fix": "npm audit fix",
     "examples": "node examples/basic-usage.js",
