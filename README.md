@@ -59,7 +59,7 @@ const wif = wallet.exportWIF(0, 0, 0, 'segwit');
 const wifWallet = CustodialWallet.fromWIF(wif);
 ```
 
-### Non-Custodial Threshold Wallet (nChain TSS)
+### Non-Custodial Threshold Wallet (TSS)
 
 ```javascript
 import { NonCustodialWallet } from 'j-bitcoin';
