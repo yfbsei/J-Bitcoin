@@ -91,45 +91,74 @@ function validateEntropyQuality(entropy) {
 const BIP39 = {
   /**
    * Generate a new BIP39 mnemonic phrase
-   * @param {Object} [options={}] - Generation options
-   * @param {Buffer} [options.entropy] - Custom entropy (16 bytes)
-   * @param {boolean} [options.skipEntropyValidation] - Skip quality check
+   * @param {number|Object} [strengthOrOptions=128] - Entropy bits (128,160,192,224,256) or options object
+   * @param {Buffer} [strengthOrOptions.entropy] - Custom entropy
+   * @param {number} [strengthOrOptions.strength=128] - Entropy bits  
+   * @param {boolean} [strengthOrOptions.skipEntropyValidation] - Skip quality check
    * @returns {Object} Result with mnemonic, entropyQuality, generationTime
    * @throws {Error} If entropy is invalid or generation fails
    */
-  generateMnemonic(options = {}) {
-    let entropyBytes;
+  generateMnemonic(strengthOrOptions = 128) {
+    let options = {};
+    let strength = 128;
 
+    // Handle both number and object parameters
+    if (typeof strengthOrOptions === 'number') {
+      strength = strengthOrOptions;
+    } else if (typeof strengthOrOptions === 'object') {
+      options = strengthOrOptions;
+      strength = options.strength || 128;
+    }
+
+    // Validate strength
+    const validStrengths = [128, 160, 192, 224, 256];
+    if (!validStrengths.includes(strength)) {
+      throw new Error(`Invalid strength: ${strength}. Must be one of: ${validStrengths.join(', ')}`);
+    }
+
+    // Calculate parameters based on strength
+    const entropyBytes = strength / 8;
+    const checksumBits = strength / 32;
+    const totalBits = strength + checksumBits;
+    const wordCount = totalBits / 11;
+
+    let entropyBuffer;
     if (options.entropy) {
       if (!Buffer.isBuffer(options.entropy)) {
         throw new Error('Custom entropy must be a Buffer');
       }
-      entropyBytes = options.entropy;
+      if (options.entropy.length !== entropyBytes) {
+        throw new Error(`Entropy must be ${entropyBytes} bytes for ${strength}-bit strength`);
+      }
+      entropyBuffer = options.entropy;
     } else {
-      entropyBytes = randomBytes(BIP39_CONSTANTS.ENTROPY_BITS / 8);
+      entropyBuffer = randomBytes(entropyBytes);
     }
 
-    const qualityResult = validateEntropyQuality(entropyBytes);
+    const qualityResult = validateEntropyQuality(entropyBuffer);
     if (!qualityResult.isValid && !options.skipEntropyValidation) {
       throw new Error(`Entropy quality validation failed: ${qualityResult.issues.join(', ')}`);
     }
 
-    const entropyHash = createHash('sha256').update(entropyBytes).digest();
-    const entropyBinary = Array.from(entropyBytes)
+    const entropyHash = createHash('sha256').update(entropyBuffer).digest();
+    const entropyBinary = Array.from(entropyBuffer)
       .map(byte => byte.toString(2).padStart(8, '0'))
       .join('');
 
-    const checksumBinary = entropyHash[0]
-      .toString(2)
-      .padStart(8, '0')
-      .slice(0, BIP39_CONSTANTS.CHECKSUM_BITS);
+    // Get checksum bits from hash
+    let checksumBinary = '';
+    const fullBytesNeeded = Math.ceil(checksumBits / 8);
+    for (let i = 0; i < fullBytesNeeded; i++) {
+      checksumBinary += entropyHash[i].toString(2).padStart(8, '0');
+    }
+    checksumBinary = checksumBinary.slice(0, checksumBits);
 
     const completeBinary = entropyBinary + checksumBinary;
     const mnemonicWords = [];
 
-    for (let i = 0; i < BIP39_CONSTANTS.WORD_COUNT; i++) {
-      const startBit = i * BIP39_CONSTANTS.BITS_PER_WORD;
-      const endBit = startBit + BIP39_CONSTANTS.BITS_PER_WORD;
+    for (let i = 0; i < wordCount; i++) {
+      const startBit = i * 11;
+      const endBit = startBit + 11;
       const wordIndex = parseInt(completeBinary.slice(startBit, endBit), 2);
 
       if (wordIndex >= ENGLISH_WORDLIST.length) {

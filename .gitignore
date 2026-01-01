@@ -193,3 +193,5 @@ certificates/
 test-wallet-*
 local-test-*
 /tests
+
+Threshold-Signatures-whitepaper-nchain.txt

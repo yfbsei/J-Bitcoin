@@ -1,0 +1,14 @@
+{
+  "step": 1,
+  "results": [
+    {
+      "step": 1,
+      "txid": "e83d35baad3586b17de435994a8702b83c03839c8b26f55356ac4b5b9c84fc9a",
+      "type": "split",
+      "amounts": [
+        30247,
+        30247
+      ]
+    }
+  ]
+}

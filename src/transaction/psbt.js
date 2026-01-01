@@ -87,6 +87,335 @@ class PSBT {
     this.outputs = [];
   }
 
+  /**
+   * Parse PSBT from raw buffer
+   * @param {Buffer} data - Raw PSBT bytes
+   * @returns {PSBT} Parsed PSBT
+   */
+  static fromBuffer(data) {
+    if (!Buffer.isBuffer(data)) {
+      data = Buffer.from(data);
+    }
+
+    // Check magic bytes
+    const magic = data.slice(0, 5);
+    if (!magic.equals(PSBT_CONSTANTS.MAGIC)) {
+      throw new PSBTError('Invalid PSBT magic bytes', 'INVALID_MAGIC');
+    }
+
+    const psbt = new PSBT();
+    let offset = 5;
+
+    // Parse global map
+    const globalResult = PSBT._parseMap(data, offset);
+    offset = globalResult.offset;
+
+    for (const [key, value] of globalResult.entries) {
+      const keyType = key[0];
+      const keyData = key.slice(1);
+
+      if (keyType === PSBT_CONSTANTS.GLOBAL_UNSIGNED_TX) {
+        psbt.global.unsignedTx = PSBT._parseUnsignedTx(value);
+      } else if (keyType === PSBT_CONSTANTS.GLOBAL_XPUB) {
+        psbt.global.xpubs.set(keyData.toString('hex'), value);
+      }
+    }
+
+    if (!psbt.global.unsignedTx) {
+      throw new PSBTError('PSBT missing unsigned transaction', 'MISSING_TX');
+    }
+
+    const inputCount = psbt.global.unsignedTx.inputs.length;
+    const outputCount = psbt.global.unsignedTx.outputs.length;
+
+    // Parse input maps
+    for (let i = 0; i < inputCount; i++) {
+      const inputResult = PSBT._parseMap(data, offset);
+      offset = inputResult.offset;
+
+      const input = {
+        nonWitnessUtxo: null,
+        witnessUtxo: null,
+        partialSigs: new Map(),
+        sighashType: null,
+        redeemScript: null,
+        witnessScript: null,
+        finalScriptSig: null,
+        finalScriptWitness: null,
+        tapKeySig: null,
+        tapInternalKey: null
+      };
+
+      for (const [key, value] of inputResult.entries) {
+        const keyType = key[0];
+        const keyData = key.slice(1);
+
+        switch (keyType) {
+          case PSBT_CONSTANTS.IN_NON_WITNESS_UTXO:
+            input.nonWitnessUtxo = value;
+            break;
+          case PSBT_CONSTANTS.IN_WITNESS_UTXO:
+            input.witnessUtxo = PSBT._parseWitnessUtxo(value);
+            break;
+          case PSBT_CONSTANTS.IN_PARTIAL_SIG:
+            input.partialSigs.set(keyData.toString('hex'), value);
+            break;
+          case PSBT_CONSTANTS.IN_SIGHASH_TYPE:
+            input.sighashType = value.readUInt32LE(0);
+            break;
+          case PSBT_CONSTANTS.IN_REDEEM_SCRIPT:
+            input.redeemScript = value;
+            break;
+          case PSBT_CONSTANTS.IN_WITNESS_SCRIPT:
+            input.witnessScript = value;
+            break;
+          case PSBT_CONSTANTS.IN_FINAL_SCRIPTSIG:
+            input.finalScriptSig = value;
+            break;
+          case PSBT_CONSTANTS.IN_FINAL_SCRIPTWITNESS:
+            input.finalScriptWitness = PSBT._parseWitness(value);
+            break;
+          case PSBT_CONSTANTS.IN_TAP_KEY_SIG:
+            input.tapKeySig = value;
+            break;
+          case PSBT_CONSTANTS.IN_TAP_INTERNAL_KEY:
+            input.tapInternalKey = value;
+            break;
+        }
+      }
+
+      psbt.inputs.push(input);
+    }
+
+    // Parse output maps
+    for (let i = 0; i < outputCount; i++) {
+      const outputResult = PSBT._parseMap(data, offset);
+      offset = outputResult.offset;
+
+      const output = {
+        redeemScript: null,
+        witnessScript: null,
+        tapInternalKey: null,
+        tapTree: null
+      };
+
+      for (const [key, value] of outputResult.entries) {
+        const keyType = key[0];
+
+        switch (keyType) {
+          case PSBT_CONSTANTS.OUT_REDEEM_SCRIPT:
+            output.redeemScript = value;
+            break;
+          case PSBT_CONSTANTS.OUT_WITNESS_SCRIPT:
+            output.witnessScript = value;
+            break;
+          case PSBT_CONSTANTS.OUT_TAP_INTERNAL_KEY:
+            output.tapInternalKey = value;
+            break;
+          case PSBT_CONSTANTS.OUT_TAP_TREE:
+            output.tapTree = value;
+            break;
+        }
+      }
+
+      psbt.outputs.push(output);
+    }
+
+    return psbt;
+  }
+
+  /**
+   * Parse PSBT from base64 string
+   * @param {string} base64 - Base64-encoded PSBT
+   * @returns {PSBT} Parsed PSBT
+   */
+  static fromBase64(base64) {
+    const data = Buffer.from(base64, 'base64');
+    return PSBT.fromBuffer(data);
+  }
+
+  /**
+   * Parse PSBT from hex string
+   * @param {string} hex - Hex-encoded PSBT
+   * @returns {PSBT} Parsed PSBT
+   */
+  static fromHex(hex) {
+    const data = Buffer.from(hex, 'hex');
+    return PSBT.fromBuffer(data);
+  }
+
+  /**
+   * Parse a key-value map from PSBT data
+   * @private
+   */
+  static _parseMap(data, offset) {
+    const entries = [];
+
+    while (offset < data.length) {
+      // Read key length
+      const keyLenResult = PSBT._readVarInt(data, offset);
+      const keyLen = keyLenResult.value;
+      offset = keyLenResult.offset;
+
+      // Separator
+      if (keyLen === 0) {
+        break;
+      }
+
+      // Read key
+      const key = data.slice(offset, offset + keyLen);
+      offset += keyLen;
+
+      // Read value length
+      const valueLenResult = PSBT._readVarInt(data, offset);
+      const valueLen = valueLenResult.value;
+      offset = valueLenResult.offset;
+
+      // Read value
+      const value = data.slice(offset, offset + valueLen);
+      offset += valueLen;
+
+      entries.push([key, value]);
+    }
+
+    return { entries, offset };
+  }
+
+  /**
+   * Read variable-length integer
+   * @private
+   */
+  static _readVarInt(data, offset) {
+    const first = data[offset];
+
+    if (first < 0xfd) {
+      return { value: first, offset: offset + 1 };
+    } else if (first === 0xfd) {
+      return { value: data.readUInt16LE(offset + 1), offset: offset + 3 };
+    } else if (first === 0xfe) {
+      return { value: data.readUInt32LE(offset + 1), offset: offset + 5 };
+    } else {
+      return { value: Number(data.readBigUInt64LE(offset + 1)), offset: offset + 9 };
+    }
+  }
+
+  /**
+   * Parse unsigned transaction from PSBT
+   * @private
+   */
+  static _parseUnsignedTx(data) {
+    let offset = 0;
+
+    const version = data.readUInt32LE(offset);
+    offset += 4;
+
+    // Input count
+    const inputCountResult = PSBT._readVarInt(data, offset);
+    const inputCount = inputCountResult.value;
+    offset = inputCountResult.offset;
+
+    const inputs = [];
+    for (let i = 0; i < inputCount; i++) {
+      const hash = data.slice(offset, offset + 32);
+      offset += 32;
+
+      const index = data.readUInt32LE(offset);
+      offset += 4;
+
+      // scriptSig length (should be 0)
+      const scriptLenResult = PSBT._readVarInt(data, offset);
+      offset = scriptLenResult.offset + scriptLenResult.value;
+
+      const sequence = data.readUInt32LE(offset);
+      offset += 4;
+
+      inputs.push({ hash, index, sequence });
+    }
+
+    // Output count
+    const outputCountResult = PSBT._readVarInt(data, offset);
+    const outputCount = outputCountResult.value;
+    offset = outputCountResult.offset;
+
+    const outputs = [];
+    for (let i = 0; i < outputCount; i++) {
+      const amount = Number(data.readBigUInt64LE(offset));
+      offset += 8;
+
+      const scriptLenResult = PSBT._readVarInt(data, offset);
+      const scriptLen = scriptLenResult.value;
+      offset = scriptLenResult.offset;
+
+      const script = data.slice(offset, offset + scriptLen);
+      offset += scriptLen;
+
+      outputs.push({ amount, script });
+    }
+
+    const locktime = data.readUInt32LE(offset);
+
+    return { version, inputs, outputs, locktime };
+  }
+
+  /**
+   * Parse witness UTXO
+   * @private
+   */
+  static _parseWitnessUtxo(data) {
+    let offset = 0;
+
+    const amount = Number(data.readBigUInt64LE(offset));
+    offset += 8;
+
+    const scriptLenResult = PSBT._readVarInt(data, offset);
+    const scriptLen = scriptLenResult.value;
+    offset = scriptLenResult.offset;
+
+    const scriptPubKey = data.slice(offset, offset + scriptLen);
+
+    return { amount, scriptPubKey };
+  }
+
+  /**
+   * Parse witness stack
+   * @private
+   */
+  static _parseWitness(data) {
+    const items = [];
+    let offset = 0;
+
+    const countResult = PSBT._readVarInt(data, offset);
+    const count = countResult.value;
+    offset = countResult.offset;
+
+    for (let i = 0; i < count; i++) {
+      const lenResult = PSBT._readVarInt(data, offset);
+      const len = lenResult.value;
+      offset = lenResult.offset;
+
+      items.push(data.slice(offset, offset + len));
+      offset += len;
+    }
+
+    return items;
+  }
+
+  /**
+   * Export PSBT as base64 string
+   * @returns {string} Base64-encoded PSBT
+   */
+  toBase64() {
+    return this.serialize().toString('base64');
+  }
+
+  /**
+   * Export PSBT as hex string
+   * @returns {string} Hex-encoded PSBT
+   */
+  toHex() {
+    return this.serialize().toString('hex');
+  }
+
   static fromTransaction(transaction) {
     const psbt = new PSBT();
 

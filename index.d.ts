@@ -496,6 +496,222 @@ declare module 'j-bitcoin' {
     };
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // TRANSACTION MODULE
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    /** Sighash type constants */
+    export const SIGHASH: {
+        ALL: 0x01;
+        NONE: 0x02;
+        SINGLE: 0x03;
+        ANYONECANPAY: 0x80;
+        DEFAULT: 0x00;
+    };
+
+    /** BIP143 SegWit sighash calculator */
+    export class BIP143 {
+        static hashPrevouts(inputs: Array<{ txid: string; vout: number }>, sighashType: number): Buffer;
+        static hashSequence(inputs: Array<{ sequence?: number }>, sighashType: number): Buffer;
+        static hashOutputs(outputs: Array<{ value: number; scriptPubKey: Buffer }>, inputIndex: number, sighashType: number): Buffer;
+        static calculate(tx: Transaction, inputIndex: number, scriptCode: Buffer, value: number, sighashType?: number): Buffer;
+        static forP2WPKH(tx: Transaction, inputIndex: number, pubkeyHash: Buffer, value: number, sighashType?: number): Buffer;
+    }
+
+    /** BIP341 Taproot sighash calculator */
+    export class BIP341 {
+        static shaPrevouts(inputs: Array<{ txid: string; vout: number }>): Buffer;
+        static shaAmounts(prevouts: Array<{ value: number }>): Buffer;
+        static shaScriptPubkeys(prevouts: Array<{ scriptPubKey: Buffer }>): Buffer;
+        static shaSequences(inputs: Array<{ sequence?: number }>): Buffer;
+        static shaOutputs(outputs: Array<{ value: number; scriptPubKey: Buffer }>): Buffer;
+        static calculate(tx: Transaction, inputIndex: number, prevouts: Array<{ value: number; scriptPubKey: Buffer }>, sighashType?: number, annex?: Buffer): Buffer;
+        static forScriptPath(tx: Transaction, inputIndex: number, prevouts: Array<any>, tapLeafHash: Buffer, keyVersion?: Buffer, sighashType?: number, annex?: Buffer): Buffer;
+    }
+
+    /** Legacy sighash calculator */
+    export class LegacySighash {
+        static calculate(tx: Transaction, inputIndex: number, subscript: Buffer, sighashType?: number): Buffer;
+    }
+
+    /** Unified sighash calculator */
+    export class SighashCalculator {
+        static calculate(tx: Transaction, inputIndex: number, prevout: { value: number; scriptPubKey: Buffer; type?: string }, sighashType?: number, options?: any): Buffer;
+    }
+
+    /** Bitcoin opcodes */
+    export const OPCODES: {
+        OP_0: 0x00;
+        OP_1: 0x51;
+        OP_DUP: 0x76;
+        OP_HASH160: 0xa9;
+        OP_EQUALVERIFY: 0x88;
+        OP_CHECKSIG: 0xac;
+        OP_RETURN: 0x6a;
+        OP_CHECKLOCKTIMEVERIFY: 0xb1;
+        OP_CHECKSEQUENCEVERIFY: 0xb2;
+        [key: string]: number;
+    };
+
+    /** Opcode name lookup */
+    export const OPCODE_NAMES: { [code: number]: string };
+
+    /** Script builder */
+    export class ScriptBuilder {
+        addOp(opcode: number): this;
+        pushData(data: Buffer | string): this;
+        pushNumber(num: number): this;
+        build(): Buffer;
+        reset(): this;
+
+        static createP2PKH(pubkeyHash: Buffer): Buffer;
+        static createP2PKHFromPubkey(publicKey: Buffer): Buffer;
+        static createP2SH(scriptHash: Buffer): Buffer;
+        static createP2WPKH(pubkeyHash: Buffer): Buffer;
+        static createP2WPKHFromPubkey(publicKey: Buffer): Buffer;
+        static createP2WSH(scriptHash: Buffer): Buffer;
+        static createP2TR(xOnlyPubkey: Buffer): Buffer;
+        static createOpReturn(data: Buffer | string): Buffer;
+        static createP2PKHScriptSig(signature: Buffer, publicKey: Buffer): Buffer;
+        static createP2SHScriptSig(pushData: Buffer[], redeemScript: Buffer): Buffer;
+        static createMultisig(m: number, publicKeys: Buffer[]): Buffer;
+        static createCLTV(locktime: number, pubkeyHash: Buffer): Buffer;
+        static createCSV(sequence: number, pubkeyHash: Buffer): Buffer;
+        static parse(script: Buffer): Array<{ type: string; value: any }>;
+        static disassemble(script: Buffer): string;
+        static detectType(script: Buffer): { type: string; hash?: Buffer; program?: Buffer };
+    }
+
+    /** Witness builder */
+    export class WitnessBuilder {
+        static buildP2WPKH(signature: Buffer, publicKey: Buffer): Buffer[];
+        static buildP2WSH(stackItems: Buffer[], witnessScript: Buffer): Buffer[];
+        static buildP2WSHMultisig(signatures: Buffer[], redeemScript: Buffer): Buffer[];
+        static buildP2TRKeyPath(schnorrSignature: Buffer): Buffer[];
+        static buildP2TRScriptPath(stackItems: Buffer[], tapscript: Buffer, controlBlock: Buffer): Buffer[];
+        static buildControlBlock(internalPubkey: Buffer, leafVersion?: number, merklePath?: Buffer[]): Buffer;
+        static calculateTapleafHash(script: Buffer, leafVersion?: number): Buffer;
+        static calculateTapbranchHash(left: Buffer, right: Buffer): Buffer;
+        static calculateTaptweak(internalPubkey: Buffer, merkleRoot?: Buffer): Buffer;
+        static serialize(witnessStack: Buffer[]): Buffer;
+        static parse(data: Buffer): Buffer[];
+        static validate(witnessStack: Buffer[], outputType: string): { valid: boolean; error?: string };
+    }
+
+    /** Transaction builder with signing */
+    export class TransactionBuilder {
+        network: BitcoinNetwork;
+        version: number;
+        locktime: number;
+        inputs: any[];
+        outputs: any[];
+        witnesses: Buffer[][];
+
+        constructor(network?: BitcoinNetwork, options?: { version?: number; locktime?: number });
+
+        addInput(input: {
+            txid: string;
+            vout: number;
+            value?: number;
+            scriptPubKey?: Buffer | string;
+            address?: string;
+            type?: string;
+            sequence?: number;
+        }): this;
+
+        addOutput(output: {
+            address?: string;
+            value: number;
+            scriptPubKey?: Buffer;
+        }): this;
+
+        addOpReturn(data: Buffer | string): this;
+        setLocktime(locktime: number): this;
+        setVersion(version: number): this;
+        enableRBF(inputIndex?: number): this;
+        setInputSequence(inputIndex: number, sequence: number): this;
+
+        signInput(inputIndex: number, privateKey: Buffer | string, sighashType?: number): Promise<this>;
+        signAllInputs(privateKey: Buffer | string, sighashType?: number): Promise<this>;
+        signInputs(signingInfo: Array<{ inputIndex: number; privateKey: Buffer | string; sighashType?: number }>): Promise<this>;
+        addWitness(inputIndex: number, witnessStack: Buffer[]): this;
+
+        build(): Transaction;
+        serialize(transaction?: Transaction): Buffer;
+        toHex(): string;
+        getTxid(transaction?: Transaction): string;
+        getWtxid(): string;
+        calculateFee(feeRate?: number): number;
+        getVirtualSize(): number;
+        getWeight(): number;
+        isFullySigned(): boolean;
+        clone(): TransactionBuilder;
+        reset(): this;
+    }
+
+    /** Transaction builder constants */
+    export const TX_CONSTANTS: {
+        VERSION: 2;
+        DEFAULT_SEQUENCE: 0xffffffff;
+        RBF_SEQUENCE: 0xfffffffd;
+        DEFAULT_LOCKTIME: 0;
+        DUST_LIMIT: 546;
+        SIGHASH_ALL: 0x01;
+        SIGHASH_NONE: 0x02;
+        SIGHASH_SINGLE: 0x03;
+        SIGHASH_ANYONECANPAY: 0x80;
+        SIGHASH_DEFAULT: 0x00;
+    };
+
+    /** PSBT (Partially Signed Bitcoin Transaction) */
+    export class PSBT {
+        global: { unsignedTx: any; xpubs: Map<string, Buffer> };
+        inputs: any[];
+        outputs: any[];
+
+        constructor();
+
+        static fromBuffer(data: Buffer): PSBT;
+        static fromBase64(base64: string): PSBT;
+        static fromHex(hex: string): PSBT;
+        static fromTransaction(transaction: Transaction): PSBT;
+
+        addInput(inputData: any): number;
+        addOutput(outputData: any): number;
+        setWitnessUtxo(inputIndex: number, witnessUtxo: { amount: number; scriptPubKey: Buffer }): this;
+        addPartialSignature(inputIndex: number, pubkey: Buffer, signature: Buffer): this;
+        setTapKeySig(inputIndex: number, signature: Buffer): this;
+        finalizeInput(inputIndex: number): this;
+        finalizeAllInputs(): this;
+        isFinalized(): boolean;
+        extractTransaction(): Transaction;
+        serialize(): Buffer;
+        toBase64(): string;
+        toHex(): string;
+        clone(): PSBT;
+    }
+
+    /** UTXO Manager */
+    export class UTXOManager {
+        constructor(utxos?: UTXO[]);
+        addUTXO(utxo: UTXO): this;
+        removeUTXO(txid: string, vout: number): this;
+        markSpent(txid: string, vout: number): this;
+        getBalance(): number;
+        getAvailableUTXOs(): UTXO[];
+        selectUTXOs(targetAmount: number, feeRate?: number, strategy?: string): {
+            utxos: UTXO[];
+            totalValue: number;
+            fee: number;
+            change: number;
+        };
+        estimateFee(inputCount: number, outputCount: number, feeRate?: number, inputType?: string): number;
+        shouldConsolidate(): boolean;
+        getConsolidationUTXOs(maxCount?: number): UTXO[];
+        toJSON(): any;
+        clear(): this;
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // CONSTANTS
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

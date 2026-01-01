@@ -76,6 +76,46 @@ export * from './src/core/constants.js';
 
 export * from './src/transaction/builder.js';
 export * from './src/transaction/utxo-manager.js';
+export * from './src/transaction/psbt.js';
+
+// Sighash Calculation (BIP143, BIP341)
+export {
+  SighashCalculator,
+  BIP143,
+  BIP341,
+  LegacySighash,
+  SIGHASH
+} from './src/transaction/sighash.js';
+
+// Script Building
+export {
+  ScriptBuilder,
+  OPCODES,
+  OPCODE_NAMES,
+  ScriptError
+} from './src/transaction/script-builder.js';
+
+// Witness Building
+export {
+  WitnessBuilder,
+  WitnessError
+} from './src/transaction/witness-builder.js';
+
+// Transaction Parsing
+export {
+  TransactionParser,
+  TransactionParseError
+} from './src/transaction/parser.js';
+
+// BIP322 Message Signing
+export {
+  BIP322,
+  BIP322Error,
+  BIP322_CONSTANTS
+} from './src/transaction/message-signing.js';
+
+// BIP49 - Wrapped SegWit
+export { BIP49, BIP49_CONSTANTS } from './src/bip/bip49.js';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TAPROOT (BIP341)
@@ -138,7 +178,7 @@ export const BIP_COMPLIANCE = Object.freeze({
   BIP32: true,
   BIP39: true,
   BIP44: true,
-  BIP49: false,
+  BIP49: true,
   BIP84: true,
   BIP86: true,
   BIP141: true,
@@ -167,6 +207,12 @@ import { BIP39 } from './src/bip/bip39/mnemonic.js';
 import { BECH32 } from './src/bip/BIP173-BIP350.js';
 import { generateMasterKey } from './src/bip/bip32/master-key.js';
 import { derive } from './src/bip/bip32/derive.js';
+import { TransactionBuilder } from './src/transaction/builder.js';
+import { SighashCalculator, BIP143, BIP341 } from './src/transaction/sighash.js';
+import { ScriptBuilder, OPCODES } from './src/transaction/script-builder.js';
+import { WitnessBuilder } from './src/transaction/witness-builder.js';
+import { PSBT } from './src/transaction/psbt.js';
+import { UTXOManager } from './src/transaction/utxo-manager.js';
 
 export default {
   // Wallets
@@ -186,6 +232,17 @@ export default {
   BECH32,
   fromSeed: generateMasterKey,
   derive,
+
+  // Transactions
+  TransactionBuilder,
+  SighashCalculator,
+  BIP143,
+  BIP341,
+  ScriptBuilder,
+  OPCODES,
+  WitnessBuilder,
+  PSBT,
+  UTXOManager,
 
   // Configuration
   FEATURES,
